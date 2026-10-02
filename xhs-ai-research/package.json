@@ -1,0 +1,14 @@
+{
+  "name": "xhs-ai-research",
+  "version": "1.0.0",
+  "private": true,
+  "description": "小红书笔记「转AI产品后，我做用研的3个变化」配图源文件（HTML → PNG）",
+  "type": "module",
+  "scripts": {
+    "fetch-fonts": "bash scripts/fetch-fonts.sh",
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.12.0"
+  }
+}

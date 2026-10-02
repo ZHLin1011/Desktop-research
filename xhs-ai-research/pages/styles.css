@@ -1,0 +1,509 @@
+@font-face {
+  font-family: "Noto Sans SC";
+  src: url("../assets/fonts/NotoSansSC-VF.ttf") format("truetype");
+  font-weight: 100 900;
+}
+@font-face {
+  font-family: "Bitter";
+  src: url("../assets/fonts/Bitter-VF.ttf") format("truetype");
+  font-weight: 100 900;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("../assets/fonts/Inter-VF.ttf") format("truetype");
+  font-weight: 100 900;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("../assets/fonts/JetBrainsMono-VF.ttf") format("truetype");
+  font-weight: 100 800;
+}
+
+/* 取色自账号历史笔记：标题蓝 #22509E、黄色高亮 #FAE75A→#F8D347、浅蓝渐变底 #E1E9FC→#FAFBFF */
+:root {
+  --blue: #22509e;
+  --blue-deep: #173f82;
+  --blue-mid: #2c5fb3;
+  --blue-bright: #3b6fd6;
+  --blue-bar: #5178c7;
+  --lav: #d6dcf4;
+  --lav-soft: #e8ecfa;
+  --panel: #f0f4fd;
+  --mint: #dff6e6;
+  --cream: #fef1ce;
+  --pink: #fde4e4;
+  --yellow-1: #fbe95c;
+  --yellow-2: #f7d145;
+  --ink: #111318;
+  --ink-2: #3b4150;
+  --ink-3: #7b8294;
+  --ink-4: #a9afbd;
+  --line: #1c1f26;
+  --hair: #e1e6f2;
+  --red: #e5484d;
+  --green: #22a06b;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 1080px;
+  height: 1440px;
+}
+
+body {
+  font-family: "Noto Sans SC", sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.page {
+  position: relative;
+  width: 1080px;
+  height: 1440px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #e1e9fc 0%, #edf1fe 34%, #f7f9ff 68%, #fbfcff 100%);
+}
+
+.slab {
+  font-family: "Bitter", serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.en {
+  font-family: "Inter", "Noto Sans SC", sans-serif;
+}
+
+.num {
+  font-family: "Inter", sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.emo {
+  display: inline-block;
+  height: 1.08em;
+  width: auto;
+  vertical-align: -0.2em;
+}
+
+.blue {
+  color: var(--blue);
+}
+
+/* ───────── 封面 ───────── */
+
+.cover {
+  padding: 172px 78px 0;
+}
+
+.cover-title {
+  font-size: 112px;
+  font-weight: 900;
+  line-height: 1.26;
+  color: var(--blue);
+  letter-spacing: 0.01em;
+}
+
+.cover-title .slab {
+  font-size: 1.04em;
+}
+
+.cover-title .emo {
+  height: 1.12em;
+  vertical-align: -0.18em;
+  margin-left: 14px;
+}
+
+.marker {
+  background: linear-gradient(180deg, transparent 0 46%, var(--yellow-1) 46%, var(--yellow-2) 92%, transparent 92%);
+  padding: 0 8px;
+  margin: 0 -4px;
+  border-radius: 4px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 46px;
+  padding: 14px 30px;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--ink);
+  border-radius: 20px;
+  background: linear-gradient(100deg, var(--yellow-1), var(--yellow-2));
+  box-shadow: 0 6px 16px rgba(226, 180, 30, 0.22);
+}
+
+.pill .slab {
+  font-weight: 700;
+}
+
+.contrast {
+  margin-top: 46px;
+}
+
+.contrast .before {
+  font-size: 31px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.contrast .after {
+  margin-top: 12px;
+  font-size: 41px;
+  font-weight: 800;
+  color: var(--blue);
+}
+
+.contrast .after .emo {
+  margin-left: 6px;
+}
+
+.preview-row {
+  position: absolute;
+  left: 78px;
+  right: 78px;
+  bottom: 96px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 26px;
+}
+
+.pcard {
+  position: relative;
+  height: 330px;
+  padding: 34px 26px 26px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 2px solid #fff;
+  box-shadow: 0 18px 40px rgba(34, 80, 158, 0.13), 0 2px 6px rgba(34, 80, 158, 0.06);
+  text-align: center;
+}
+
+.pcard .no {
+  position: absolute;
+  top: 22px;
+  left: 26px;
+  font-family: "Bitter", serif;
+  font-weight: 800;
+  font-size: 34px;
+  color: var(--blue);
+  opacity: 0.85;
+}
+
+.pcard img {
+  width: 128px;
+  height: 128px;
+  margin-top: 8px;
+}
+
+.pcard b {
+  display: block;
+  margin-top: 18px;
+  font-size: 34px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.pcard small {
+  display: block;
+  margin-top: 8px;
+  font-size: 25px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* ───────── 内页通用 ───────── */
+
+.inner {
+  padding: 84px 50px 0;
+}
+
+.kicker {
+  text-align: center;
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--blue-mid);
+}
+
+.h1 {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 80px;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--blue);
+}
+
+.h1 .slab {
+  font-size: 1.02em;
+}
+
+.lead {
+  margin: 22px auto 0;
+  max-width: 940px;
+  text-align: center;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.lead b {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.sec {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.footer {
+  position: absolute;
+  left: 50px;
+  right: 50px;
+  bottom: 64px;
+  text-align: center;
+  font-size: 29px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.footer .muted {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.mock-note {
+  width: 980px;
+  margin: 10px auto 0;
+  text-align: right;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--ink-4);
+}
+
+.quote {
+  position: relative;
+  margin: 26px auto 0;
+  padding: 24px 34px 24px 96px;
+  border-radius: 26px;
+  background: linear-gradient(100deg, #fff8d6, #fdf0bf);
+  border: 2px solid #f4dc7c;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.quote .emo {
+  position: absolute;
+  left: 30px;
+  top: 26px;
+  height: 50px;
+}
+
+.quote b {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+/* 黑描边方块：沿用「需求挖掘」系列的框图语言 */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 22px;
+  border: 2.5px solid var(--line);
+  border-radius: 18px;
+  background: var(--lav);
+  font-size: 27px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.step.alt {
+  background: var(--mint);
+}
+
+.step.warm {
+  background: var(--cream);
+}
+
+.step .emo {
+  height: 36px;
+}
+
+.arrow {
+  width: 0;
+  height: 0;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 18px solid var(--blue-bar);
+  flex: none;
+}
+
+/* ───────── App 窗口 mock ───────── */
+
+.window {
+  position: relative;
+  margin: 0 auto;
+  width: 980px;
+  border-radius: 26px;
+  background: #fff;
+  border: 1.5px solid #d9e0f0;
+  box-shadow: 0 30px 60px rgba(30, 62, 130, 0.16), 0 4px 12px rgba(30, 62, 130, 0.08);
+  overflow: hidden;
+  font-family: "Inter", "Noto Sans SC", sans-serif;
+}
+
+.chrome {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  padding: 0 20px;
+  background: #f6f8fd;
+  border-bottom: 1.5px solid #e4e9f5;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+.dots {
+  display: flex;
+  gap: 9px;
+  margin-right: 18px;
+}
+
+.dots i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ff5f57;
+}
+
+.dots i:nth-child(2) {
+  background: #febc2e;
+}
+
+.dots i:nth-child(3) {
+  background: #28c840;
+}
+
+.chrome .title {
+  flex: 1;
+  text-align: center;
+  margin-right: 60px;
+}
+
+.chrome .url {
+  flex: 1;
+  margin: 0 40px 0 6px;
+  padding: 6px 16px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1.5px solid #e1e6f2;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #f1f4fb;
+  border: 1.5px solid #e2e7f3;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.chip .emo {
+  height: 20px;
+  vertical-align: -3px;
+}
+
+.chip.on {
+  background: var(--blue-bright);
+  border-color: var(--blue-bright);
+  color: #fff;
+}
+
+.chip .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 20px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--blue-bright);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.btn.ghost {
+  background: #fff;
+  color: var(--blue-bright);
+  border: 1.5px solid #c9d6f3;
+}
+
+.tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  background: var(--lav-soft);
+  color: var(--blue-mid);
+}
+
+.tag.green {
+  background: #e3f6ea;
+  color: #1c8c5a;
+}
+
+.tag.amber {
+  background: #fdf1d3;
+  color: #a86b06;
+}
+
+.tag.pink {
+  background: #fde8e8;
+  color: #c2393d;
+}
