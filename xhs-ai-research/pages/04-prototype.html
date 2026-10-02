@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .sec {
+        margin-top: 26px;
+      }
+      .sec .emo {
+        height: 44px;
+        vertical-align: 0;
+      }
+      .lead.sm {
+        margin-top: 8px;
+        font-size: 28px;
+      }
+
+      .vs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        width: 980px;
+        margin: 22px auto 0;
+      }
+      .vs .card {
+        padding: 20px 22px;
+        border-radius: 24px;
+        border: 2.5px solid var(--line);
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+      }
+      .vs .card.bad {
+        background: #f6f7fa;
+        border-color: #9aa1b0;
+      }
+      .vs .card.good {
+        background: #fff;
+        box-shadow: 0 10px 26px rgba(34, 80, 158, 0.14);
+      }
+      .vs .label {
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 14px;
+        border-radius: 12px;
+        font-size: 24px;
+        font-weight: 900;
+      }
+      .vs .label .emo {
+        height: 28px;
+        vertical-align: 0;
+      }
+      .vs .bad .label {
+        background: #fde4e4;
+        color: #c2393d;
+      }
+      .vs .good .label {
+        background: #ddf3e5;
+        color: #17804f;
+      }
+      .vs q {
+        display: block;
+        margin-top: 14px;
+        font-size: 24px;
+        font-weight: 600;
+        line-height: 1.55;
+        color: var(--ink);
+        quotes: "“" "”";
+      }
+      .vs .bad q {
+        color: var(--ink-2);
+      }
+      .vs .res {
+        margin-top: auto;
+        padding-top: 14px;
+        border-top: 2px dashed #d5dae6;
+        font-size: 23px;
+        font-weight: 800;
+        line-height: 1.5;
+      }
+      .vs .bad .res {
+        color: var(--ink-3);
+      }
+      .vs .good .res {
+        color: var(--blue);
+      }
+      .vs .res .emo {
+        height: 30px;
+        vertical-align: -6px;
+      }
+      .vs q + .res {
+        margin-top: 14px;
+      }
+
+      .prompt {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 980px;
+        margin: 18px auto 0;
+        padding: 14px 18px;
+        border-radius: 20px;
+        background: #fff;
+        border: 2px solid #cfdaf4;
+        font-size: 23px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .prompt .emo {
+        height: 36px;
+        vertical-align: 0;
+      }
+      .prompt .ok {
+        margin-left: auto;
+        padding: 6px 14px;
+        border-radius: 12px;
+        background: #ddf3e5;
+        color: #17804f;
+        font-size: 21px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .link {
+        width: 4px;
+        height: 18px;
+        margin: 0 auto;
+        background: repeating-linear-gradient(180deg, #9db4ee 0 5px, transparent 5px 9px);
+      }
+
+      .hmi {
+        width: 980px;
+        margin: 0 auto;
+        padding: 12px;
+        border-radius: 32px;
+        background: linear-gradient(160deg, #222a3a, #0b111d);
+        box-shadow: 0 24px 50px rgba(15, 25, 50, 0.32);
+      }
+      .screen {
+        display: grid;
+        grid-template-columns: 520px 1fr;
+        height: 312px;
+        border-radius: 22px;
+        overflow: hidden;
+        background: linear-gradient(160deg, #13203d, #0c1630);
+        font-family: "Inter", "Noto Sans SC", sans-serif;
+      }
+      .screen svg {
+        display: block;
+      }
+      .kid {
+        padding: 16px 18px;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+      }
+      .kid .hd {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 21px;
+        font-weight: 800;
+      }
+      .kid .hd .emo {
+        height: 30px;
+        vertical-align: 0;
+      }
+      .kid .hd .mode {
+        margin-left: auto;
+        padding: 3px 10px;
+        border-radius: 99px;
+        background: rgba(255, 214, 92, 0.18);
+        color: #ffd65c;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .kid .say {
+        margin-top: 10px;
+        padding: 10px 13px;
+        border-radius: 4px 16px 16px 16px;
+        background: #fff;
+        color: var(--ink);
+        font-size: 17px;
+        font-weight: 600;
+        line-height: 1.5;
+      }
+      .kid .say b {
+        color: var(--blue-bright);
+      }
+      .kid .qz {
+        margin-top: 12px;
+        font-size: 16.5px;
+        font-weight: 800;
+        color: #dfe7ff;
+      }
+      .kid .qz .emo {
+        height: 22px;
+        vertical-align: -4px;
+      }
+      .kid .opts {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 7px;
+        margin-top: 8px;
+      }
+      .kid .opts span {
+        padding: 7px 4px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1.5px solid rgba(255, 255, 255, 0.18);
+        font-size: 14.5px;
+        font-weight: 700;
+        text-align: center;
+        color: #eef2ff;
+      }
+      .kid .mic {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 40px;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #4f7fe6, #3b6fd6);
+        font-size: 16px;
+        font-weight: 800;
+      }
+      .kid .mic i {
+        width: 10px;
+        height: 16px;
+        border-radius: 6px;
+        background: #fff;
+      }
+
+      .footer {
+        color: var(--blue);
+        font-size: 33px;
+        font-weight: 900;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page inner">
+      <div class="kicker">变化 2｜不只给洞察和建议</div>
+      <div class="h1">自己搭 <span class="slab">Prototype</span> 去验证</div>
+
+      <div class="sec"><img class="emo" src="../assets/emoji/bridge.png" />最大的鸿沟：洞察没对准产品机会</div>
+      <p class="lead sm">用研常停在用户视角的描述，却忽略了背后<b>能带来产品机会的需求</b></p>
+
+      <div class="vs">
+        <div class="card bad">
+          <span class="label"><img class="emo" src="../assets/emoji/cross.png" />大而对</span>
+          <q>带娃出行，家长希望孩子<br />寓教于乐、长知识</q>
+          <div class="res">→ 产品团队：当故事听听 <img class="emo" src="../assets/emoji/hearnoevil.png" /></div>
+        </div>
+        <div class="card good">
+          <span class="label"><img class="emo" src="../assets/emoji/check.png" />有建设性</span>
+          <q>长途自驾，后排孩子总问窗外是什么，<br />开车的家长答不上，也没法分心去查</q>
+          <div class="res"><img class="emo" src="../assets/emoji/bulb.png" /> 机会点：座舱 AI 识别窗外实景，<br />讲给孩子听，再出题互动</div>
+        </div>
+      </div>
+
+      <div class="sec"><img class="emo" src="../assets/emoji/tools.png" />再进一步：把机会点直接做出来</div>
+      <p class="lead sm">以前受限于手头功夫，现在动手的活儿交给 AI，<b>讲清想法就能出原型</b></p>
+
+      <div class="prompt">
+        <img class="emo" src="../assets/emoji/speech.png" />「帮我做个座舱原型：识别窗外实景，讲给孩子听，再出道题」
+        <span class="ok">✓ 原型已生成</span>
+      </div>
+      <div class="link"></div>
+
+      <div class="hmi">
+        <div class="screen">
+          <svg width="520" height="312" viewBox="0 0 520 312">
+            <defs>
+              <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#6fa6f5" />
+                <stop offset="1" stop-color="#dcecff" />
+              </linearGradient>
+              <g id="blade">
+                <path d="M0 0 C 7 -12, 8 -54, 2 -84 L -1 -84 C -5 -54, -5 -12, 0 0 Z" fill="#fbfdff" />
+              </g>
+              <g id="turbine">
+                <path d="M-2.6 0 L2.6 0 L4.6 150 L-4.6 150 Z" fill="#f4f7fc" />
+                <g transform="rotate(12)">
+                  <use href="#blade" />
+                  <use href="#blade" transform="rotate(120)" />
+                  <use href="#blade" transform="rotate(240)" />
+                </g>
+                <circle r="6" fill="#fff" stroke="#c9d3e3" stroke-width="1.5" />
+              </g>
+            </defs>
+            <rect width="520" height="312" fill="url(#sky)" />
+            <circle cx="452" cy="54" r="24" fill="#fff7d1" opacity="0.9" />
+            <ellipse cx="110" cy="70" rx="46" ry="12" fill="#fff" opacity="0.7" />
+            <ellipse cx="150" cy="62" rx="30" ry="10" fill="#fff" opacity="0.7" />
+            <path d="M0 210 Q 90 168 180 198 T 360 186 T 520 176 L520 312 L0 312Z" fill="#a8c8b2" />
+            <use href="#turbine" transform="translate(96 150) scale(0.42)" />
+            <use href="#turbine" transform="translate(158 140) scale(0.5)" />
+            <use href="#turbine" transform="translate(430 136) scale(0.46)" />
+            <path d="M0 246 Q 130 206 260 236 T 520 226 L520 312 L0 312Z" fill="#7dac88" />
+            <use href="#turbine" transform="translate(304 92)" />
+            <path d="M0 298 L520 270 L520 312 L0 312Z" fill="#5a6372" />
+            <path d="M0 305 L520 289" stroke="#fff" stroke-width="3" stroke-dasharray="28 18" />
+
+            <g fill="none" stroke="#ffd43b" stroke-width="4" stroke-linecap="round">
+              <path d="M232 18 h20 M232 18 v20" />
+              <path d="M378 18 h-20 M378 18 v20" />
+              <path d="M232 236 h20 M232 236 v-20" />
+              <path d="M378 236 h-20 M378 236 v-20" />
+            </g>
+            <rect x="232" y="18" width="146" height="218" fill="#ffd43b" opacity="0.08" />
+            <g transform="translate(386 20)">
+              <rect width="122" height="30" rx="8" fill="#ffd43b" />
+              <text x="61" y="21" text-anchor="middle" font-family="Noto Sans SC" font-weight="800" font-size="15" fill="#1c1f26">风力发电机 96%</text>
+            </g>
+            <g transform="translate(14 14)">
+              <rect width="152" height="28" rx="14" fill="#0c1630" opacity="0.62" />
+              <circle cx="16" cy="14" r="5" fill="#ff5a5f" />
+              <text x="28" y="19" font-family="Noto Sans SC" font-weight="700" font-size="14" fill="#fff">车窗摄像头 · 实时</text>
+            </g>
+          </svg>
+
+          <div class="kid">
+            <div class="hd"><img class="emo" src="../assets/emoji/child.png" />窗外小百科<span class="mode">儿童模式</span></div>
+            <div class="say">那是<b>风力发电机</b>！风一吹，大叶片就转起来，把风变成电～</div>
+            <div class="qz">考考你 <img class="emo" src="../assets/emoji/thinking.png" /> 它的一片叶子有多长？</div>
+            <div class="opts"><span>A 一辆小汽车</span><span>B 一节车厢</span><span>C 一栋 20 层楼</span></div>
+            <div class="mic"><i></i>说出你的答案</div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-note">*原型界面为示意</div>
+
+      <div class="footer">别再抱怨洞察不落地，你自己就能往前推一步！</div>
+    </div>
+  </body>
+</html>
