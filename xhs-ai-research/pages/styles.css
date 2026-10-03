@@ -224,7 +224,7 @@ body {
 /* ───────── 内页通用 ───────── */
 
 .inner {
-  padding: 84px 50px 0;
+  padding: 68px 50px 0;
 }
 
 .kicker {
@@ -260,6 +260,40 @@ body {
 .lead b {
   color: var(--blue);
   font-weight: 800;
+}
+
+/* 标题下的正文段落，约占页面上 2/5 */
+.body {
+  width: 980px;
+  margin: 26px auto 0;
+  padding: 24px 36px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1.5px solid #dde5f6;
+  font-size: 29px;
+  font-weight: 500;
+  line-height: 1.72;
+  color: var(--ink);
+  text-align: justify;
+}
+
+.body p {
+  text-wrap: pretty;
+}
+
+.body p + p {
+  margin-top: 12px;
+}
+
+.body b {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.body mark {
+  background: linear-gradient(180deg, transparent 58%, var(--yellow-1) 58%, var(--yellow-2) 94%, transparent 94%);
+  color: inherit;
+  font-weight: 700;
 }
 
 .sec {

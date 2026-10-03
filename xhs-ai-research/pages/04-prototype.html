@@ -4,24 +4,12 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" href="styles.css" />
     <style>
-      .sec {
-        margin-top: 26px;
-      }
-      .sec .emo {
-        height: 44px;
-        vertical-align: 0;
-      }
-      .lead.sm {
-        margin-top: 8px;
-        font-size: 28px;
-      }
-
       .vs {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 20px;
         width: 980px;
-        margin: 22px auto 0;
+        margin: 26px auto 0;
       }
       .vs .card {
         padding: 20px 22px;
@@ -63,7 +51,7 @@
       }
       .vs q {
         display: block;
-        margin-top: 14px;
+        margin-top: 10px;
         font-size: 24px;
         font-weight: 600;
         line-height: 1.55;
@@ -75,7 +63,7 @@
       }
       .vs .res {
         margin-top: auto;
-        padding-top: 14px;
+        padding-top: 10px;
         border-top: 2px dashed #d5dae6;
         font-size: 23px;
         font-weight: 800;
@@ -92,7 +80,7 @@
         vertical-align: -6px;
       }
       .vs q + .res {
-        margin-top: 14px;
+        margin-top: 10px;
       }
 
       .prompt {
@@ -100,8 +88,8 @@
         align-items: center;
         gap: 12px;
         width: 980px;
-        margin: 18px auto 0;
-        padding: 14px 18px;
+        margin: 16px auto 0;
+        padding: 10px 18px;
         border-radius: 20px;
         background: #fff;
         border: 2px solid #cfdaf4;
@@ -140,8 +128,8 @@
       }
       .screen {
         display: grid;
-        grid-template-columns: 520px 1fr;
-        height: 312px;
+        grid-template-columns: 500px 1fr;
+        height: 300px;
         border-radius: 22px;
         overflow: hidden;
         background: linear-gradient(160deg, #13203d, #0c1630);
@@ -246,8 +234,10 @@
       <div class="kicker">变化 2｜不只给洞察和建议</div>
       <div class="h1">自己搭 <span class="slab">Prototype</span> 去验证</div>
 
-      <div class="sec"><img class="emo" src="../assets/emoji/bridge.png" />最大的鸿沟：洞察没对准产品机会</div>
-      <p class="lead sm">用研常停在用户视角的描述，却忽略了背后<b>能带来产品机会的需求</b></p>
+      <div class="body">
+        <p>用研和产品之间最大的鸿沟，是<b>洞察没对准产品机会</b>。很多用研输入只停留在用户视角，讲「大而对」的方向，忽略了背后能带来产品机会的需求，产品团队只能当故事听。</p>
+        <p>再进一步：<mark>把机会点直接做出来</mark>。以前受限于手头功夫，现在动手的活儿交给 AI：讲清想法就能出原型，先自己打磨，或带回给用户验证。</p>
+      </div>
 
       <div class="vs">
         <div class="card bad">
@@ -258,12 +248,9 @@
         <div class="card good">
           <span class="label"><img class="emo" src="../assets/emoji/check.png" />有建设性</span>
           <q>长途自驾，后排孩子总问窗外是什么，<br />开车的家长答不上，也没法分心去查</q>
-          <div class="res"><img class="emo" src="../assets/emoji/bulb.png" /> 机会点：座舱 AI 识别窗外实景，<br />讲给孩子听，再出题互动</div>
+          <div class="res"><img class="emo" src="../assets/emoji/bulb.png" /> 机会点：AI 讲解窗外实景 + 出题</div>
         </div>
       </div>
-
-      <div class="sec"><img class="emo" src="../assets/emoji/tools.png" />再进一步：把机会点直接做出来</div>
-      <p class="lead sm">以前受限于手头功夫，现在动手的活儿交给 AI，<b>讲清想法就能出原型</b></p>
 
       <div class="prompt">
         <img class="emo" src="../assets/emoji/speech.png" />「帮我做个座舱原型：识别窗外实景，讲给孩子听，再出道题」
@@ -273,7 +260,7 @@
 
       <div class="hmi">
         <div class="screen">
-          <svg width="520" height="312" viewBox="0 0 520 312">
+          <svg width="500" height="300" viewBox="0 0 520 312">
             <defs>
               <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stop-color="#6fa6f5" />
@@ -325,7 +312,7 @@
 
           <div class="kid">
             <div class="hd"><img class="emo" src="../assets/emoji/child.png" />窗外小百科<span class="mode">儿童模式</span></div>
-            <div class="say">那是<b>风力发电机</b>！风一吹，大叶片就转起来，把风变成电～</div>
+            <div class="say">那是<b>风力发电机</b>！风一吹叶片就转，把风变成电～</div>
             <div class="qz">考考你 <img class="emo" src="../assets/emoji/thinking.png" /> 它的一片叶子有多长？</div>
             <div class="opts"><span>A 一辆小汽车</span><span>B 一节车厢</span><span>C 一栋 20 层楼</span></div>
             <div class="mic"><i></i>说出你的答案</div>

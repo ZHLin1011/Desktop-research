@@ -4,80 +4,6 @@
     <meta charset="utf-8" />
     <link rel="stylesheet" href="styles.css" />
     <style>
-      .ba {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        width: 980px;
-        margin: 28px auto 0;
-      }
-      .ba > div {
-        padding: 18px 22px;
-        border-radius: 24px;
-        border: 2.5px solid var(--line);
-        background: #fff;
-      }
-      .ba .old {
-        background: #f6f7fa;
-        border-color: #9aa1b0;
-      }
-      .ba .now {
-        box-shadow: 0 10px 26px rgba(34, 80, 158, 0.14);
-      }
-      .ba h3 {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 27px;
-        font-weight: 900;
-      }
-      .ba h3 .emo {
-        height: 34px;
-        vertical-align: 0;
-      }
-      .ba .old h3 {
-        color: var(--ink-3);
-      }
-      .ba .now h3 {
-        color: var(--blue);
-      }
-      .ba p {
-        margin-top: 8px;
-        font-size: 23px;
-        font-weight: 600;
-        line-height: 1.55;
-        color: var(--ink-2);
-      }
-      .ba .now p {
-        color: var(--ink);
-      }
-      .ba .now b {
-        color: var(--blue);
-      }
-
-      .fit {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        margin-top: 18px;
-        font-size: 24px;
-        font-weight: 800;
-        color: var(--ink-2);
-      }
-      .fit .chip {
-        padding: 6px 14px;
-        font-size: 22px;
-        font-weight: 700;
-        background: #fff;
-        border: 2px solid #d6def2;
-        color: var(--ink);
-      }
-      .fit .chip .emo {
-        height: 26px;
-        vertical-align: -5px;
-      }
-
       .window {
         margin-top: 22px;
       }
@@ -85,7 +11,7 @@
         font-feature-settings: "halt";
       }
       .rep {
-        height: 462px;
+        height: 444px;
         padding: 22px 24px;
         background: linear-gradient(180deg, #f6f8fe, #fff 30%);
         display: flex;
@@ -263,13 +189,6 @@
         font-size: 16px;
       }
 
-      .sec {
-        margin-top: 16px;
-      }
-      .sec .emo {
-        height: 44px;
-        vertical-align: 0;
-      }
       .flow {
         display: flex;
         align-items: center;
@@ -316,21 +235,9 @@
       <div class="kicker">变化 3｜不再写一次性的报告和 PPT</div>
       <div class="h1">用 <span class="slab">HTML</span> 搭<span class="halt">「活」</span>的产出物</div>
 
-      <div class="ba">
-        <div class="old">
-          <h3><img class="emo" src="../assets/emoji/exploding.png" />以前</h3>
-          <p>每次结构都不同，时间全耗在<br />想结构、做可视化、调 Keynote 排版</p>
-        </div>
-        <div class="now">
-          <h3><img class="emo" src="../assets/emoji/cool.png" />现在</h3>
-          <p>沉淀最简流程，<b>HTML 模板只搭一次</b><br />之后数据一传，<b>一键刷新</b></p>
-        </div>
-      </div>
-
-      <div class="fit">适合：
-        <span class="chip"><img class="emo" src="../assets/emoji/chartup.png" />每周市场洞察</span>
-        <span class="chip"><img class="emo" src="../assets/emoji/memo.png" />定期访谈总结</span>
-        <span class="chip"><img class="emo" src="../assets/emoji/compass.png" />用户旅程地图</span>
+      <div class="body">
+        <p>以前写报告，每次结构都不同，时间都耗在<b>想结构、做可视化、调 Keynote 排版</b>上。现在我沉淀了一套最简流程，用 <mark>HTML 搭标准化模板</mark>：每周市场洞察、定期访谈总结、用户旅程地图，模板只搭一次，之后数据一传就刷新。</p>
+        <p>更进一步，是<b>把产出物和过程内容打通</b>：需求场景库和洞察报告联动，每月自动刷新，推送给内部相关角色。</p>
       </div>
 
       <div class="window">
@@ -384,7 +291,6 @@
       </div>
       <div class="mock-note">*界面为示意，数据为虚构</div>
 
-      <div class="sec"><img class="emo" src="../assets/emoji/link.png" />更进一步：把产出物和过程内容打通</div>
       <div class="flow">
         <div class="node"><img class="emo" src="../assets/emoji/dividers.png" /><p><b>需求场景库</b><span>持续积累</span></p></div>
         <span class="arrow"></span>
