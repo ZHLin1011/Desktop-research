@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .tbl {
+        width: 980px;
+        margin: 28px auto 0;
+        border-radius: 28px;
+        border: 2.5px solid var(--line);
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 16px 36px rgba(34, 80, 158, 0.12);
+      }
+      .tr {
+        display: grid;
+        grid-template-columns: 196px 1fr 1.18fr;
+        border-top: 1.5px solid #e3e7f0;
+      }
+      .tr:first-child {
+        border-top: none;
+      }
+      .tr > div {
+        padding: 22px 24px;
+        font-size: 26px;
+        font-weight: 600;
+        line-height: 1.55;
+      }
+      .tr .o {
+        display: flex;
+        align-items: center;
+      }
+      .tr.th > div {
+        padding: 12px 24px;
+        background: var(--panel);
+        font-size: 25px;
+        font-weight: 900;
+      }
+      .tr.th > .o {
+        color: var(--ink-3);
+      }
+      .tr.th > .n {
+        padding-left: 30px;
+        color: var(--blue);
+        background: #e3eafc;
+      }
+      .tr .k {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        font-size: 27px;
+        font-weight: 900;
+      }
+      .tr .k em {
+        font-style: normal;
+        font-family: "Bitter", serif;
+        font-weight: 800;
+        font-size: 30px;
+        color: var(--blue);
+      }
+      .tr .o {
+        color: var(--ink-3);
+        background: #fafbfc;
+      }
+      .tr .n {
+        position: relative;
+        color: var(--ink);
+        font-weight: 700;
+        background: #f4f7fe;
+      }
+      .tr .n {
+        padding-left: 30px;
+        font-weight: 600;
+        color: var(--ink-2);
+      }
+      .tr .n b {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 29px;
+        color: var(--blue);
+        font-weight: 900;
+      }
+      .tr:not(.th) .n::before {
+        content: "";
+        position: absolute;
+        left: -15px;
+        top: 50%;
+        width: 26px;
+        height: 26px;
+        margin-top: -13px;
+        border-radius: 50%;
+        background: var(--blue-bar)
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cpath d='M9 7l7 6-7 6' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+          center/26px no-repeat;
+        box-shadow: 0 0 0 4px #fff;
+      }
+
+
+      .vote {
+        margin-top: 30px;
+        text-align: center;
+      }
+      .vote p {
+        font-size: 31px;
+        font-weight: 800;
+      }
+      .vote p .emo {
+        height: 38px;
+      }
+      .vote .opts {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 18px;
+      }
+      .vote .opts span {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 22px;
+        border-radius: 18px;
+        background: #fff;
+        border: 2.5px solid var(--line);
+        font-size: 26px;
+        font-weight: 800;
+      }
+      .vote .opts span i {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, var(--yellow-1), var(--yellow-2));
+        font-family: "Bitter", serif;
+        font-style: normal;
+        font-weight: 800;
+        font-size: 24px;
+      }
+      .footer .emo {
+        height: 36px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page inner">
+      <div class="kicker">一图总结</div>
+      <div class="h1">用研工作方式的 <span class="slab">3</span> 个变化</div>
+
+      <div class="body">
+        <p>用上 AI 这几个月，最大的感受是：做用研的方式变了。以前是「做研究 → 写报告 → 讲 PPT」，交付完就结束；现在更多是在「搭」：<b>搭平台沉淀方法，搭原型验证机会，搭能自动更新的产出物</b>。</p>
+        <p><mark>AI 不会替你产出洞察</mark>，但能把方法沉淀成工具，把洞察推进成原型。</p>
+      </div>
+
+      <div class="tbl">
+        <div class="tr th"><div></div><div class="o">以前</div><div class="n">现在</div></div>
+        <div class="tr">
+          <div class="k"><em>01</em>研究方法</div>
+          <div class="o">做几个 Skill 单点提效<br />每个专题从头查资料</div>
+          <div class="n"><b>用研 SOP 产品化</b>市场洞察 MI 平台 + 需求库<br />换专题、换车型直接复用</div>
+        </div>
+        <div class="tr">
+          <div class="k"><em>02</em>洞察交付</div>
+          <div class="o">给洞察、给建议<br />落不落地看别人</div>
+          <div class="n"><b>自己搭原型去验证</b>洞察先对准产品机会<br />AI 出原型，带回给用户测</div>
+        </div>
+        <div class="tr">
+          <div class="k"><em>03</em>产出形式</div>
+          <div class="o">一次性报告 / PPT<br />每次结构都不同</div>
+          <div class="n"><b>HTML 标准化产出物</b>模板搭一次，数据一传就刷新<br />打通需求库，按月自动推送</div>
+        </div>
+      </div>
+
+
+      <div class="vote">
+        <p>想看哪部分展开讲？评论区扣 A / B / C <img class="emo" src="../assets/emoji/pointright.png" style="transform: rotate(90deg)" /></p>
+        <div class="opts">
+          <span><i>A</i>市场洞察 MI 平台</span>
+          <span><i>B</i>需求库可视化</span>
+          <span><i>C</i>HTML 报告模板</span>
+        </div>
+      </div>
+
+      <div class="footer">欢迎关注大师兄，一起探索 AI 时代的用户研究 <img class="emo" src="../assets/emoji/wavinghand.png" /></div>
+    </div>
+  </body>
+</html>

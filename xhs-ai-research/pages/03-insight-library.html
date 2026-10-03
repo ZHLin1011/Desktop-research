@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .window {
+        margin-top: 36px;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 66px;
+        padding: 0 18px;
+        border-bottom: 1.5px solid #e9edf6;
+      }
+      .toolbar .chip {
+        padding: 6px 12px;
+        font-size: 16px;
+      }
+      .toolbar .chip b {
+        color: var(--ink);
+        font-weight: 800;
+      }
+      .toolbar .sp {
+        flex: 1;
+      }
+      .toolbar .sort {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink-3);
+        margin-right: 6px;
+      }
+      .toolbar .sort b {
+        color: var(--ink);
+      }
+      .seg {
+        display: flex;
+        padding: 3px;
+        border-radius: 10px;
+        background: #eef1f8;
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink-3);
+      }
+      .seg span {
+        padding: 5px 11px;
+        border-radius: 8px;
+      }
+      .seg .on {
+        background: #fff;
+        color: var(--blue-bright);
+        box-shadow: 0 1px 4px rgba(30, 60, 120, 0.12);
+      }
+
+      .hub {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        height: 540px;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 14px;
+        padding: 18px;
+        background: #fafbfe;
+      }
+      .story {
+        padding: 12px;
+        border-radius: 16px;
+        background: #fff;
+        border: 1.5px solid #e2e7f3;
+        box-shadow: 0 2px 8px rgba(30, 60, 120, 0.05);
+        display: flex;
+        flex-direction: column;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: 1fr 12px 1fr 12px 1fr;
+        align-items: center;
+        height: 74px;
+      }
+      .frame {
+        position: relative;
+        display: grid;
+        place-items: center;
+        height: 74px;
+        border-radius: 10px;
+        border: 1.5px solid #d7def0;
+      }
+      .frame .emo {
+        height: 40px;
+        vertical-align: 0;
+      }
+      .frame .n {
+        position: absolute;
+        top: 3px;
+        left: 6px;
+        font-family: "Inter", sans-serif;
+        font-size: 11px;
+        font-weight: 800;
+        color: var(--ink-4);
+      }
+      .frame .bubble {
+        position: absolute;
+        top: 6px;
+        right: 8px;
+        padding: 0 6px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1.5px solid var(--line);
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        font-weight: 900;
+        line-height: 18px;
+      }
+      .board i {
+        justify-self: center;
+        width: 0;
+        height: 0;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 7px solid var(--ink-4);
+      }
+      .story h4 {
+        margin-top: 10px;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.35;
+        color: var(--ink);
+      }
+      .story .voc {
+        margin-top: 6px;
+        padding-left: 8px;
+        border-left: 3px solid #d6dcf4;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.4;
+        color: var(--ink-3);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .story .row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: auto;
+      }
+      .story .row .tag {
+        font-size: 13px;
+        padding: 2px 7px;
+      }
+      .story .row .metric {
+        margin-left: auto;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink-3);
+      }
+      .story .row .metric b {
+        color: var(--ink);
+        font-family: "Inter", sans-serif;
+      }
+      .story .row .metric .emo {
+        height: 16px;
+        margin-left: -2px;
+        vertical-align: -2px;
+      }
+
+      .trend {
+        padding: 18px;
+        border-left: 1.5px solid #e4e9f5;
+        background: #fff;
+        display: flex;
+        flex-direction: column;
+      }
+      .trend .ttl {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 20px;
+        font-weight: 800;
+      }
+      .trend .ttl .emo {
+        height: 26px;
+        vertical-align: 0;
+      }
+      .trend .sub {
+        margin-top: 4px;
+        font-size: 14.5px;
+        font-weight: 500;
+        color: var(--ink-3);
+      }
+      .trend svg {
+        display: block;
+        margin: 6px auto 0;
+      }
+      .trow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 38px;
+        font-size: 15.5px;
+        font-weight: 700;
+        border-top: 1.5px solid #f0f2f8;
+      }
+      .trow .up {
+        margin-left: auto;
+        font-family: "Inter", sans-serif;
+        font-weight: 800;
+        color: var(--green);
+      }
+      .feed {
+        margin-top: auto;
+        padding: 8px 10px;
+        border-radius: 10px;
+        background: #e9f7ef;
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #1c8c5a;
+        text-align: center;
+      }
+      .feed .emo {
+        height: 18px;
+        vertical-align: -3px;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="page inner">
+      <div class="kicker">变化 1｜不止于 Skill，把用研 SOP 产品化</div>
+      <div class="h1">② 持续生长的需求洞察库</div>
+      <div class="body">
+        <p>需求库的搭建方法和它的留存、传播价值，之前的笔记聊过。这次补充一个新发现：<b>需求不能一条条单看</b>。积累得足够多时，<mark>方向和趋势会自己「涌现」</mark>，需求库才真正开始持续发挥价值。</p>
+        <p>我给它加了两个外挂：<b>联动市场洞察 MI 平台</b>，持续输入新内容；用 <b>Vibe Coding</b> 把表格场景库做成可视化平台，支持故事板和筛选排序。</p>
+      </div>
+
+      <div class="window">
+        <div class="chrome">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="title">场景需求库 · Scenario Hub</div>
+        </div>
+        <div class="toolbar">
+          <span class="chip">场景 <b>亲子出行</b> ▾</span>
+          <span class="chip">阶段 <b>行车中</b> ▾</span>
+          <span class="chip">情绪强度 <b>高</b> ▾</span>
+          <span class="sp"></span>
+          <span class="sort">排序 <b>提及频次 ↓</b></span>
+          <div class="seg"><span class="on">故事板</span><span>表格</span></div>
+        </div>
+        <div class="hub">
+          <div class="cards">
+            <div class="story">
+              <div class="board">
+                <div class="frame" style="background: #eaf0fd"><span class="n">1</span><img class="emo" src="../assets/emoji/car.png" /></div><i></i>
+                <div class="frame" style="background: #fdf3d6"><span class="n">2</span><img class="emo" src="../assets/emoji/child.png" /><span class="bubble">?</span></div><i></i>
+                <div class="frame" style="background: #fde8e8"><span class="n">3</span><img class="emo" src="../assets/emoji/exploding.png" /></div>
+              </div>
+              <h4>孩子总问窗外是什么，家长答不上</h4>
+              <p class="voc">“问了一路，我只能说那是风车”</p>
+              <div class="row"><span class="tag">#亲子出行</span><span class="tag green">#行车中</span><span class="metric">提及 <b>128</b> <img class="emo" src="../assets/emoji/fire.png" /><img class="emo" src="../assets/emoji/fire.png" /><img class="emo" src="../assets/emoji/fire.png" /></span></div>
+            </div>
+            <div class="story">
+              <div class="board">
+                <div class="frame" style="background: #eaf0fd"><span class="n">1</span><img class="emo" src="../assets/emoji/car.png" /></div><i></i>
+                <div class="frame" style="background: #e6f6ec"><span class="n">2</span><img class="emo" src="../assets/emoji/child.png" /></div><i></i>
+                <div class="frame" style="background: #fde8e8"><span class="n">3</span><img class="emo" src="../assets/emoji/nauseated.png" /></div>
+              </div>
+              <h4>长途自驾，后排孩子坐不住还晕车</h4>
+              <p class="voc">“开出去一小时，孩子就喊难受”</p>
+              <div class="row"><span class="tag">#亲子出行</span><span class="tag amber">#长途</span><span class="metric">提及 <b>152</b> <img class="emo" src="../assets/emoji/fire.png" /><img class="emo" src="../assets/emoji/fire.png" /><img class="emo" src="../assets/emoji/fire.png" /></span></div>
+            </div>
+            <div class="story">
+              <div class="board">
+                <div class="frame" style="background: #fdf3d6"><span class="n">1</span><img class="emo" src="../assets/emoji/dog.png" /></div><i></i>
+                <div class="frame" style="background: #eef0f6"><span class="n">2</span><img class="emo" src="../assets/emoji/pawprints.png" /></div><i></i>
+                <div class="frame" style="background: #fde8e8"><span class="n">3</span><img class="emo" src="../assets/emoji/seenoevil.png" /></div>
+              </div>
+              <h4>宠物在后排乱动，开车时频频分心</h4>
+              <p class="voc">“狗子老往前排扑，只能边开边回头”</p>
+              <div class="row"><span class="tag pink">#带宠出行</span><span class="tag green">#行车中</span><span class="metric">提及 <b>96</b> <img class="emo" src="../assets/emoji/fire.png" /><img class="emo" src="../assets/emoji/fire.png" /></span></div>
+            </div>
+            <div class="story">
+              <div class="board">
+                <div class="frame" style="background: #e6f6ec"><span class="n">1</span><img class="emo" src="../assets/emoji/camping.png" /></div><i></i>
+                <div class="frame" style="background: #eaf0fd"><span class="n">2</span><img class="emo" src="../assets/emoji/plug.png" /></div><i></i>
+                <div class="frame" style="background: #fde8e8"><span class="n">3</span><img class="emo" src="../assets/emoji/battery.png" /></div>
+              </div>
+              <h4>营地过夜用电多，担心回程电量不够</h4>
+              <p class="voc">“开了一晚空调，第二天不敢跑远”</p>
+              <div class="row"><span class="tag amber">#露营</span><span class="tag">#驻车</span><span class="metric">提及 <b>74</b> <img class="emo" src="../assets/emoji/fire.png" /><img class="emo" src="../assets/emoji/fire.png" /></span></div>
+            </div>
+          </div>
+
+          <aside class="trend">
+            <div class="ttl"><img class="emo" src="../assets/emoji/chartup.png" />趋势涌现</div>
+            <div class="sub">基于 1,286 条需求自动聚类</div>
+            <svg width="264" height="196" viewBox="0 0 264 196">
+              <g fill="#cfd8f2">
+                <circle cx="18" cy="30" r="4" /><circle cx="40" cy="14" r="3" /><circle cx="236" cy="22" r="4" /><circle cx="250" cy="70" r="3" />
+                <circle cx="14" cy="120" r="3" /><circle cx="28" cy="170" r="4" /><circle cx="246" cy="150" r="4" /><circle cx="226" cy="184" r="3" />
+                <circle cx="120" cy="10" r="3" /><circle cx="150" cy="190" r="3" /><circle cx="196" cy="10" r="3" /><circle cx="70" cy="188" r="3" />
+              </g>
+              <circle cx="102" cy="88" r="64" fill="#3b6fd6" />
+              <circle cx="196" cy="62" r="44" fill="#9db4ee" />
+              <circle cx="196" cy="146" r="38" fill="#bfe8cf" />
+              <circle cx="58" cy="164" r="27" fill="#fce7a6" />
+              <g font-family="Noto Sans SC" font-weight="800" text-anchor="middle">
+                <text x="102" y="84" font-size="19" fill="#fff">车内陪伴</text>
+                <text x="102" y="108" font-size="14" fill="#dce6ff" font-weight="600">412 条</text>
+                <text x="196" y="60" font-size="16" fill="#fff">宠物友好</text>
+                <text x="196" y="80" font-size="12.5" fill="#f1f5ff" font-weight="600">268 条</text>
+                <text x="196" y="144" font-size="15" fill="#145c3a">驻车生活</text>
+                <text x="196" y="163" font-size="12" fill="#2d7a52" font-weight="600">191 条</text>
+                <text x="58" y="169" font-size="13" fill="#7a5600">安全</text>
+              </g>
+            </svg>
+            <div class="trow">车内亲子陪伴
+              <svg width="58" height="22" viewBox="0 0 58 22"><polyline points="2,19 12,16 22,17 32,11 42,9 56,3" fill="none" stroke="#22a06b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              <span class="up">▲42%</span></div>
+            <div class="trow">宠物友好座舱
+              <svg width="58" height="22" viewBox="0 0 58 22"><polyline points="2,18 12,17 22,13 32,14 42,8 56,5" fill="none" stroke="#22a06b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              <span class="up">▲31%</span></div>
+            <div class="trow">驻车生活
+              <svg width="58" height="22" viewBox="0 0 58 22"><polyline points="2,17 12,18 22,15 32,15 42,11 56,8" fill="none" stroke="#22a06b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              <span class="up">▲18%</span></div>
+            <div class="feed"><img class="emo" src="../assets/emoji/plug.png" /> 本周新增 36 条 · 来自 MI 平台</div>
+          </aside>
+        </div>
+      </div>
+      <div class="mock-note">*界面为示意，数据为虚构</div>
+
+      <div class="footer">需求库怎么搭？可以翻翻往期笔记<span class="blue">「手把手教你搭建需求库」</span></div>
+    </div>
+  </body>
+</html>

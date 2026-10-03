@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .window {
+        margin-top: 30px;
+      }
+      .mi {
+        display: grid;
+        grid-template-columns: 172px 1fr 272px;
+        height: 604px;
+      }
+
+      .side {
+        padding: 20px 14px;
+        background: #f5f7fd;
+        border-right: 1.5px solid #e4e9f5;
+        display: flex;
+        flex-direction: column;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 0 6px 18px;
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--ink);
+      }
+      .logo i {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: linear-gradient(135deg, #3b6fd6, #22509e);
+        color: #fff;
+        font-family: "Bitter", serif;
+        font-style: normal;
+        font-weight: 800;
+        font-size: 17px;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        height: 46px;
+        padding: 0 10px;
+        margin-bottom: 6px;
+        border-radius: 12px;
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ink-2);
+      }
+      .nav .emo {
+        height: 22px;
+        vertical-align: 0;
+      }
+      .nav.on {
+        background: #fff;
+        color: var(--blue-bright);
+        font-weight: 800;
+        box-shadow: 0 2px 8px rgba(34, 80, 158, 0.1);
+      }
+      .side .sync {
+        margin-top: auto;
+        padding: 12px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1.5px solid #e4e9f5;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--ink-2);
+        line-height: 1.5;
+      }
+      .side .sync b {
+        display: block;
+        font-size: 24px;
+        color: var(--ink);
+      }
+      .side .sync .live {
+        color: var(--green);
+      }
+
+      .main {
+        padding: 20px 22px;
+      }
+      .newtopic {
+        display: flex;
+        gap: 10px;
+      }
+      .input {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        height: 46px;
+        padding: 0 14px;
+        border-radius: 12px;
+        border: 2px solid var(--blue-bright);
+        box-shadow: 0 0 0 4px rgba(59, 111, 214, 0.12);
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--ink);
+      }
+      .input .ph {
+        color: var(--ink-3);
+        font-weight: 500;
+        margin-right: 4px;
+      }
+      .input .caret {
+        width: 2px;
+        height: 22px;
+        margin-left: 2px;
+        background: var(--blue-bright);
+      }
+      .topics {
+        display: flex;
+        gap: 7px;
+        margin-top: 14px;
+      }
+      .topics .chip {
+        padding: 5px 10px;
+        font-size: 16px;
+      }
+      .sop {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: var(--panel);
+        border: 1.5px dashed #c9d6f3;
+        font-size: 15.5px;
+        font-weight: 700;
+        color: var(--ink-2);
+        white-space: nowrap;
+      }
+      .sop span {
+        padding: 4px 9px;
+        border-radius: 8px;
+        background: #fff;
+        border: 1.5px solid #dfe6f5;
+      }
+      .sop em {
+        font-style: normal;
+        color: var(--blue-bar);
+        font-weight: 900;
+      }
+      .h3 {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin: 20px 0 12px;
+        font-size: 20px;
+        font-weight: 800;
+      }
+      .h3 small {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--ink-3);
+      }
+      .sources {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .src {
+        padding: 14px;
+        border-radius: 16px;
+        border: 1.5px solid #e2e7f3;
+        background: #fff;
+      }
+      .src header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 19px;
+        font-weight: 800;
+      }
+      .src header .ic {
+        display: grid;
+        place-items: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+      }
+      .src header .ic .emo {
+        height: 24px;
+        vertical-align: 0;
+      }
+      .src header .tag {
+        margin-left: auto;
+      }
+      .src .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 12px;
+      }
+      .src .chips {
+        flex-wrap: nowrap;
+      }
+      .src .chip {
+        padding: 3px 8px;
+        font-size: 15px;
+      }
+      .src .meta {
+        margin-top: 10px;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--ink-3);
+      }
+
+      .panel {
+        padding: 20px 18px;
+        background: #f8faff;
+        border-left: 1.5px solid #e4e9f5;
+        display: flex;
+        flex-direction: column;
+      }
+      .panel .ttl {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 20px;
+        font-weight: 800;
+      }
+      .panel .ttl .emo {
+        height: 26px;
+        vertical-align: 0;
+      }
+      .panel .ttl .tag {
+        margin-left: auto;
+      }
+      .prog {
+        margin-top: 14px;
+      }
+      .prog li {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        list-style: none;
+        height: 32px;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--ink-2);
+      }
+      .prog li i {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--green);
+        color: #fff;
+        font-size: 13px;
+        font-style: normal;
+        font-weight: 900;
+      }
+      .prog li.doing i {
+        background: #fff;
+        border: 3px solid var(--blue-bright);
+        border-right-color: #d5def3;
+      }
+      .prog li b {
+        color: var(--ink);
+      }
+      .bar {
+        height: 8px;
+        margin: 6px 0 2px 29px;
+        border-radius: 99px;
+        background: #e1e7f5;
+        overflow: hidden;
+      }
+      .bar i {
+        display: block;
+        width: 82%;
+        height: 100%;
+        background: linear-gradient(90deg, #6f97e8, var(--blue-bright));
+      }
+      .panel hr {
+        margin: 16px 0 14px;
+        border: none;
+        border-top: 1.5px dashed #d8dfef;
+      }
+      .ins-h {
+        font-size: 17px;
+        font-weight: 800;
+        margin-bottom: 10px;
+      }
+      .ins {
+        padding: 11px 12px;
+        margin-bottom: 9px;
+        border-radius: 12px;
+        background: #fff;
+        border: 1.5px solid #e4e9f5;
+        font-size: 15.5px;
+        font-weight: 700;
+        line-height: 1.45;
+        color: var(--ink);
+      }
+      .ins .from {
+        display: flex;
+        gap: 5px;
+        margin-top: 7px;
+      }
+      .ins .from .tag {
+        font-size: 13px;
+        padding: 2px 7px;
+      }
+      .panel .btn {
+        margin-top: auto;
+        height: 42px;
+        font-size: 17px;
+      }
+
+      .steps {
+        margin-top: 22px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page inner">
+      <div class="kicker">变化 1｜不止于 Skill，把用研 SOP 产品化</div>
+      <div class="h1">① 一套市场洞察 <span class="slab">MI</span> 平台</div>
+      <div class="body">
+        <p>项目早期，<b>桌面研究是一种投入小、见效快的切入方式</b>：先快速、全面地摸清全貌，再决定要不要上重度的访谈和问卷。</p>
+        <p>做法是先<mark>指定高质量信源</mark>：汽车场景的社媒、垂媒、出行生活平台 VOC，加上头部机构的行业研报；再把分析流程<mark>标准化成工具</mark>。换话题、换车型，比如「带宠物出行」，都能<b>按同一套方式快速出洞察</b>。</p>
+      </div>
+
+      <div class="window">
+        <div class="chrome">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="title">市场洞察 MI 平台 · Market Intelligence</div>
+        </div>
+        <div class="mi">
+          <aside class="side">
+            <div class="logo"><i>MI</i>市场洞察</div>
+            <div class="nav on"><img class="emo" src="../assets/emoji/dividers.png" />信源库</div>
+            <div class="nav"><img class="emo" src="../assets/emoji/compass.png" />专题研究</div>
+            <div class="nav"><img class="emo" src="../assets/emoji/barchart.png" />洞察报告</div>
+            <div class="nav"><img class="emo" src="../assets/emoji/puzzle.png" />方法模板</div>
+            <div class="sync">已接入<b class="num">12</b>个高质量信源<br /><span class="live">● 每日同步</span></div>
+          </aside>
+
+          <section class="main">
+            <div class="newtopic">
+              <div class="input"><span class="ph">＋ 新建专题：</span>带宠物出行<span class="caret"></span></div>
+              <div class="btn">开始研究 →</div>
+            </div>
+            <div class="topics">
+              <span class="chip"><img class="emo" src="../assets/emoji/luggage.png" />旅行</span>
+              <span class="chip on"><img class="emo" src="../assets/emoji/dog.png" />带宠物出行</span>
+              <span class="chip"><img class="emo" src="../assets/emoji/child.png" />亲子出行</span>
+              <span class="chip"><img class="emo" src="../assets/emoji/car.png" />换车型</span>
+            </div>
+
+            <div class="h3">高质量信源库 <small>汽车场景 · 4 类 12 源</small></div>
+            <div class="sources">
+              <div class="src">
+                <header><span class="ic" style="background: #fde8e8"><img class="emo" src="../assets/emoji/speech.png" /></span>社媒 VOC<span class="tag green">A 级</span></header>
+                <div class="chips"><span class="chip">小红书</span><span class="chip">抖音</span><span class="chip">微博</span></div>
+                <div class="meta">笔记 · 评论 · 热议话题</div>
+              </div>
+              <div class="src">
+                <header><span class="ic" style="background: #e3ebfd"><img class="emo" src="../assets/emoji/car.png" /></span>汽车垂媒<span class="tag green">A 级</span></header>
+                <div class="chips"><span class="chip">汽车之家</span><span class="chip">懂车帝</span><span class="chip">易车</span></div>
+                <div class="meta">车主口碑 · 论坛 · 评测</div>
+              </div>
+              <div class="src">
+                <header><span class="ic" style="background: #e3f6ea"><img class="emo" src="../assets/emoji/luggage.png" /></span>出行生活<span class="tag green">A 级</span></header>
+                <div class="chips"><span class="chip">携程</span><span class="chip">马蜂窝</span><span class="chip">大众点评</span></div>
+                <div class="meta">攻略 · 点评 · 问答</div>
+              </div>
+              <div class="src">
+                <header><span class="ic" style="background: #fdf1d3"><img class="emo" src="../assets/emoji/books.png" /></span>行业研报<span class="tag green">A 级</span></header>
+                <div class="chips"><span class="chip">头部咨询</span><span class="chip">投行</span><span class="chip">券商</span></div>
+                <div class="meta">趋势 · 数据 · 案例</div>
+              </div>
+            </div>
+
+            <div class="h3">标准化分析 SOP <small>每个专题自动套用</small></div>
+            <div class="sop"><span>VOC 清洗</span><em>›</em><span>场景聚类</span><em>›</em><span>JTBD 提炼</span><em>›</em><span>情绪打分</span></div>
+          </section>
+
+          <aside class="panel">
+            <div class="ttl"><img class="emo" src="../assets/emoji/dog.png" />带宠物出行<span class="tag amber">研究中</span></div>
+            <ul class="prog">
+              <li><i>✓</i>检索 <b class="num">12</b> 个信源</li>
+              <li><i>✓</i>抓取 VOC <b class="num">3,286</b> 条</li>
+              <li><i>✓</i>聚类 <b class="num">9</b> 个需求主题</li>
+              <li class="doing"><i></i>生成洞察报告 <b class="num">82%</b></li>
+            </ul>
+            <div class="bar"><i></i></div>
+            <hr />
+            <div class="ins-h">洞察速览</div>
+            <div class="ins">后排防抓、防滑的座椅保护被反复提及<div class="from"><span class="tag pink">小红书</span><span class="tag">懂车帝</span></div></div>
+            <div class="ins">停车等候时，宠物的温度安全最让人焦虑<div class="from"><span class="tag pink">抖音</span><span class="tag">汽车之家</span></div></div>
+            <div class="btn ghost">查看完整洞察 →</div>
+          </aside>
+        </div>
+      </div>
+      <div class="mock-note">*界面为示意，数据为虚构</div>
+
+      <div class="footer">换个话题、换个车型，都能按同一套高质量方式快速出洞察</div>
+    </div>
+  </body>
+</html>

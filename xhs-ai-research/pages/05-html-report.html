@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .window {
+        margin-top: 22px;
+      }
+      .h1 .halt {
+        font-feature-settings: "halt";
+      }
+      .rep {
+        height: 444px;
+        padding: 22px 24px;
+        background: linear-gradient(180deg, #f6f8fe, #fff 30%);
+        display: flex;
+        flex-direction: column;
+      }
+      .rep-hd {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .rep-hd .emo {
+        height: 40px;
+        vertical-align: 0;
+      }
+      .rep-hd h2 {
+        font-family: "Noto Sans SC", sans-serif;
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--ink);
+      }
+      .rep-hd .month {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ink-3);
+      }
+      .rep-hd .sync {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 99px;
+        background: #e3f6ea;
+        color: #17804f;
+        font-size: 15px;
+        font-weight: 800;
+      }
+      .rep-hd .sync .emo {
+        height: 20px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .kpi {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: #fff;
+        border: 1.5px solid #e2e7f3;
+      }
+      .kpi span {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink-3);
+      }
+      .kpi b {
+        display: block;
+        margin-top: 2px;
+        font-family: "Inter", sans-serif;
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--ink);
+      }
+      .kpi b small {
+        margin-left: 6px;
+        font-size: 15px;
+        color: var(--green);
+      }
+      .body2 {
+        display: grid;
+        grid-template-columns: 1.05fr 1fr;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .box {
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: #fff;
+        border: 1.5px solid #e2e7f3;
+      }
+      .box h5 {
+        font-family: "Noto Sans SC", sans-serif;
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 10px;
+      }
+      .hbar {
+        display: grid;
+        grid-template-columns: 112px 1fr 56px;
+        align-items: center;
+        gap: 10px;
+        height: 38px;
+        font-size: 15.5px;
+        font-weight: 700;
+        color: var(--ink-2);
+      }
+      .hbar .track {
+        height: 14px;
+        border-radius: 99px;
+        background: #eef1f8;
+        overflow: hidden;
+      }
+      .hbar .track i {
+        display: block;
+        height: 100%;
+        border-radius: 99px;
+        background: linear-gradient(90deg, #8eaaf0, #3b6fd6);
+      }
+      .hbar .v {
+        font-family: "Inter", sans-serif;
+        font-weight: 800;
+        color: var(--green);
+        text-align: right;
+      }
+      .mini {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .mini .st {
+        padding: 8px;
+        border-radius: 12px;
+        border: 1.5px solid #e2e7f3;
+        background: #fafbfe;
+      }
+      .mini .fr {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+      }
+      .mini .fr span {
+        display: grid;
+        place-items: center;
+        height: 40px;
+        border-radius: 7px;
+        border: 1.2px solid #dbe1f0;
+      }
+      .mini .fr .emo {
+        height: 24px;
+        vertical-align: 0;
+      }
+      .mini p {
+        margin-top: 7px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.4;
+        color: var(--ink);
+      }
+      .push {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: auto;
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: var(--panel);
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--ink-2);
+      }
+      .push .emo {
+        height: 24px;
+        vertical-align: 0;
+      }
+      .push .chip {
+        font-size: 15px;
+        padding: 4px 11px;
+        background: #fff;
+      }
+      .push .btn {
+        margin-left: auto;
+        height: 38px;
+        font-size: 16px;
+      }
+
+      .flow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin-top: 20px;
+      }
+      .node {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        border: 2.5px solid var(--line);
+        border-radius: 20px;
+        background: var(--lav);
+      }
+      .node:nth-of-type(2) {
+        background: var(--mint);
+      }
+      .node:nth-of-type(3) {
+        background: var(--cream);
+      }
+      .node .emo {
+        height: 46px;
+        vertical-align: 0;
+      }
+      .node b {
+        display: block;
+        font-size: 25px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+      .node span {
+        display: block;
+        font-size: 19px;
+        font-weight: 600;
+        color: var(--ink-2);
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page inner">
+      <div class="kicker">变化 3｜不再写一次性的报告和 PPT</div>
+      <div class="h1">用 <span class="slab">HTML</span> 搭<span class="halt">「活」</span>的产出物</div>
+
+      <div class="body">
+        <p>以前写报告，每次结构都不同，时间都耗在<b>想结构、做可视化、调 Keynote 排版</b>上。现在我沉淀了一套最简流程，用 <mark>HTML 搭标准化模板</mark>：每周市场洞察、定期访谈总结、用户旅程地图，模板只搭一次，之后数据一传就刷新。</p>
+        <p>更进一步，是<b>把产出物和过程内容打通</b>：需求场景库和洞察报告联动，每月自动刷新，推送给内部相关角色。</p>
+      </div>
+
+      <div class="window">
+        <div class="chrome">
+          <div class="dots"><i></i><i></i><i></i></div>
+          <div class="url">reports/monthly-insight.html</div>
+        </div>
+        <div class="rep">
+          <div class="rep-hd">
+            <img class="emo" src="../assets/emoji/barchart.png" />
+            <h2>需求洞察月报</h2>
+            <span class="month">2026 年 9 月</span>
+            <span class="sync"><img class="emo" src="../assets/emoji/refresh.png" />已同步 需求场景库 · 09-30 09:00</span>
+          </div>
+
+          <div class="kpis">
+            <div class="kpi"><span>新增需求</span><b>126<small>▲18%</small></b></div>
+            <div class="kpi"><span>涌现趋势</span><b>3</b></div>
+            <div class="kpi"><span>高情绪场景</span><b>18</b></div>
+            <div class="kpi"><span>覆盖人群</span><b>7</b></div>
+          </div>
+
+          <div class="body2">
+            <div class="box">
+              <h5>趋势 TOP 3</h5>
+              <div class="hbar">车内亲子陪伴<div class="track"><i style="width: 92%"></i></div><span class="v">▲42%</span></div>
+              <div class="hbar">宠物友好座舱<div class="track"><i style="width: 74%"></i></div><span class="v">▲31%</span></div>
+              <div class="hbar">驻车生活<div class="track"><i style="width: 52%"></i></div><span class="v">▲18%</span></div>
+            </div>
+            <div class="box">
+              <h5>场景故事板精选</h5>
+              <div class="mini">
+                <div class="st">
+                  <div class="fr"><span style="background: #eaf0fd"><img class="emo" src="../assets/emoji/car.png" /></span><span style="background: #fdf3d6"><img class="emo" src="../assets/emoji/child.png" /></span><span style="background: #fde8e8"><img class="emo" src="../assets/emoji/exploding.png" /></span></div>
+                  <p>后排孩子总问窗外是什么</p>
+                </div>
+                <div class="st">
+                  <div class="fr"><span style="background: #fdf3d6"><img class="emo" src="../assets/emoji/dog.png" /></span><span style="background: #eef0f6"><img class="emo" src="../assets/emoji/pawprints.png" /></span><span style="background: #fde8e8"><img class="emo" src="../assets/emoji/seenoevil.png" /></span></div>
+                  <p>宠物乱动，开车分心</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="push">
+            <img class="emo" src="../assets/emoji/megaphone.png" />推送给
+            <span class="chip">产品</span><span class="chip">设计</span><span class="chip">市场</span><span class="chip">战略</span>
+            <span class="btn">一键推送</span>
+          </div>
+        </div>
+      </div>
+      <div class="mock-note">*界面为示意，数据为虚构</div>
+
+      <div class="flow">
+        <div class="node"><img class="emo" src="../assets/emoji/dividers.png" /><p><b>需求场景库</b><span>持续积累</span></p></div>
+        <span class="arrow"></span>
+        <div class="node"><img class="emo" src="../assets/emoji/barchart.png" /><p><b>月度洞察报告</b><span>按月自动刷新</span></p></div>
+        <span class="arrow"></span>
+        <div class="node"><img class="emo" src="../assets/emoji/megaphone.png" /><p><b>推送相关角色</b><span>产品 · 设计 · 市场</span></p></div>
+      </div>
+
+      <div class="footer">搭一次，之后每次更新都水到渠成</div>
+    </div>
+  </body>
+</html>
