@@ -100,11 +100,12 @@ body {
 /* ───────── 封面 ───────── */
 
 .cover {
-  padding: 172px 78px 0;
+  padding: 140px 60px 0;
+  text-align: center;
 }
 
 .cover-title {
-  font-size: 112px;
+  font-size: 132px;
   font-weight: 900;
   line-height: 1.26;
   color: var(--blue);
