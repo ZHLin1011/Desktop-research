@@ -20,7 +20,13 @@ https://github.com/ZHLin1011/Desktop-research/raw/63ef79f/exports/guaji-edge-vs-
 
 内容：LLM / VLM / Omni 的输入输出能力与应用场景。
 
-推送后将在下方写入锁定下载链接（或见根目录 README）。
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/3e6c9c01ccfecd6642650dda9aadb7110af7fd2f/exports/guaji-modalities-with-audio.mp4
+
+分支最新：
+
+https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdrawn-explainer-2cda/exports/guaji-modalities-with-audio.mp4
 
 手机：浏览器打开 → 分享 → 存储到文件 / 相册  
 电脑：打开后「另存为」  
