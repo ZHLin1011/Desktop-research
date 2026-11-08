@@ -8,7 +8,7 @@
 | 期 | 话题 | 时长 | 下载 |
 |----|------|------|------|
 | 1 | [为什么大模型说话有快有慢](llm-explainer/index.html) | ~72s | [MP4](https://github.com/ZHLin1011/Desktop-research/raw/017be90/exports/guaji-llm-speed-vertical-with-audio.mp4) |
-| 2 | [没有网络还能运行 AI 吗](llm-explainer/edge-vs-cloud.html) | ~82s | 见下方「第 2 期下载」（推送后更新） |
+| 2 | [没有网络还能运行 AI 吗](llm-explainer/edge-vs-cloud.html) | ~82s | [MP4](https://github.com/ZHLin1011/Desktop-research/raw/63ef79fe235067f0a203f27cae867845c009b328/exports/guaji-edge-vs-cloud-with-audio.mp4) |
 
 第 2 期本地文件：`exports/guaji-edge-vs-cloud-with-audio.mp4`
 

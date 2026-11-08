@@ -10,9 +10,11 @@ https://github.com/ZHLin1011/Desktop-research/raw/017be90/exports/guaji-llm-spee
 
 `guaji-edge-vs-cloud-with-audio.mp4`（约 82 秒）
 
-推送后使用提交锁定链接（见仓库最新 commit 下的本文件；或 README 表格）。
+锁定本版提交：
 
-分支路径：
+https://github.com/ZHLin1011/Desktop-research/raw/63ef79fe235067f0a203f27cae867845c009b328/exports/guaji-edge-vs-cloud-with-audio.mp4
+
+分支最新：
 
 https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdrawn-explainer-2cda/exports/guaji-edge-vs-cloud-with-audio.mp4
 
