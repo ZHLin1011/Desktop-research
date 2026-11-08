@@ -97,31 +97,31 @@
       { id:"hook", title:"引出问题", tag:"常见疑问",
         zh:"嗨，我是呱基。你有没有发现：有时候大模型几乎秒回，有时候却转圈转半天？今天把原因讲清楚。",
         voice:"嗨，我是呱基。你有没有发现：有时候大模型几乎秒回，有时候却转圈转半天？今天把原因讲清楚。",
-        duration:12000 },
+        duration:9892 },
       { id:"two", title:"两段式", tag:"总览",
         zh:"大模型每次回答，其实分两段活：先「读题」，再「写字」。专业说法叫 Prefill 和 Decode。",
         voice:"大模型每次回答，其实分两段活：先读题，再写字。专业说法叫 Prefill 和 Decode。",
-        duration:12000 },
+        duration:8572 },
       { id:"prefill", title:"Prefill", tag:"原理 · 读题",
         zh:"Prefill，就像老师先把整道题一次性读完。你贴的提示词、文件、聊天记录越长，这一步越吃力，开头就越容易卡住。",
         voice:"Prefill，就像老师先把整道题一次性读完。你贴的提示词、文件、聊天记录越长，这一步越吃力，开头就越容易卡住。",
-        duration:14000 },
+        duration:10564 },
       { id:"decode", title:"Decode", tag:"原理 · 吐字",
         zh:"Decode，是真正「说话」：模型一个字一个字往外蹦。你要它写长文、写代码，字数越多，等的时间就越长。",
         voice:"Decode，是真正说话：模型一个字一个字往外蹦。你要它写长文、写代码，字数越多，等的时间就越长。",
-        duration:14000 },
+        duration:9244 },
       { id:"factors", title:"影响因素", tag:"拆解",
         zh:"速度还受这些影响：输入越长 Prefill 越慢；输出越长 Decode 越久；模型越大通常越慢；高峰排队也会拖时间。",
         voice:"速度还受这些影响：输入越长 Prefill 越慢；输出越长 Decode 越久；模型越大通常越慢；高峰排队也会拖时间。",
-        duration:14000 },
+        duration:10564 },
       { id:"tips", title:"实操干货", tag:"少等待",
         zh:"想少等待，记五条：少贴整份长文，先摘要再问；一次只问一个问题；写明「用三点回答」「一百字内」；长任务拆成多轮；日常聊天用轻量模型，重活再上大模型。",
         voice:"想少等待，记五条：少贴整份长文，先摘要再问；一次只问一个问题；写明用三点回答、一百字内；长任务拆成多轮；日常聊天用轻量模型，重活再上大模型。",
-        duration:16000 },
+        duration:14044 },
       { id:"end", title:"收尾", tag:"记住一句",
         zh:"一句话：卡住多半在读题，写得慢多半在吐字。会拆任务，就能少干等。我是呱基，我们下期见。",
         voice:"一句话：卡住多半在读题，写得慢多半在吐字。会拆任务，就能少干等。我是呱基，我们下期见。",
-        duration:10000 },
+        duration:9340 },
     ];
 
     let playing=false, muted=false, sceneIndex=0, sceneStart=0, raf=0, seed=1;
@@ -270,23 +270,6 @@
       }
     }
 
-    /** large on-canvas subtitle like reference */
-    function drawSubtitle(sc, localT){
-      // bottom vignette
-      const g=ctx.createLinearGradient(0,H-420,0,H);
-      g.addColorStop(0,"rgba(7,16,24,0)");
-      g.addColorStop(0.35,"rgba(7,16,24,0.72)");
-      g.addColorStop(1,"rgba(7,16,24,0.92)");
-      ctx.fillStyle=g; ctx.fillRect(0,H-420,W,420);
-
-      // progressive subtitle reveal by characters
-      const full=sc.zh;
-      const chars=Math.min(full.length, Math.floor(easeOut(localT/1800)*full.length)+1);
-      const shown=full.slice(0, Math.max(1,chars));
-      wrapText(shown, W/2, H-220, 940, 48, "rgba(244,247,251,0.98)", 1.38);
-      text(sc.tag, W/2, H-95, 28, "rgba(154,215,255,0.9)");
-    }
-
     function titleBig(str, y=150, color="rgba(154,215,255,0.98)"){
       text(str, W/2, y, 78, color);
     }
@@ -307,7 +290,6 @@
         case "tips": drawTips(p,totalT,localT); break;
         case "end": drawEnd(p,totalT,localT); break;
       }
-      drawSubtitle(SCENES[index], localT);
       // soft scene fade-in
       const fade=clamp01(localT/280);
       if(fade<1){
