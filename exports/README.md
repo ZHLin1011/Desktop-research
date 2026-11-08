@@ -1,5 +1,7 @@
 # 成片下载
 
+规格统一：1080×1920 · 9:16 · H.264 + AAC · 底部字幕 · 上下安全边距
+
 ## 第 1 期 · 为什么大模型说话有快有慢
 
 `guaji-llm-speed-vertical-with-audio.mp4`（约 72 秒）
@@ -10,20 +12,15 @@ https://github.com/ZHLin1011/Desktop-research/raw/017be90/exports/guaji-llm-spee
 
 `guaji-edge-vs-cloud-with-audio.mp4`（约 82 秒）
 
-锁定本版提交：
+https://github.com/ZHLin1011/Desktop-research/raw/63ef79f/exports/guaji-edge-vs-cloud-with-audio.mp4
 
-https://github.com/ZHLin1011/Desktop-research/raw/63ef79fe235067f0a203f27cae867845c009b328/exports/guaji-edge-vs-cloud-with-audio.mp4
+## 第 3 期 · 大模型除了会读会写还有什么技能
 
-分支最新：
+`guaji-modalities-with-audio.mp4`（约 93 秒）
 
-https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdrawn-explainer-2cda/exports/guaji-edge-vs-cloud-with-audio.mp4
+内容：LLM / VLM / Omni 的输入输出能力与应用场景。
 
-| 项 | 说明 |
-|----|------|
-| 规格 | 1080×1920 · 9:16 · H.264 + AAC |
-| 字幕 | 有（底部安全区内） |
-| 安全边距 | 顶部 / 底部已留空 |
-| 内容 | 端侧 vs 云端：部署、算力、优劣、怎么选 |
+推送后将在下方写入锁定下载链接（或见根目录 README）。
 
 手机：浏览器打开 → 分享 → 存储到文件 / 相册  
 电脑：打开后「另存为」  
