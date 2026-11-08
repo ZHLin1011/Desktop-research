@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>什么是大模型 · 手绘科普</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --ink: #f4f7fb;
+      --mute: #9db0c9;
+      --accent: #7ec8ff;
+      --panel: #121a2b;
+      --line: rgba(244, 247, 251, 0.14);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background:
+        radial-gradient(1200px 600px at 20% -10%, #1a2740 0%, transparent 55%),
+        radial-gradient(900px 500px at 90% 10%, #152033 0%, transparent 50%),
+        var(--bg);
+      color: var(--ink);
+      font-family: "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 24px 16px 32px;
+      min-height: 100%;
+    }
+
+    .brand {
+      width: min(920px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .brand h1 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.15;
+    }
+
+    .brand p {
+      color: var(--mute);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 46em;
+      font-family: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
+    }
+
+    .stage-wrap {
+      width: min(920px, 100%);
+      position: relative;
+      border: 1px solid var(--line);
+      background: #071018;
+      overflow: hidden;
+      aspect-ratio: 16 / 10;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #071018;
+    }
+
+    .subtitle {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 18px 20px 22px;
+      text-align: center;
+      background: linear-gradient(transparent, rgba(0, 0, 0, 0.72));
+      pointer-events: none;
+    }
+
+    .subtitle .zh {
+      font-size: clamp(16px, 2.2vw, 22px);
+      line-height: 1.45;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+      font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+      font-weight: 500;
+    }
+
+    .subtitle .en {
+      margin-top: 4px;
+      font-size: clamp(12px, 1.5vw, 14px);
+      color: #c7d3e3;
+      opacity: 0.85;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    }
+
+    .controls {
+      width: min(920px, 100%);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      border-radius: 0;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover { border-color: rgba(126, 200, 255, 0.45); background: #172238; }
+    button.primary {
+      background: #1d3a57;
+      border-color: rgba(126, 200, 255, 0.55);
+      color: #eaf6ff;
+    }
+
+    .meta {
+      color: var(--mute);
+      font-size: 13px;
+      margin-left: auto;
+    }
+
+    .progress {
+      width: min(920px, 100%);
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .progress > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+    }
+
+    .scene-list {
+      width: min(920px, 100%);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+    }
+
+    .scene-list button {
+      text-align: left;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: var(--mute);
+      line-height: 1.35;
+    }
+
+    .scene-list button.active {
+      color: var(--ink);
+      border-color: rgba(126, 200, 255, 0.5);
+      background: #172238;
+    }
+
+    .hint {
+      width: min(920px, 100%);
+      color: var(--mute);
+      font-size: 12px;
+      line-height: 1.5;
+      font-family: "PingFang SC", "Noto Sans SC", sans-serif;
+    }
+
+    @media (max-width: 640px) {
+      .meta { margin-left: 0; width: 100%; }
+      body { padding: 16px 12px 24px; gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <h1>什么是大模型</h1>
+    <p>手绘风 Canvas 科普短片：用「读过海量书的超级读者」讲清楚大语言模型是什么、怎么工作、能做什么，以及为什么它也会说错。</p>
+  </header>
+
+  <div class="stage-wrap">
+    <canvas id="stage" width="1280" height="800" aria-label="大模型科普动画画布"></canvas>
+    <div class="subtitle">
+      <div class="zh" id="subZh"></div>
+      <div class="en" id="subEn"></div>
+    </div>
+  </div>
+
+  <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnRestart">重来</button>
+    <button id="btnMute">配音：开</button>
+    <div class="meta" id="meta">场景 1 / 7</div>
+  </div>
+
+  <div class="scene-list" id="sceneList"></div>
+  <p class="hint">方法同款：纯 JavaScript 在 2D 画布上手绘动画；旁白用浏览器 SpeechSynthesis（中文）。首次播放时部分浏览器需要你点一次「播放」才会出声。</p>
+
+  <script>
+    /**
+     * Hand-drawn chalkboard explainer: What is an LLM?
+     * Pure Canvas 2D + Web Speech API (no external deps).
+     */
+
+    const canvas = document.getElementById("stage");
+    const ctx = canvas.getContext("2d");
+    const subZh = document.getElementById("subZh");
+    const subEn = document.getElementById("subEn");
+    const bar = document.getElementById("bar");
+    const meta = document.getElementById("meta");
+    const btnPlay = document.getElementById("btnPlay");
+    const btnRestart = document.getElementById("btnRestart");
+    const btnMute = document.getElementById("btnMute");
+    const sceneList = document.getElementById("sceneList");
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // ---- Scene script (通俗易懂) ----
+    const SCENES = [
+      {
+        id: "hook",
+        title: "开场",
+        zh: "你跟手机聊天时，对面好像有个超级聪明的朋友。",
+        en: "When you chat with your phone, it feels like a very smart friend.",
+        voice: "你跟手机聊天时，对面好像有个超级聪明的朋友。",
+        duration: 5200,
+      },
+      {
+        id: "what",
+        title: "它是谁",
+        zh: "这个朋友，其实是「大语言模型」——读过海量文字的超级读者。",
+        en: "That friend is a Large Language Model — a super reader of huge amounts of text.",
+        voice: "这个朋友，其实是大语言模型。它像一个读过海量文字的超级读者。",
+        duration: 6500,
+      },
+      {
+        id: "how",
+        title: "怎么工作",
+        zh: "它不会「背答案」，而是猜下一句：看到「今天天气」就猜「真不错」。",
+        en: "It doesn't memorize answers — it predicts the next words, like finishing a sentence.",
+        voice: "它不会死背答案，而是猜下一句。比如看到今天天气，就猜真不错。",
+        duration: 7000,
+      },
+      {
+        id: "train",
+        title: "怎么练成",
+        zh: "练功材料是书、网页、对话……读得越多，猜得越靠谱。",
+        en: "It trains on books, web pages, and chats — the more it reads, the better it predicts.",
+        voice: "它的练功材料是书、网页和对话。读得越多，猜得越靠谱。",
+        duration: 6200,
+      },
+      {
+        id: "can",
+        title: "能做什么",
+        zh: "所以它能讲故事、答题、翻译、写草稿，像随身带的小老师。",
+        en: "So it can tell stories, answer questions, translate, and draft text — like a pocket tutor.",
+        voice: "所以它能讲故事、答题、翻译、写草稿，像一个随身带的小老师。",
+        duration: 6200,
+      },
+      {
+        id: "limit",
+        title: "也会说错",
+        zh: "但它也可能一本正经说错。重要的事，还是要自己核对。",
+        en: "But it can sound confident and still be wrong. Double-check important things.",
+        voice: "但它也可能一本正经说错。重要的事，还是要自己核对。",
+        duration: 6000,
+      },
+      {
+        id: "end",
+        title: "收尾",
+        zh: "一句话：大模型 = 读了很多文字、很会接话的超级读者。",
+        en: "In short: an LLM is a super reader that is great at continuing language.",
+        voice: "一句话总结：大模型，就是读了很多文字、很会接话的超级读者。",
+        duration: 6500,
+      },
+    ];
+
+    // ---- State ----
+    let playing = false;
+    let muted = false;
+    let sceneIndex = 0;
+    let sceneStart = 0;
+    let raf = 0;
+    let seed = 1;
+    let voicesReady = false;
+
+    // ---- Tiny seeded noise for hand-drawn wobble ----
+    function rand() {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    }
+    function wobble(a = 1.2) {
+      return (rand() - 0.5) * a;
+    }
+
+    // ---- Drawing helpers (chalk / doodle) ----
+    function clear() {
+      ctx.fillStyle = "#071018";
+      ctx.fillRect(0, 0, W, H);
+      // faint chalk dust
+      ctx.save();
+      seed = 42;
+      ctx.fillStyle = "rgba(255,255,255,0.035)";
+      for (let i = 0; i < 120; i++) {
+        ctx.fillRect(rand() * W, rand() * H, 1.5, 1.5);
+      }
+      ctx.restore();
+    }
+
+    function chalkStroke(points, opts = {}) {
+      const {
+        color = "rgba(244,247,251,0.92)",
+        width = 2.4,
+        dash = null,
+        alpha = 1,
+      } = opts;
+      if (points.length < 2) return;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(points[0].x + wobble(), points[0].y + wobble());
+      for (let i = 1; i < points.length; i++) {
+        const p = points[i];
+        const prev = points[i - 1];
+        const mx = (prev.x + p.x) / 2 + wobble(0.8);
+        const my = (prev.y + p.y) / 2 + wobble(0.8);
+        ctx.quadraticCurveTo(prev.x + wobble(0.6), prev.y + wobble(0.6), mx, my);
+      }
+      const last = points[points.length - 1];
+      ctx.lineTo(last.x + wobble(0.5), last.y + wobble(0.5));
+      ctx.stroke();
+      // second lighter pass for chalk texture
+      ctx.globalAlpha = alpha * 0.28;
+      ctx.lineWidth = width * 1.8;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function line(x1, y1, x2, y2, opts) {
+      chalkStroke([{ x: x1, y: y1 }, { x: x2, y: y2 }], opts);
+    }
+
+    function circle(cx, cy, r, opts = {}) {
+      const pts = [];
+      const n = 28;
+      for (let i = 0; i <= n; i++) {
+        const t = (i / n) * Math.PI * 2;
+        pts.push({ x: cx + Math.cos(t) * r, y: cy + Math.sin(t) * r });
+      }
+      chalkStroke(pts, opts);
+    }
+
+    function scribbleText(text, x, y, size = 28, color = "rgba(244,247,251,0.95)") {
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.font = `${size}px "PingFang SC", "Noto Sans SC", sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x + wobble(0.6), y + wobble(0.6));
+      ctx.restore();
+    }
+
+    function stickPerson(x, y, scale = 1, opts = {}) {
+      const s = scale;
+      const armUp = opts.armUp || false;
+      const lookUp = opts.lookUp || false;
+      // head
+      circle(x, y - 58 * s, 16 * s);
+      // body
+      line(x, y - 42 * s, x, y, { width: 2.6 });
+      // legs
+      line(x, y, x - 18 * s, y + 34 * s);
+      line(x, y, x + 18 * s, y + 34 * s);
+      // arms
+      if (armUp) {
+        line(x, y - 28 * s, x - 26 * s, y - 52 * s);
+        line(x, y - 28 * s, x + 30 * s, y - 70 * s);
+      } else {
+        line(x, y - 28 * s, x - 24 * s, y - 6 * s);
+        line(x, y - 28 * s, x + 24 * s, y - 6 * s);
+      }
+      // eyes
+      const ey = lookUp ? -4 : 2;
+      ctx.save();
+      ctx.fillStyle = "rgba(244,247,251,0.95)";
+      ctx.beginPath();
+      ctx.arc(x - 5 * s, y - 60 * s + ey, 1.6, 0, Math.PI * 2);
+      ctx.arc(x + 5 * s, y - 60 * s + ey, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function phone(x, y, scale = 1) {
+      const w = 34 * scale, h = 58 * scale;
+      chalkStroke([
+        { x: x - w / 2, y: y - h / 2 },
+        { x: x + w / 2, y: y - h / 2 },
+        { x: x + w / 2, y: y + h / 2 },
+        { x: x - w / 2, y: y + h / 2 },
+        { x: x - w / 2, y: y - h / 2 },
+      ], { width: 2.2 });
+      line(x - 8 * scale, y + h / 2 - 8 * scale, x + 8 * scale, y + h / 2 - 8 * scale, { width: 1.6 });
+      // chat bubbles on screen
+      chalkStroke([
+        { x: x - 10, y: y - 14 },
+        { x: x + 8, y: y - 14 },
+        { x: x + 8, y: y - 4 },
+        { x: x - 10, y: y - 4 },
+        { x: x - 10, y: y - 14 },
+      ], { width: 1.5, color: "rgba(126,200,255,0.85)" });
+      chalkStroke([
+        { x: x - 6, y: y + 2 },
+        { x: x + 12, y: y + 2 },
+        { x: x + 12, y: y + 12 },
+        { x: x - 6, y: y + 12 },
+        { x: x - 6, y: y + 2 },
+      ], { width: 1.5 });
+    }
+
+    function book(x, y, open = false) {
+      if (!open) {
+        chalkStroke([
+          { x: x - 22, y: y - 28 },
+          { x: x + 18, y: y - 28 },
+          { x: x + 22, y: y + 26 },
+          { x: x - 18, y: y + 26 },
+          { x: x - 22, y: y - 28 },
+        ]);
+        line(x - 2, y - 24, x + 2, y + 22, { width: 1.5 });
+      } else {
+        line(x, y - 30, x, y + 28);
+        chalkStroke([
+          { x, y: y - 30 },
+          { x: x - 36, y: y - 22 },
+          { x: x - 32, y: y + 28 },
+          { x, y: y + 28 },
+        ]);
+        chalkStroke([
+          { x, y: y - 30 },
+          { x: x + 36, y: y - 22 },
+          { x: x + 32, y: y + 28 },
+          { x, y: y + 28 },
+        ]);
+        for (let i = 0; i < 4; i++) {
+          line(x - 28, y - 12 + i * 10, x - 6, y - 10 + i * 10, { width: 1.2, alpha: 0.7 });
+          line(x + 6, y - 10 + i * 10, x + 28, y - 12 + i * 10, { width: 1.2, alpha: 0.7 });
+        }
+      }
+    }
+
+    function speechBubble(x, y, w, h) {
+      chalkStroke([
+        { x: x - w / 2, y: y - h / 2 },
+        { x: x + w / 2, y: y - h / 2 },
+        { x: x + w / 2, y: y + h / 2 },
+        { x: x - w / 2 + 28, y: y + h / 2 },
+        { x: x - w / 2 + 10, y: y + h / 2 + 18 },
+        { x: x - w / 2 + 18, y: y + h / 2 },
+        { x: x - w / 2, y: y + h / 2 },
+        { x: x - w / 2, y: y - h / 2 },
+      ], { width: 2 });
+    }
+
+    function ground(y = H - 120) {
+      const pts = [];
+      for (let x = 40; x < W - 40; x += 28) {
+        pts.push({ x, y: y + Math.sin(x * 0.02) * 6 + wobble(2) });
+      }
+      chalkStroke(pts, { width: 2.2, alpha: 0.85 });
+    }
+
+    function stars(n = 40, t = 0) {
+      seed = 99;
+      ctx.save();
+      for (let i = 0; i < n; i++) {
+        const x = rand() * W;
+        const y = 40 + rand() * (H * 0.45);
+        const a = 0.25 + 0.55 * (0.5 + 0.5 * Math.sin(t * 0.003 + i));
+        ctx.fillStyle = `rgba(244,247,251,${a})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+      ctx.restore();
+    }
+
+    function brainNet(cx, cy, t, reveal = 1) {
+      const nodes = [];
+      const layers = [3, 5, 5, 3];
+      let idx = 0;
+      layers.forEach((count, li) => {
+        for (let i = 0; i < count; i++) {
+          const x = cx - 140 + li * 95;
+          const y = cy - ((count - 1) * 28) / 2 + i * 28;
+          nodes.push({ x, y, li, i, id: idx++ });
+        }
+      });
+      // connections
+      nodes.forEach((a) => {
+        nodes.forEach((b) => {
+          if (b.li === a.li + 1) {
+            const show = reveal > (a.li + 1) / layers.length;
+            if (!show) return;
+            const pulse = 0.35 + 0.35 * Math.sin(t * 0.006 + a.id + b.id);
+            line(a.x, a.y, b.x, b.y, {
+              width: 1.2,
+              alpha: 0.25 + pulse * 0.35,
+              color: "rgba(126,200,255,0.75)",
+            });
+          }
+        });
+      });
+      nodes.forEach((n, i) => {
+        if (reveal < (n.li + 0.2) / layers.length) return;
+        circle(n.x, n.y, 6 + (i % 3 === 0 ? 1 : 0), {
+          width: 1.8,
+          color: i % 2 ? "rgba(244,247,251,0.9)" : "rgba(126,200,255,0.95)",
+        });
+      });
+    }
+
+    // ---- Scene drawers ----
+    function drawScene(index, localT, totalT) {
+      clear();
+      seed = 1000 + index * 97 + Math.floor(localT / 80);
+      stars(36, totalT);
+      ground();
+
+      const p = Math.min(1, localT / Math.max(1, SCENES[index].duration - 400));
+
+      switch (SCENES[index].id) {
+        case "hook":
+          drawHook(p, totalT);
+          break;
+        case "what":
+          drawWhat(p, totalT);
+          break;
+        case "how":
+          drawHow(p, totalT);
+          break;
+        case "train":
+          drawTrain(p, totalT);
+          break;
+        case "can":
+          drawCan(p, totalT);
+          break;
+        case "limit":
+          drawLimit(p, totalT);
+          break;
+        case "end":
+          drawEnd(p, totalT);
+          break;
+      }
+    }
+
+    function drawHook(p, t) {
+      // kid + phone
+      stickPerson(W * 0.32, H * 0.62, 1.15, { armUp: p > 0.35 });
+      if (p > 0.2) phone(W * 0.32 + 55, H * 0.48, 1.1);
+      if (p > 0.45) {
+        speechBubble(W * 0.68, H * 0.38, 280, 110);
+        scribbleText("你好呀！", W * 0.68, H * 0.34, 34);
+        scribbleText("今天想聊点什么？", W * 0.68, H * 0.42, 22, "rgba(199,211,227,0.95)");
+      }
+      // floating sparkles near phone
+      if (p > 0.3) {
+        for (let i = 0; i < 8; i++) {
+          const a = t * 0.002 + i;
+          const x = W * 0.32 + 55 + Math.cos(a + i) * (30 + i * 3);
+          const y = H * 0.48 + Math.sin(a * 1.3 + i) * (40 + i * 2) - 20;
+          circle(x, y, 2, { width: 1.2, alpha: 0.5 + 0.3 * Math.sin(a), color: "rgba(126,200,255,0.9)" });
+        }
+      }
+    }
+
+    function drawWhat(p, t) {
+      stickPerson(W * 0.22, H * 0.64, 1.05, { lookUp: true });
+      book(W * 0.22 + 70, H * 0.58, true);
+      // giant reader metaphor: big open book + glowing brain-net
+      if (p > 0.2) {
+        chalkStroke([
+          { x: W * 0.48, y: H * 0.28 },
+          { x: W * 0.88, y: H * 0.28 },
+          { x: W * 0.9, y: H * 0.72 },
+          { x: W * 0.46, y: H * 0.72 },
+          { x: W * 0.48, y: H * 0.28 },
+        ], { width: 2.4 });
+        scribbleText("超级读者", W * 0.69, H * 0.24, 26, "rgba(126,200,255,0.95)");
+      }
+      if (p > 0.4) brainNet(W * 0.69, H * 0.5, t, p);
+      if (p > 0.75) {
+        scribbleText("大语言模型 LLM", W * 0.69, H * 0.78, 24);
+      }
+    }
+
+    function drawHow(p, t) {
+      // sentence completion animation
+      scribbleText("猜下一句", W * 0.5, 90, 28, "rgba(126,200,255,0.95)");
+
+      const left = "今天天气";
+      const right = "真不错";
+      speechBubble(W * 0.32, H * 0.42, 260, 100);
+      scribbleText(left, W * 0.32, H * 0.42, 36);
+
+      // arrow
+      if (p > 0.25) {
+        line(W * 0.46, H * 0.42, W * 0.56, H * 0.42, { width: 2.5, color: "rgba(126,200,255,0.9)" });
+        line(W * 0.56, H * 0.42, W * 0.53, H * 0.42 - 10, { width: 2.2, color: "rgba(126,200,255,0.9)" });
+        line(W * 0.56, H * 0.42, W * 0.53, H * 0.42 + 10, { width: 2.2, color: "rgba(126,200,255,0.9)" });
+      }
+
+      if (p > 0.4) {
+        speechBubble(W * 0.72, H * 0.42, 240, 100);
+        // typewriter reveal
+        const n = Math.floor(Math.min(1, (p - 0.4) / 0.35) * right.length);
+        scribbleText(right.slice(0, Math.max(1, n)), W * 0.72, H * 0.42, 36, "rgba(126,200,255,0.98)");
+      }
+
+      if (p > 0.7) {
+        stickPerson(W * 0.18, H * 0.72, 0.9);
+        stickPerson(W * 0.82, H * 0.72, 0.9, { armUp: true });
+        scribbleText("像玩接龙", W * 0.5, H * 0.72, 22, "rgba(199,211,227,0.9)");
+      }
+
+      // probability bars metaphor
+      if (p > 0.55) {
+        const opts = [
+          { w: "真不错", v: 0.82 },
+          { w: "好冷啊", v: 0.45 },
+          { w: "怎么样", v: 0.28 },
+        ];
+        opts.forEach((o, i) => {
+          const y = H * 0.58 + i * 28;
+          const x0 = W * 0.42;
+          scribbleText(o.w, x0 - 50, y, 16, "rgba(199,211,227,0.85)");
+          line(x0, y, x0 + 160 * o.v * Math.min(1, (p - 0.55) / 0.3), y, {
+            width: 6,
+            color: i === 0 ? "rgba(126,200,255,0.85)" : "rgba(244,247,251,0.35)",
+          });
+        });
+      }
+    }
+
+    function drawTrain(p, t) {
+      scribbleText("练功材料", W * 0.5, 90, 28, "rgba(126,200,255,0.95)");
+      const items = [
+        { label: "书", x: W * 0.22 },
+        { label: "网页", x: W * 0.5 },
+        { label: "对话", x: W * 0.78 },
+      ];
+      items.forEach((it, i) => {
+        if (p < 0.15 + i * 0.15) return;
+        const y = H * 0.42;
+        if (i === 0) book(it.x, y, true);
+        if (i === 1) {
+          chalkStroke([
+            { x: it.x - 40, y: y - 35 },
+            { x: it.x + 40, y: y - 35 },
+            { x: it.x + 40, y: y + 35 },
+            { x: it.x - 40, y: y + 35 },
+            { x: it.x - 40, y: y - 35 },
+          ]);
+          for (let k = 0; k < 4; k++) line(it.x - 28, y - 18 + k * 12, it.x + 28, y - 18 + k * 12, { width: 1.3, alpha: 0.7 });
+        }
+        if (i === 2) {
+          speechBubble(it.x, y, 100, 70);
+          scribbleText("…", it.x, y, 28);
+        }
+        scribbleText(it.label, it.x, y + 70, 22);
+        // arrows into brain
+        if (p > 0.55) {
+          line(it.x, y + 90, W * 0.5, H * 0.72 - 10, {
+            width: 1.5,
+            alpha: 0.45,
+            color: "rgba(126,200,255,0.8)",
+          });
+        }
+      });
+      if (p > 0.6) {
+        brainNet(W * 0.5, H * 0.78, t, Math.min(1, (p - 0.6) / 0.3));
+      }
+    }
+
+    function drawCan(p, t) {
+      scribbleText("它能帮你", W * 0.5, 90, 28, "rgba(126,200,255,0.95)");
+      const cards = [
+        { t: "讲故事", x: W * 0.2, y: H * 0.4 },
+        { t: "答题", x: W * 0.5, y: H * 0.4 },
+        { t: "翻译", x: W * 0.8, y: H * 0.4 },
+        { t: "写草稿", x: W * 0.35, y: H * 0.62 },
+        { t: "陪你聊", x: W * 0.65, y: H * 0.62 },
+      ];
+      cards.forEach((c, i) => {
+        if (p < 0.12 + i * 0.12) return;
+        chalkStroke([
+          { x: c.x - 70, y: c.y - 36 },
+          { x: c.x + 70, y: c.y - 36 },
+          { x: c.x + 70, y: c.y + 36 },
+          { x: c.x - 70, y: c.y + 36 },
+          { x: c.x - 70, y: c.y - 36 },
+        ], { width: 2, color: i % 2 ? "rgba(244,247,251,0.9)" : "rgba(126,200,255,0.85)" });
+        scribbleText(c.t, c.x, c.y, 26);
+      });
+      if (p > 0.75) {
+        stickPerson(W * 0.12, H * 0.78, 0.85, { armUp: true });
+        scribbleText("随身小老师", W * 0.5, H * 0.82, 22, "rgba(199,211,227,0.9)");
+      }
+    }
+
+    function drawLimit(p, t) {
+      stickPerson(W * 0.28, H * 0.6, 1.1);
+      speechBubble(W * 0.62, H * 0.36, 320, 120);
+      scribbleText("听起来很对……", W * 0.62, H * 0.32, 26);
+      if (p > 0.35) {
+        scribbleText("但可能是错的！", W * 0.62, H * 0.42, 28, "rgba(255,186,140,0.95)");
+      }
+      // warning triangle
+      if (p > 0.5) {
+        const tx = W * 0.28, ty = H * 0.36;
+        chalkStroke([
+          { x: tx, y: ty - 40 },
+          { x: tx + 40, y: ty + 28 },
+          { x: tx - 40, y: ty + 28 },
+          { x: tx, y: ty - 40 },
+        ], { width: 2.4, color: "rgba(255,186,140,0.95)" });
+        scribbleText("!", tx, ty + 4, 32, "rgba(255,186,140,0.95)");
+      }
+      if (p > 0.7) {
+        scribbleText("重要的事 → 自己核对一下", W * 0.55, H * 0.7, 24);
+        // checkmark
+        chalkStroke([
+          { x: W * 0.78, y: H * 0.7 },
+          { x: W * 0.8, y: H * 0.72 },
+          { x: W * 0.86, y: H * 0.64 },
+        ], { width: 3, color: "rgba(126,200,255,0.95)" });
+      }
+    }
+
+    function drawEnd(p, t) {
+      brainNet(W * 0.5, H * 0.42, t, Math.min(1, p * 1.2));
+      if (p > 0.35) {
+        scribbleText("大模型", W * 0.5, H * 0.68, 42);
+      }
+      if (p > 0.55) {
+        scribbleText("= 读了很多文字、很会接话的超级读者", W * 0.5, H * 0.76, 24, "rgba(199,211,227,0.95)");
+      }
+      if (p > 0.75) {
+        stickPerson(W * 0.18, H * 0.72, 0.9, { armUp: true });
+        stickPerson(W * 0.82, H * 0.72, 0.9, { armUp: true });
+      }
+    }
+
+    // ---- Voice ----
+    function pickVoice() {
+      const voices = speechSynthesis.getVoices();
+      const zh = voices.find((v) => /zh[-_]CN/i.test(v.lang) && /female|ting|xiaoxiao|yaoyao|huihui/i.test(v.name))
+        || voices.find((v) => /zh[-_]CN/i.test(v.lang))
+        || voices.find((v) => /^zh/i.test(v.lang));
+      return zh || null;
+    }
+
+    function speak(text) {
+      if (muted || !("speechSynthesis" in window)) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "zh-CN";
+      u.rate = 1.02;
+      u.pitch = 1.05;
+      const v = pickVoice();
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    }
+
+    function stopSpeak() {
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+    }
+
+    if ("speechSynthesis" in window) {
+      speechSynthesis.onvoiceschanged = () => { voicesReady = true; };
+      voicesReady = speechSynthesis.getVoices().length > 0;
+    }
+
+    // ---- Playback ----
+    function totalDuration() {
+      return SCENES.reduce((s, sc) => s + sc.duration, 0);
+    }
+
+    function sceneOffsets() {
+      const out = [];
+      let acc = 0;
+      SCENES.forEach((sc) => {
+        out.push(acc);
+        acc += sc.duration;
+      });
+      return out;
+    }
+
+    const offsets = sceneOffsets();
+
+    function setScene(i, restartVoice = true) {
+      sceneIndex = Math.max(0, Math.min(SCENES.length - 1, i));
+      sceneStart = performance.now();
+      const sc = SCENES[sceneIndex];
+      subZh.textContent = sc.zh;
+      subEn.textContent = sc.en;
+      meta.textContent = `场景 ${sceneIndex + 1} / ${SCENES.length} · ${sc.title}`;
+      [...sceneList.children].forEach((b, idx) => b.classList.toggle("active", idx === sceneIndex));
+      if (restartVoice && playing) speak(sc.voice);
+      updateProgress(0);
+    }
+
+    function updateProgress(localT) {
+      const done = offsets[sceneIndex] + localT;
+      const pct = Math.min(100, (done / totalDuration()) * 100);
+      bar.style.width = pct + "%";
+    }
+
+    function tick(now) {
+      if (!playing) return;
+      const sc = SCENES[sceneIndex];
+      const localT = now - sceneStart;
+      drawScene(sceneIndex, localT, now);
+      updateProgress(localT);
+
+      if (localT >= sc.duration) {
+        if (sceneIndex < SCENES.length - 1) {
+          setScene(sceneIndex + 1, true);
+        } else {
+          playing = false;
+          btnPlay.textContent = "再看一遍";
+          stopSpeak();
+          drawScene(sceneIndex, sc.duration, now);
+          updateProgress(sc.duration);
+          return;
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    }
+
+    function play() {
+      playing = true;
+      btnPlay.textContent = "暂停";
+      setScene(sceneIndex, true);
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(tick);
+    }
+
+    function pause() {
+      playing = false;
+      btnPlay.textContent = "继续";
+      stopSpeak();
+      cancelAnimationFrame(raf);
+    }
+
+    function restart() {
+      stopSpeak();
+      sceneIndex = 0;
+      playing = true;
+      btnPlay.textContent = "暂停";
+      setScene(0, true);
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(tick);
+    }
+
+    // ---- UI wiring ----
+    SCENES.forEach((sc, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = `${i + 1}. ${sc.title}`;
+      b.addEventListener("click", () => {
+        const wasPlaying = playing;
+        stopSpeak();
+        setScene(i, wasPlaying);
+        drawScene(i, 0, performance.now());
+        if (wasPlaying) {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(tick);
+        }
+      });
+      sceneList.appendChild(b);
+    });
+
+    btnPlay.addEventListener("click", () => {
+      if (playing) pause();
+      else {
+        if (btnPlay.textContent === "再看一遍") restart();
+        else play();
+      }
+    });
+    btnRestart.addEventListener("click", restart);
+    btnMute.addEventListener("click", () => {
+      muted = !muted;
+      btnMute.textContent = muted ? "配音：关" : "配音：开";
+      if (muted) stopSpeak();
+      else if (playing) speak(SCENES[sceneIndex].voice);
+    });
+
+    // initial frame
+    setScene(0, false);
+    drawScene(0, 0, performance.now());
+  </script>
+</body>
+</html>
