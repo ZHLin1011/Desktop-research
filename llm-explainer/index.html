@@ -6,21 +6,19 @@
   <title>呱基讲 AI · 为什么大模型说话有快有慢</title>
   <style>
     :root {
-      --bg: #0a1a12;
-      --ink: #f3faf4;
-      --mute: #a8c4b0;
-      --accent: #7dffa3;
-      --frog: #6fdc7a;
-      --panel: #102418;
-      --line: rgba(243, 250, 244, 0.14);
-      --warn: #ffd28a;
+      --bg: #071018;
+      --ink: #f4f7fb;
+      --mute: #a8b8cc;
+      --accent: #9ad7ff;
+      --frog: #8dff9c;
+      --panel: #0f1a24;
+      --line: rgba(244, 247, 251, 0.16);
+      --warn: #ffd59a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
       min-height: 100%;
-      background:
-        radial-gradient(700px 500px at 50% -5%, #163525 0%, transparent 55%),
-        var(--bg);
+      background: radial-gradient(700px 480px at 50% 0%, #132033 0%, transparent 55%), var(--bg);
       color: var(--ink);
       font-family: "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", sans-serif;
     }
@@ -31,748 +29,528 @@
       gap: 14px;
       padding: 16px 12px 28px;
     }
-    .brand {
-      width: min(420px, 100%);
-      text-align: center;
-    }
-    .brand .host {
-      color: var(--accent);
-      font-size: 13px;
-      letter-spacing: 0.08em;
-      margin-bottom: 6px;
-    }
+    .brand { width: min(420px, 100%); text-align: center; }
+    .brand .host { color: var(--frog); font-size: 13px; letter-spacing: 0.08em; margin-bottom: 6px; }
     .brand h1 {
       font-family: "Songti SC", "Noto Serif SC", Georgia, serif;
       font-size: clamp(22px, 5.5vw, 28px);
       line-height: 1.25;
-      font-weight: 700;
     }
-    .brand p {
-      margin-top: 8px;
-      color: var(--mute);
-      font-size: 13px;
-      line-height: 1.55;
-    }
+    .brand p { margin-top: 8px; color: var(--mute); font-size: 13px; line-height: 1.55; }
     .stage-wrap {
       width: min(420px, 100%);
       position: relative;
       border: 1px solid var(--line);
-      background: #07140e;
+      background: #071018;
       overflow: hidden;
       aspect-ratio: 9 / 16;
     }
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: #07140e;
-    }
-    .subtitle {
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      padding: 16px 14px 18px;
-      text-align: center;
-      background: linear-gradient(transparent, rgba(0,0,0,0.78));
-      pointer-events: none;
-    }
-    .subtitle .zh {
-      font-size: clamp(14px, 3.6vw, 17px);
-      line-height: 1.45;
-      font-weight: 500;
-      text-shadow: 0 1px 8px rgba(0,0,0,0.85);
-    }
-    .subtitle .tag {
-      margin-top: 6px;
-      font-size: 12px;
-      color: var(--accent);
-      opacity: 0.9;
-    }
-    .progress {
-      width: min(420px, 100%);
-      height: 3px;
-      background: rgba(255,255,255,0.08);
-      overflow: hidden;
-    }
-    .progress > i {
-      display: block;
-      height: 100%;
-      width: 0%;
-      background: var(--accent);
-    }
-    .controls {
-      width: min(420px, 100%);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-    }
+    canvas { display: block; width: 100%; height: 100%; background: #071018; }
+    .progress { width: min(420px, 100%); height: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .progress > i { display: block; height: 100%; width: 0%; background: var(--accent); }
+    .controls { width: min(420px, 100%); display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     button {
-      appearance: none;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--ink);
-      padding: 10px 14px;
-      font-size: 13px;
-      cursor: pointer;
+      appearance: none; border: 1px solid var(--line); background: var(--panel);
+      color: var(--ink); padding: 10px 14px; font-size: 13px; cursor: pointer;
     }
-    button:hover { border-color: rgba(125,255,163,0.45); background: #163524; }
-    button.primary {
-      background: #1a4a2e;
-      border-color: rgba(125,255,163,0.55);
-    }
-    .meta {
-      color: var(--mute);
-      font-size: 12px;
-      margin-left: auto;
-    }
-    .scene-list {
-      width: min(420px, 100%);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-    .scene-list button {
-      text-align: left;
-      padding: 8px 10px;
-      font-size: 11px;
-      color: var(--mute);
-      line-height: 1.35;
-    }
-    .scene-list button.active {
-      color: var(--ink);
-      border-color: rgba(125,255,163,0.5);
-      background: #163524;
-    }
-    .hint {
-      width: min(420px, 100%);
-      color: var(--mute);
-      font-size: 11px;
-      line-height: 1.5;
-    }
-    @media (max-width: 420px) {
-      .meta { margin-left: 0; width: 100%; }
-    }
+    button:hover { border-color: rgba(154,215,255,0.45); background: #152433; }
+    button.primary { background: #1a3348; border-color: rgba(154,215,255,0.55); }
+    .meta { color: var(--mute); font-size: 12px; margin-left: auto; }
+    .scene-list { width: min(420px, 100%); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .scene-list button { text-align: left; padding: 8px 10px; font-size: 11px; color: var(--mute); line-height: 1.35; }
+    .scene-list button.active { color: var(--ink); border-color: rgba(154,215,255,0.5); background: #152433; }
+    .hint { width: min(420px, 100%); color: var(--mute); font-size: 11px; line-height: 1.5; }
   </style>
 </head>
 <body>
   <header class="brand">
     <div class="host">呱基 · AI 概念课</div>
     <h1>为什么大模型说话<br>有快有慢？</h1>
-    <p>Prefill 读题 · Decode 吐字 · 少等待的五条干货。面向老师、传统行业与大学生等非 AI 从业者。</p>
+    <p>手绘风竖屏科普：Prefill / Decode + 少等待干货。字幕已画进画面，可直接导出成片。</p>
   </header>
 
   <div class="stage-wrap">
     <canvas id="stage" width="1080" height="1920" aria-label="呱基竖屏科普画布"></canvas>
-    <div class="subtitle">
-      <div class="zh" id="subZh"></div>
-      <div class="tag" id="subTag"></div>
-    </div>
   </div>
-
   <div class="progress" aria-hidden="true"><i id="bar"></i></div>
-
   <div class="controls">
     <button class="primary" id="btnPlay">播放</button>
     <button id="btnRestart">重来</button>
     <button id="btnMute">配音：开</button>
     <div class="meta" id="meta">场景 1 / 7</div>
   </div>
-
   <div class="scene-list" id="sceneList"></div>
-  <p class="hint">竖屏 9:16 · 正常语速 · 「呱基」仅开场/收尾点名。成片旁白为青蛙特色音色。</p>
+  <p class="hint">竖屏 9:16 · 参考小红书手绘粉笔风 · 关键字放大 · 「呱基」仅开场/收尾点名</p>
 
   <script>
     const canvas = document.getElementById("stage");
     const ctx = canvas.getContext("2d");
-    const subZh = document.getElementById("subZh");
-    const subTag = document.getElementById("subTag");
     const bar = document.getElementById("bar");
     const meta = document.getElementById("meta");
     const btnPlay = document.getElementById("btnPlay");
     const btnRestart = document.getElementById("btnRestart");
     const btnMute = document.getElementById("btnMute");
     const sceneList = document.getElementById("sceneList");
+    const W = canvas.width, H = canvas.height;
 
-    const W = canvas.width;
-    const H = canvas.height;
-
-    // ---- Script: 「呱基」只在开场自报家门、收尾道别各出现一次 ----
     const SCENES = [
-      {
-        id: "hook",
-        title: "引出问题",
-        tag: "常见疑问",
-        zh: "嗨，我是呱基。你有没有发现：有时候大模型几乎秒回，有时候却转圈转半天？今天把原因讲清楚。",
-        voice: "嗨，我是呱基。你有没有发现：有时候大模型几乎秒回，有时候却转圈转半天？今天把原因讲清楚。",
-        duration: 12000,
-      },
-      {
-        id: "two",
-        title: "两段式",
-        tag: "总览",
-        zh: "大模型每次回答，其实分两段活：先「读题」，再「写字」。专业说法叫 Prefill 和 Decode。",
-        voice: "大模型每次回答，其实分两段活：先读题，再写字。专业说法叫 Prefill 和 Decode。",
-        duration: 12000,
-      },
-      {
-        id: "prefill",
-        title: "Prefill",
-        tag: "原理 · 读题",
-        zh: "Prefill，就像老师先把整道题一次性读完。你贴的提示词、文件、聊天记录越长，这一步越吃力，开头就越容易卡住。",
-        voice: "Prefill，就像老师先把整道题一次性读完。你贴的提示词、文件、聊天记录越长，这一步越吃力，开头就越容易卡住。",
-        duration: 14000,
-      },
-      {
-        id: "decode",
-        title: "Decode",
-        tag: "原理 · 吐字",
-        zh: "Decode，是真正「说话」：模型一个字一个字往外蹦。你要它写长文、写代码，字数越多，等的时间就越长。",
-        voice: "Decode，是真正说话：模型一个字一个字往外蹦。你要它写长文、写代码，字数越多，等的时间就越长。",
-        duration: 14000,
-      },
-      {
-        id: "factors",
-        title: "影响因素",
-        tag: "拆解",
-        zh: "速度还受这些影响：输入越长 Prefill 越慢；输出越长 Decode 越久；模型越大通常越慢；高峰排队也会拖时间。",
-        voice: "速度还受这些影响：输入越长 Prefill 越慢；输出越长 Decode 越久；模型越大通常越慢；高峰排队也会拖时间。",
-        duration: 14000,
-      },
-      {
-        id: "tips",
-        title: "实操干货",
-        tag: "少等待",
-        zh: "想少等待，记五条：少贴整份长文，先摘要再问；一次只问一个问题；写明「用三点回答」「一百字内」；长任务拆成多轮；日常聊天用轻量模型，重活再上大模型。",
-        voice: "想少等待，记五条：少贴整份长文，先摘要再问；一次只问一个问题；写明用三点回答、一百字内；长任务拆成多轮；日常聊天用轻量模型，重活再上大模型。",
-        duration: 16000,
-      },
-      {
-        id: "end",
-        title: "收尾",
-        tag: "记住一句",
-        zh: "一句话：卡住多半在读题，写得慢多半在吐字。会拆任务，就能少干等。我是呱基，我们下期见。",
-        voice: "一句话：卡住多半在读题，写得慢多半在吐字。会拆任务，就能少干等。我是呱基，我们下期见。",
-        duration: 10000,
-      },
+      { id:"hook", title:"引出问题", tag:"常见疑问",
+        zh:"嗨，我是呱基。你有没有发现：有时候大模型几乎秒回，有时候却转圈转半天？今天把原因讲清楚。",
+        voice:"嗨，我是呱基。你有没有发现：有时候大模型几乎秒回，有时候却转圈转半天？今天把原因讲清楚。",
+        duration:12000 },
+      { id:"two", title:"两段式", tag:"总览",
+        zh:"大模型每次回答，其实分两段活：先「读题」，再「写字」。专业说法叫 Prefill 和 Decode。",
+        voice:"大模型每次回答，其实分两段活：先读题，再写字。专业说法叫 Prefill 和 Decode。",
+        duration:12000 },
+      { id:"prefill", title:"Prefill", tag:"原理 · 读题",
+        zh:"Prefill，就像老师先把整道题一次性读完。你贴的提示词、文件、聊天记录越长，这一步越吃力，开头就越容易卡住。",
+        voice:"Prefill，就像老师先把整道题一次性读完。你贴的提示词、文件、聊天记录越长，这一步越吃力，开头就越容易卡住。",
+        duration:14000 },
+      { id:"decode", title:"Decode", tag:"原理 · 吐字",
+        zh:"Decode，是真正「说话」：模型一个字一个字往外蹦。你要它写长文、写代码，字数越多，等的时间就越长。",
+        voice:"Decode，是真正说话：模型一个字一个字往外蹦。你要它写长文、写代码，字数越多，等的时间就越长。",
+        duration:14000 },
+      { id:"factors", title:"影响因素", tag:"拆解",
+        zh:"速度还受这些影响：输入越长 Prefill 越慢；输出越长 Decode 越久；模型越大通常越慢；高峰排队也会拖时间。",
+        voice:"速度还受这些影响：输入越长 Prefill 越慢；输出越长 Decode 越久；模型越大通常越慢；高峰排队也会拖时间。",
+        duration:14000 },
+      { id:"tips", title:"实操干货", tag:"少等待",
+        zh:"想少等待，记五条：少贴整份长文，先摘要再问；一次只问一个问题；写明「用三点回答」「一百字内」；长任务拆成多轮；日常聊天用轻量模型，重活再上大模型。",
+        voice:"想少等待，记五条：少贴整份长文，先摘要再问；一次只问一个问题；写明用三点回答、一百字内；长任务拆成多轮；日常聊天用轻量模型，重活再上大模型。",
+        duration:16000 },
+      { id:"end", title:"收尾", tag:"记住一句",
+        zh:"一句话：卡住多半在读题，写得慢多半在吐字。会拆任务，就能少干等。我是呱基，我们下期见。",
+        voice:"一句话：卡住多半在读题，写得慢多半在吐字。会拆任务，就能少干等。我是呱基，我们下期见。",
+        duration:10000 },
     ];
 
-    let playing = false;
-    let muted = false;
-    let sceneIndex = 0;
-    let sceneStart = 0;
-    let raf = 0;
-    let seed = 1;
+    let playing=false, muted=false, sceneIndex=0, sceneStart=0, raf=0, seed=1;
 
-    function rand() {
-      seed = (seed * 16807) % 2147483647;
-      return (seed - 1) / 2147483646;
-    }
-    function wobble(a = 1.4) {
-      return (rand() - 0.5) * a;
-    }
+    function rand(){ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; }
+    function wobble(a=2.8){ return (rand()-0.5)*a; }
+    function easeOut(t){ return 1-Math.pow(1-Math.min(1,Math.max(0,t)),3); }
+    function clamp01(t){ return Math.min(1,Math.max(0,t)); }
 
-    function clear() {
-      ctx.fillStyle = "#07140e";
-      ctx.fillRect(0, 0, W, H);
-      seed = 42;
-      ctx.fillStyle = "rgba(255,255,255,0.03)";
-      for (let i = 0; i < 160; i++) {
-        ctx.fillRect(rand() * W, rand() * H, 2, 2);
-      }
+    function clear(){
+      ctx.fillStyle="#071018";
+      ctx.fillRect(0,0,W,H);
+      // chalk dust / paper grain like reference
+      seed=11;
+      ctx.fillStyle="rgba(255,255,255,0.035)";
+      for(let i=0;i<220;i++){ ctx.fillRect(rand()*W, rand()*H, 1.8, 1.8); }
     }
 
-    function chalkStroke(points, opts = {}) {
-      const { color = "rgba(243,250,244,0.92)", width = 3, alpha = 1 } = opts;
-      if (points.length < 2) return;
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.beginPath();
-      ctx.moveTo(points[0].x + wobble(), points[0].y + wobble());
-      for (let i = 1; i < points.length; i++) {
-        const p = points[i];
-        const prev = points[i - 1];
-        const mx = (prev.x + p.x) / 2 + wobble(0.9);
-        const my = (prev.y + p.y) / 2 + wobble(0.9);
-        ctx.quadraticCurveTo(prev.x + wobble(0.7), prev.y + wobble(0.7), mx, my);
-      }
-      const last = points[points.length - 1];
-      ctx.lineTo(last.x, last.y);
-      ctx.stroke();
-      ctx.globalAlpha = alpha * 0.25;
-      ctx.lineWidth = width * 1.7;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function line(x1, y1, x2, y2, opts) {
-      chalkStroke([{ x: x1, y: y1 }, { x: x2, y: y2 }], opts);
-    }
-
-    function circle(cx, cy, r, opts = {}) {
-      const pts = [];
-      const n = 26;
-      for (let i = 0; i <= n; i++) {
-        const t = (i / n) * Math.PI * 2;
-        pts.push({ x: cx + Math.cos(t) * r, y: cy + Math.sin(t) * r });
-      }
-      chalkStroke(pts, opts);
-    }
-
-    function roundRect(x, y, w, h, opts) {
-      chalkStroke([
-        { x, y },
-        { x: x + w, y },
-        { x: x + w, y: y + h },
-        { x, y: y + h },
-        { x, y },
-      ], opts);
-    }
-
-    function text(str, x, y, size = 36, color = "rgba(243,250,244,0.95)", align = "center") {
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.font = `600 ${size}px "PingFang SC", "Noto Sans SC", sans-serif`;
-      ctx.textAlign = align;
-      ctx.textBaseline = "middle";
-      ctx.fillText(str, x + wobble(0.5), y + wobble(0.5));
-      ctx.restore();
-    }
-
-    function wrapText(str, x, y, maxWidth, size = 30, color = "rgba(243,250,244,0.92)", lineH = 1.35) {
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.font = `500 ${size}px "PingFang SC", "Noto Sans SC", sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      const chars = [...str];
-      let lineStr = "";
-      const lines = [];
-      for (const ch of chars) {
-        const test = lineStr + ch;
-        if (ctx.measureText(test).width > maxWidth && lineStr) {
-          lines.push(lineStr);
-          lineStr = ch;
-        } else {
-          lineStr = test;
+    function chalkStroke(points, opts={}){
+      const {color="rgba(244,247,251,0.94)", width=3.2, alpha=1}=opts;
+      if(points.length<2) return;
+      const drawOnce=(amp, wMul, aMul)=>{
+        ctx.save();
+        ctx.globalAlpha=alpha*aMul;
+        ctx.strokeStyle=color; ctx.lineWidth=width*wMul; ctx.lineCap="round"; ctx.lineJoin="round";
+        ctx.beginPath();
+        ctx.moveTo(points[0].x+wobble(amp), points[0].y+wobble(amp));
+        for(let i=1;i<points.length;i++){
+          const p=points[i], prev=points[i-1];
+          ctx.quadraticCurveTo(
+            prev.x+wobble(amp*0.9), prev.y+wobble(amp*0.9),
+            (prev.x+p.x)/2+wobble(amp), (prev.y+p.y)/2+wobble(amp)
+          );
         }
+        const last=points[points.length-1];
+        ctx.lineTo(last.x+wobble(amp*0.4), last.y+wobble(amp*0.4));
+        ctx.stroke();
+        ctx.restore();
+      };
+      // multi-pass chalk: main + dusty offset (closer to reference doodle)
+      drawOnce(2.4, 1, 1);
+      drawOnce(3.6, 1.7, 0.2);
+      drawOnce(1.4, 0.7, 0.35);
+    }
+    function line(x1,y1,x2,y2,opts){ chalkStroke([{x:x1,y:y1},{x:x2,y:y2}],opts); }
+    function circle(cx,cy,r,opts={}){
+      const pts=[]; for(let i=0;i<=28;i++){ const t=(i/28)*Math.PI*2; pts.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r}); }
+      chalkStroke(pts,opts);
+    }
+    function roundRect(x,y,w,h,opts){
+      chalkStroke([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h},{x,y}],opts);
+    }
+
+    function text(str,x,y,size=40,color="rgba(244,247,251,0.96)",align="center",weight="700"){
+      ctx.save();
+      ctx.fillStyle=color;
+      ctx.font=`${weight} ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
+      ctx.textAlign=align; ctx.textBaseline="middle";
+      ctx.fillText(str, x+wobble(0.4), y+wobble(0.4));
+      ctx.restore();
+    }
+
+    function wrapText(str,x,y,maxWidth,size=34,color="rgba(244,247,251,0.95)",lineH=1.35){
+      ctx.save();
+      ctx.fillStyle=color;
+      ctx.font=`600 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      const chars=[...str]; let cur=""; const lines=[];
+      for(const ch of chars){
+        const test=cur+ch;
+        if(ctx.measureText(test).width>maxWidth && cur){ lines.push(cur); cur=ch; }
+        else cur=test;
       }
-      if (lineStr) lines.push(lineStr);
-      const totalH = (lines.length - 1) * size * lineH;
-      lines.forEach((ln, i) => {
-        ctx.fillText(ln, x, y - totalH / 2 + i * size * lineH);
-      });
+      if(cur) lines.push(cur);
+      const totalH=(lines.length-1)*size*lineH;
+      lines.forEach((ln,i)=> ctx.fillText(ln, x, y-totalH/2+i*size*lineH));
       ctx.restore();
       return lines.length;
     }
 
-    /** 手绘小青蛙呱基 */
-    function drawFrog(x, y, scale = 1, mood = "idle", t = 0) {
-      const s = scale;
-      const bounce = Math.sin(t * 0.005) * 3 * s;
-      const cy = y + bounce;
-      // body
-      circle(x, cy, 42 * s, { width: 3.2, color: "rgba(111,220,122,0.95)" });
-      circle(x, cy + 8 * s, 28 * s, { width: 2.2, color: "rgba(125,255,163,0.55)", alpha: 0.7 });
-      // eyes
-      circle(x - 18 * s, cy - 28 * s, 14 * s, { width: 2.6, color: "rgba(243,250,244,0.95)" });
-      circle(x + 18 * s, cy - 28 * s, 14 * s, { width: 2.6, color: "rgba(243,250,244,0.95)" });
-      ctx.save();
-      ctx.fillStyle = "#0b1c12";
-      const lookY = mood === "lookUp" ? -3 : mood === "think" ? 2 : 0;
+    function ground(y=H-260){
+      const pts=[]; for(let x=50;x<W-50;x+=34) pts.push({x, y:y+Math.sin(x*0.016)*9});
+      chalkStroke(pts,{width:2.8,alpha:0.8});
+    }
+
+    function stars(t, n=55){
+      seed=77;
+      for(let i=0;i<n;i++){
+        const x=rand()*W, y=40+rand()*(H*0.42);
+        const a=0.2+0.55*(0.5+0.5*Math.sin(t*0.004+i*1.7));
+        ctx.fillStyle=`rgba(244,247,251,${a})`;
+        ctx.fillRect(x,y,2.2,2.2);
+      }
+    }
+
+    /** shimmer band like Milky Way streaks */
+    function shimmerBand(y0, t, reveal=1){
+      seed=202;
+      const count=Math.floor(70*reveal);
+      for(let i=0;i<count;i++){
+        const x=80+rand()*(W-160);
+        const y=y0+rand()*180;
+        const len=10+rand()*42;
+        const a=0.25+0.45*(0.5+0.5*Math.sin(t*0.006+i));
+        line(x,y,x+len,y+wobble(2),{width:1.6, alpha:a, color:"rgba(244,247,251,0.85)"});
+      }
+    }
+
+    function drawFrog(x,y,scale=1,mood="idle",t=0){
+      const s=scale;
+      const bounce=Math.sin(t*0.006)*4*s;
+      const cy=y+bounce;
+      // body (white chalk style closer to reference, with green accent)
+      circle(x,cy,46*s,{width:3.4,color:"rgba(141,255,156,0.95)"});
+      circle(x-20*s,cy-30*s,15*s,{width:2.8});
+      circle(x+20*s,cy-30*s,15*s,{width:2.8});
+      ctx.save(); ctx.fillStyle="#071018";
+      const look=mood==="lookUp"?-3:mood==="think"?2:0;
       ctx.beginPath();
-      ctx.arc(x - 18 * s, cy - 28 * s + lookY, 4.5 * s, 0, Math.PI * 2);
-      ctx.arc(x + 18 * s, cy - 28 * s + lookY, 4.5 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      // smile / mouth
-      if (mood === "talk") {
-        const open = 4 + Math.abs(Math.sin(t * 0.02)) * 6;
-        chalkStroke([
-          { x: x - 12 * s, y: cy + 8 * s },
-          { x: x, y: cy + 8 * s + open },
-          { x: x + 12 * s, y: cy + 8 * s },
-        ], { width: 2.4, color: "rgba(243,250,244,0.9)" });
-      } else if (mood === "worry") {
-        chalkStroke([
-          { x: x - 12 * s, y: cy + 14 * s },
-          { x: x, y: cy + 8 * s },
-          { x: x + 12 * s, y: cy + 14 * s },
-        ], { width: 2.4 });
+      ctx.arc(x-20*s,cy-30*s+look,5*s,0,Math.PI*2);
+      ctx.arc(x+20*s,cy-30*s+look,5*s,0,Math.PI*2);
+      ctx.fill(); ctx.restore();
+      if(mood==="talk"){
+        const open=5+Math.abs(Math.sin(t*0.025))*7;
+        chalkStroke([{x:x-14*s,y:cy+10*s},{x:x,y:cy+10*s+open},{x:x+14*s,y:cy+10*s}],{width:2.6});
       } else {
-        chalkStroke([
-          { x: x - 12 * s, y: cy + 10 * s },
-          { x: x, y: cy + 16 * s },
-          { x: x + 12 * s, y: cy + 10 * s },
-        ], { width: 2.4 });
+        chalkStroke([{x:x-14*s,y:cy+12*s},{x:x,y:cy+20*s},{x:x+14*s,y:cy+12*s}],{width:2.6});
       }
-      // legs
-      chalkStroke([
-        { x: x - 20 * s, y: cy + 30 * s },
-        { x: x - 38 * s, y: cy + 55 * s },
-        { x: x - 18 * s, y: cy + 52 * s },
-      ], { width: 3, color: "rgba(111,220,122,0.9)" });
-      chalkStroke([
-        { x: x + 20 * s, y: cy + 30 * s },
-        { x: x + 38 * s, y: cy + 55 * s },
-        { x: x + 18 * s, y: cy + 52 * s },
-      ], { width: 3, color: "rgba(111,220,122,0.9)" });
-      // name tag
-      text("呱基", x, cy + 78 * s, 22 * Math.min(1.2, scale), "rgba(125,255,163,0.95)");
+      chalkStroke([{x:x-22*s,y:cy+34*s},{x:x-42*s,y:cy+60*s},{x:x-16*s,y:cy+56*s}],{width:3.2,color:"rgba(141,255,156,0.9)"});
+      chalkStroke([{x:x+22*s,y:cy+34*s},{x:x+42*s,y:cy+60*s},{x:x+16*s,y:cy+56*s}],{width:3.2,color:"rgba(141,255,156,0.9)"});
+      text("呱基", x, cy+84*s, 26*Math.min(1.15,s), "rgba(141,255,156,0.95)");
     }
 
-    function phone(x, y, label, spinning = false, t = 0) {
-      roundRect(x - 55, y - 90, 110, 180, { width: 2.8 });
-      roundRect(x - 42, y - 72, 84, 130, { width: 1.8, color: "rgba(125,255,163,0.35)" });
-      text(label, x, y + 110, 26, "rgba(168,196,176,0.95)");
-      if (spinning) {
-        const a = t * 0.008;
-        chalkStroke([
-          { x: x + Math.cos(a) * 22, y: y + Math.sin(a) * 22 },
-          { x: x + Math.cos(a + 2) * 22, y: y + Math.sin(a + 2) * 22 },
-          { x: x + Math.cos(a + 4) * 22, y: y + Math.sin(a + 4) * 22 },
-        ], { width: 3, color: "rgba(255,210,138,0.95)" });
+    function phone(x,y,ok,t){
+      roundRect(x-60,y-100,120,200,{width:3});
+      roundRect(x-46,y-80,92,140,{width:2,color:"rgba(154,215,255,0.35)"});
+      if(ok){
+        // check animate in
+        chalkStroke([{x:x-22,y:y},{x:x-4,y:y+22},{x:x+28,y:y-24}],{width:5,color:"rgba(141,255,156,0.95)"});
+        text("秒回", x, y+130, 36, "rgba(141,255,156,0.95)");
       } else {
-        text("✓", x, y, 48, "rgba(125,255,163,0.95)");
+        const a=t*0.01;
+        circle(x,y,28,{width:3.2,color:"rgba(255,213,154,0.9)",alpha:0.9});
+        line(x,y, x+Math.cos(a)*22, y+Math.sin(a)*22,{width:3.2,color:"rgba(255,213,154,0.95)"});
+        text("转圈中", x, y+130, 34, "rgba(255,213,154,0.95)");
       }
     }
 
-    function ground(y = H - 220) {
-      const pts = [];
-      for (let x = 60; x < W - 60; x += 36) {
-        pts.push({ x, y: y + Math.sin(x * 0.015) * 8 });
-      }
-      chalkStroke(pts, { width: 2.6, alpha: 0.75 });
+    /** large on-canvas subtitle like reference */
+    function drawSubtitle(sc, localT){
+      // bottom vignette
+      const g=ctx.createLinearGradient(0,H-420,0,H);
+      g.addColorStop(0,"rgba(7,16,24,0)");
+      g.addColorStop(0.35,"rgba(7,16,24,0.72)");
+      g.addColorStop(1,"rgba(7,16,24,0.92)");
+      ctx.fillStyle=g; ctx.fillRect(0,H-420,W,420);
+
+      // progressive subtitle reveal by characters
+      const full=sc.zh;
+      const chars=Math.min(full.length, Math.floor(easeOut(localT/1800)*full.length)+1);
+      const shown=full.slice(0, Math.max(1,chars));
+      wrapText(shown, W/2, H-220, 940, 48, "rgba(244,247,251,0.98)", 1.38);
+      text(sc.tag, W/2, H-95, 28, "rgba(154,215,255,0.9)");
     }
 
-    function titleBanner(str) {
-      text(str, W / 2, 160, 44, "rgba(125,255,163,0.95)");
+    function titleBig(str, y=150, color="rgba(154,215,255,0.98)"){
+      text(str, W/2, y, 78, color);
     }
 
-    // ---- Scenes ----
-    function drawScene(index, localT, totalT) {
+    // ---- scenes ----
+    function drawScene(index, localT, totalT){
       clear();
-      seed = 800 + index * 91 + Math.floor(localT / 90);
+      seed=900+index*83+Math.floor(localT/70);
+      stars(totalT);
       ground();
-      const p = Math.min(1, localT / Math.max(1, SCENES[index].duration - 500));
-      switch (SCENES[index].id) {
-        case "hook": drawHook(p, totalT); break;
-        case "two": drawTwo(p, totalT); break;
-        case "prefill": drawPrefill(p, totalT); break;
-        case "decode": drawDecode(p, totalT); break;
-        case "factors": drawFactors(p, totalT); break;
-        case "tips": drawTips(p, totalT); break;
-        case "end": drawEnd(p, totalT); break;
+      const p=clamp01(localT/Math.max(1, SCENES[index].duration-400));
+      switch(SCENES[index].id){
+        case "hook": drawHook(p,totalT,localT); break;
+        case "two": drawTwo(p,totalT,localT); break;
+        case "prefill": drawPrefill(p,totalT,localT); break;
+        case "decode": drawDecode(p,totalT,localT); break;
+        case "factors": drawFactors(p,totalT,localT); break;
+        case "tips": drawTips(p,totalT,localT); break;
+        case "end": drawEnd(p,totalT,localT); break;
+      }
+      drawSubtitle(SCENES[index], localT);
+      // soft scene fade-in
+      const fade=clamp01(localT/280);
+      if(fade<1){
+        ctx.fillStyle=`rgba(7,16,24,${1-fade})`;
+        ctx.fillRect(0,0,W,H);
       }
     }
 
-    function drawHook(p, t) {
-      titleBanner("秒回 vs 干等");
-      drawFrog(W / 2, 420, 1.35, "lookUp", t);
-      if (p > 0.2) phone(W * 0.28, 980, "秒回", false, t);
-      if (p > 0.4) phone(W * 0.72, 980, "转圈中…", true, t);
-      if (p > 0.7) {
-        wrapText("同一类问题，为什么体验差这么多？", W / 2, 1280, 820, 32, "rgba(168,196,176,0.95)");
-      }
-    }
-
-    function drawTwo(p, t) {
-      titleBanner("回答 = 两段活");
-      drawFrog(W / 2, 380, 1.1, "talk", t);
-
-      // box 1
-      if (p > 0.2) {
-        roundRect(120, 620, 840, 220, { width: 3, color: "rgba(125,255,163,0.85)" });
-        text("① Prefill · 读题", W / 2, 690, 40);
-        text("先把你的问题整段读完", W / 2, 760, 28, "rgba(168,196,176,0.95)");
-      }
-      // arrow
-      if (p > 0.45) {
-        line(W / 2, 860, W / 2, 940, { width: 3.5, color: "rgba(125,255,163,0.9)" });
-        line(W / 2, 940, W / 2 - 16, 920, { width: 3, color: "rgba(125,255,163,0.9)" });
-        line(W / 2, 940, W / 2 + 16, 920, { width: 3, color: "rgba(125,255,163,0.9)" });
-      }
-      // box 2
-      if (p > 0.55) {
-        roundRect(120, 960, 840, 220, { width: 3, color: "rgba(255,210,138,0.85)" });
-        text("② Decode · 写字", W / 2, 1030, 40, "rgba(255,210,138,0.95)");
-        text("再一个字一个字往外说", W / 2, 1100, 28, "rgba(168,196,176,0.95)");
-      }
-      if (p > 0.8) {
-        text("卡住 ≠ 坏了，多半在干其中一段", W / 2, 1300, 28, "rgba(168,196,176,0.9)");
-      }
-    }
-
-    function drawPrefill(p, t) {
-      titleBanner("Prefill = 先读题");
-      // exam paper
-      roundRect(160, 280, 760, 520, { width: 3 });
-      text("你的提示词 / 文件 / 聊天记录", W / 2, 340, 28, "rgba(168,196,176,0.9)");
-      for (let i = 0; i < 6; i++) {
-        const w = 500 - i * 30;
-        if (p > 0.15 + i * 0.08) {
-          line(W / 2 - w / 2, 420 + i * 50, W / 2 + w / 2, 420 + i * 50, {
-            width: 4,
-            color: "rgba(125,255,163,0.55)",
-          });
+    function drawHook(p,t,localT){
+      titleBig("秒回  vs  干等");
+      shimmerBand(220, t, easeOut(p*1.2));
+      drawFrog(W/2, 520, 1.45, "talk", t);
+      if(p>0.2) phone(W*0.27, 980, true, t);
+      if(p>0.4) phone(W*0.73, 980, false, t);
+      // floating spark dots between phones
+      if(p>0.35){
+        for(let i=0;i<10;i++){
+          const x=W*0.5+Math.sin(t*0.004+i)*80;
+          const y=980+Math.cos(t*0.005+i*0.8)*60;
+          circle(x,y,2.5,{width:1.5,alpha:0.5+0.4*Math.sin(t*0.01+i),color:"rgba(154,215,255,0.9)"});
         }
       }
-      // arrow into brain
-      if (p > 0.55) {
-        line(W / 2, 820, W / 2, 900, { width: 3, color: "rgba(125,255,163,0.9)" });
-        text("一次性读完（不是边读边写）", W / 2, 870, 26, "rgba(125,255,163,0.95)");
+    }
+
+    function drawTwo(p,t){
+      titleBig("回答 = 两段活");
+      drawFrog(W/2, 380, 1.05, "talk", t);
+
+      const a1=easeOut((p-0.1)/0.35);
+      if(a1>0){
+        ctx.save(); ctx.globalAlpha=a1;
+        roundRect(110, 560, 860, 240, {width:3.4, color:"rgba(141,255,156,0.9)"});
+        text("①  Prefill", W/2, 620, 70, "rgba(141,255,156,0.98)");
+        text("读题", W/2, 710, 56);
+        ctx.restore();
       }
-      drawFrog(W / 2, 1080, 1.25, "think", t);
-      if (p > 0.7) {
-        wrapText("输入越长 → 开头等待越明显（首字更慢）", W / 2, 1320, 860, 30, "rgba(255,210,138,0.95)");
+      if(p>0.45){
+        const ay=860+Math.sin(t*0.01)*6;
+        line(W/2, 820, W/2, ay, {width:4, color:"rgba(154,215,255,0.95)"});
+        line(W/2, ay, W/2-18, ay-18, {width:3.5, color:"rgba(154,215,255,0.95)"});
+        line(W/2, ay, W/2+18, ay-18, {width:3.5, color:"rgba(154,215,255,0.95)"});
+      }
+      const a2=easeOut((p-0.5)/0.35);
+      if(a2>0){
+        ctx.save(); ctx.globalAlpha=a2;
+        roundRect(110, 900, 860, 240, {width:3.4, color:"rgba(255,213,154,0.9)"});
+        text("②  Decode", W/2, 960, 70, "rgba(255,213,154,0.98)");
+        text("写字 / 吐字", W/2, 1050, 56);
+        ctx.restore();
       }
     }
 
-    function drawDecode(p, t) {
-      titleBanner("Decode = 往外蹦字");
-      drawFrog(W / 2, 360, 1.15, "talk", t);
+    function drawPrefill(p,t){
+      titleBig("Prefill = 先读题");
+      // exam paper grows in
+      const grow=easeOut(clamp01(p/0.35));
+      const pw=760*grow, ph=480*grow;
+      roundRect(W/2-pw/2, 280, pw, ph, {width:3.2});
+      if(p>0.15) text("提示词 / 文件 / 记录", W/2, 340, 34, "rgba(168,184,204,0.95)");
+      // lines draw progressively
+      const linesN=Math.floor(easeOut(clamp01((p-0.2)/0.5))*6);
+      for(let i=0;i<linesN;i++){
+        const w=520-i*36;
+        const y=420+i*55;
+        line(W/2-w/2,y,W/2+w/2,y,{width:5,color:"rgba(154,215,255,0.65)"});
+      }
+      if(p>0.55){
+        // whoosh into frog head
+        const pulse=0.5+0.5*Math.sin(t*0.012);
+        line(W/2, 780, W/2, 880, {width:3.5, color:"rgba(154,215,255,0.9)", alpha:0.6+0.4*pulse});
+        text("一次性读完", W/2, 840, 36, "rgba(154,215,255,0.95)");
+      }
+      drawFrog(W/2, 1080, 1.25, "think", t);
+      if(p>0.7){
+        wrapText("输入越长 → 开头越卡", W/2, 1310, 920, 54, "rgba(255,213,154,0.98)");
+      }
+    }
 
-      // typewriter line
-      const full = "你好，我来帮你把这件事说清楚……";
-      const n = Math.floor(Math.min(1, Math.max(0, (p - 0.15) / 0.7)) * full.length);
-      const shown = full.slice(0, Math.max(1, n));
-      roundRect(100, 620, 880, 200, { width: 2.8 });
-      text(shown + (Math.floor(t / 400) % 2 ? "▏" : ""), W / 2, 720, 34);
+    function drawDecode(p,t){
+      titleBig("Decode = 往外蹦字");
+      drawFrog(W/2, 360, 1.15, "talk", t);
+      const full="你好，我来帮你把这件事说清楚……";
+      const n=Math.floor(clamp01((p-0.1)/0.65)*full.length);
+      const shown=full.slice(0,Math.max(1,n));
+      roundRect(90, 560, 900, 220, {width:3});
+      text(shown+(Math.floor(t/350)%2?"▏":""), W/2, 670, 40);
 
-      // token meter
-      if (p > 0.35) {
-        text("生成速度 ≈ 每秒蹦几个字（tokens/s）", W / 2, 920, 28, "rgba(168,196,176,0.95)");
-        const bars = 8;
-        for (let i = 0; i < bars; i++) {
-          const on = p > 0.4 + i * 0.05;
-          roundRect(180 + i * 90, 980, 60, 80, {
-            width: 2,
-            color: on ? "rgba(125,255,163,0.9)" : "rgba(243,250,244,0.25)",
-          });
+      // popping tokens
+      if(p>0.3){
+        text("tokens / 秒", W/2, 860, 34, "rgba(168,184,204,0.95)");
+        const bars=8;
+        for(let i=0;i<bars;i++){
+          const on=p>0.35+i*0.05;
+          const h=70+Math.sin(t*0.01+i)*12;
+          if(!on) continue;
+          roundRect(170+i*95, 920, 70, h, {width:2.5, color:i%2?"rgba(141,255,156,0.9)":"rgba(154,215,255,0.9)"});
         }
       }
-      if (p > 0.75) {
-        wrapText("要写的越长，Decode 时间越久", W / 2, 1200, 820, 32, "rgba(255,210,138,0.95)");
-        text("≠ 一次性交整篇作文", W / 2, 1280, 28, "rgba(168,196,176,0.9)");
-      }
+      if(p>0.75) wrapText("写得越长，等得越久", W/2, 1170, 920, 54, "rgba(255,213,154,0.98)");
     }
 
-    function drawFactors(p, t) {
-      titleBanner("什么在拖慢速度？");
-      drawFrog(W / 2, 320, 0.95, "worry", t);
-      const knobs = [
-        { title: "输入长度", sub: "Prefill ↑", x: 0.28, y: 560 },
-        { title: "输出长度", sub: "Decode ↑", x: 0.72, y: 560 },
-        { title: "模型大小", sub: "算力更吃", x: 0.28, y: 900 },
-        { title: "服务器排队", sub: "高峰更慢", x: 0.72, y: 900 },
+    function drawFactors(p,t){
+      titleBig("什么在拖慢？");
+      drawFrog(W/2, 300, 0.9, "worry", t);
+      const knobs=[
+        {title:"输入长度", sub:"Prefill↑", x:0.28, y:560, c:"rgba(141,255,156,0.9)"},
+        {title:"输出长度", sub:"Decode↑", x:0.72, y:560, c:"rgba(255,213,154,0.9)"},
+        {title:"模型大小", sub:"更吃算力", x:0.28, y:920, c:"rgba(154,215,255,0.9)"},
+        {title:"高峰排队", sub:"一起变慢", x:0.72, y:920, c:"rgba(244,247,251,0.85)"},
       ];
-      knobs.forEach((k, i) => {
-        if (p < 0.15 + i * 0.15) return;
-        const x = W * k.x;
-        const y = k.y;
-        circle(x, y, 90, { width: 3, color: i % 2 ? "rgba(125,255,163,0.85)" : "rgba(255,210,138,0.85)" });
-        // dial
-        const a = -Math.PI / 2 + p * Math.PI * 1.2 + i;
-        line(x, y, x + Math.cos(a) * 55, y + Math.sin(a) * 55, { width: 4, color: "rgba(243,250,244,0.9)" });
-        text(k.title, x, y + 130, 30);
-        text(k.sub, x, y + 175, 24, "rgba(168,196,176,0.9)");
+      knobs.forEach((k,i)=>{
+        const show=easeOut(clamp01((p-0.08-i*0.12)/0.25));
+        if(show<=0) return;
+        const x=W*k.x, y=k.y;
+        ctx.save(); ctx.globalAlpha=show;
+        const r=85+Math.sin(t*0.008+i)*4;
+        circle(x,y,r,{width:3.4,color:k.c});
+        const a=-Math.PI/2 + show*Math.PI*1.25 + t*0.002;
+        line(x,y,x+Math.cos(a)*50,y+Math.sin(a)*50,{width:4.5,color:"rgba(244,247,251,0.95)"});
+        text(k.title, x, y+145, 42);
+        text(k.sub, x, y+200, 32, "rgba(168,184,204,0.95)");
+        ctx.restore();
       });
-      if (p > 0.85) {
-        text("四件事叠在一起，等待就被放大", W / 2, 1220, 28, "rgba(168,196,176,0.95)");
-      }
     }
 
-    function drawTips(p, t) {
-      titleBanner("少等待 · 五条干货");
-      // 小呱基放右上，避免挡清单
-      drawFrog(W * 0.82, 300, 0.7, "idle", t);
-      const tips = [
-        "少贴整份长文 → 先摘要再问",
+    function drawTips(p,t){
+      titleBig("少等待 · 五条干货", 140);
+      drawFrog(W*0.86, 280, 0.72, "idle", t);
+      const tips=[
+        "长文先摘要，再提问",
         "一次只问一个问题",
-        "写明：三点回答 / 一百字内",
-        "长任务拆成多轮对话",
-        "日常用轻量模型，重活再上大模型",
+        "写明：三点 / 百字内",
+        "长任务拆成多轮",
+        "轻活用小模型，重活再上大模型",
       ];
-      tips.forEach((tip, i) => {
-        if (p < 0.12 + i * 0.14) return;
-        const y = 480 + i * 155;
-        roundRect(70, y - 55, 940, 120, { width: 2.4, color: "rgba(125,255,163,0.45)" });
-        chalkStroke([
-          { x: 110, y: y },
-          { x: 135, y: y + 24 },
-          { x: 185, y: y - 24 },
-        ], { width: 4, color: "rgba(125,255,163,0.95)" });
-        text(tip, 210, y, 30, "rgba(243,250,244,0.95)", "left");
+      tips.forEach((tip,i)=>{
+        const show=easeOut(clamp01((p-0.08-i*0.12)/0.2));
+        if(show<=0) return;
+        const y=460+i*155;
+        const xOff=(1-show)*80;
+        ctx.save(); ctx.globalAlpha=show;
+        roundRect(70+xOff, y-58, 940, 125, {width:2.8, color:"rgba(154,215,255,0.5)"});
+        chalkStroke([{x:120+xOff,y},{x:150+xOff,y:y+26},{x:205+xOff,y:y-28}],{width:5,color:"rgba(141,255,156,0.95)"});
+        text(tip, 240+xOff, y, 42, "rgba(244,247,251,0.98)", "left");
+        ctx.restore();
       });
     }
 
-    function drawEnd(p, t) {
-      titleBanner("记住这一句");
-      drawFrog(W / 2, 420, 1.45, "talk", t);
-      if (p > 0.25) {
-        roundRect(100, 700, 880, 360, { width: 3.2, color: "rgba(125,255,163,0.85)" });
-        wrapText("卡住多半在读题", W / 2, 800, 780, 40);
-        wrapText("写得慢多半在吐字", W / 2, 880, 780, 40);
-        wrapText("会拆任务，就能少干等", W / 2, 980, 780, 34, "rgba(255,210,138,0.95)");
+    function drawEnd(p,t){
+      titleBig("记住这一句");
+      shimmerBand(240, t, easeOut(p));
+      drawFrog(W/2, 430, 1.5, "talk", t);
+      const show=easeOut(clamp01((p-0.2)/0.4));
+      if(show>0){
+        ctx.save(); ctx.globalAlpha=show;
+        roundRect(90, 700, 900, 380, {width:3.6, color:"rgba(154,215,255,0.9)"});
+        text("卡住 ≈ 读题", W/2, 800, 60);
+        text("写慢 ≈ 吐字", W/2, 900, 60);
+        text("会拆任务，少干等", W/2, 1000, 48, "rgba(255,213,154,0.98)");
+        ctx.restore();
       }
-      if (p > 0.7) {
-        text("下期见 · 呱基", W / 2, 1220, 36, "rgba(125,255,163,0.95)");
-      }
+      if(p>0.75) text("下期见", W/2, 1220, 40, "rgba(141,255,156,0.95)");
     }
 
-    // ---- Voice ----
-    function pickVoice() {
-      const voices = speechSynthesis.getVoices();
-      return voices.find((v) => /zh[-_]CN/i.test(v.lang))
-        || voices.find((v) => /^zh/i.test(v.lang))
-        || null;
+    // ---- voice (browser preview only) ----
+    function pickVoice(){
+      const voices=speechSynthesis.getVoices();
+      return voices.find(v=>/zh[-_]CN/i.test(v.lang))||voices.find(v=>/^zh/i.test(v.lang))||null;
     }
-    function speak(textStr) {
-      if (muted || !("speechSynthesis" in window)) return;
+    function speak(textStr){
+      if(muted||!("speechSynthesis" in window)) return;
       speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(textStr);
-      u.lang = "zh-CN";
-      u.rate = 1.0;
-      u.pitch = 1.08;
-      const v = pickVoice();
-      if (v) u.voice = v;
+      const u=new SpeechSynthesisUtterance(textStr);
+      u.lang="zh-CN"; u.rate=1.06; u.pitch=1.15;
+      const v=pickVoice(); if(v) u.voice=v;
       speechSynthesis.speak(u);
     }
-    function stopSpeak() {
-      if ("speechSynthesis" in window) speechSynthesis.cancel();
-    }
-    if ("speechSynthesis" in window) {
-      speechSynthesis.onvoiceschanged = () => {};
-    }
+    function stopSpeak(){ if("speechSynthesis" in window) speechSynthesis.cancel(); }
 
-    // ---- Playback ----
-    function totalDuration() {
-      return SCENES.reduce((s, sc) => s + sc.duration, 0);
-    }
-    function sceneOffsets() {
-      const out = [];
-      let acc = 0;
-      SCENES.forEach((sc) => { out.push(acc); acc += sc.duration; });
-      return out;
-    }
-    const offsets = sceneOffsets();
+    function totalDuration(){ return SCENES.reduce((s,sc)=>s+sc.duration,0); }
+    function sceneOffsets(){ const out=[]; let acc=0; SCENES.forEach(sc=>{out.push(acc);acc+=sc.duration;}); return out; }
+    const offsets=sceneOffsets();
 
-    function setScene(i, restartVoice = true) {
-      sceneIndex = Math.max(0, Math.min(SCENES.length - 1, i));
-      sceneStart = performance.now();
-      const sc = SCENES[sceneIndex];
-      subZh.textContent = sc.zh;
-      subTag.textContent = sc.tag;
-      meta.textContent = `场景 ${sceneIndex + 1} / ${SCENES.length} · ${sc.title}`;
-      [...sceneList.children].forEach((b, idx) => b.classList.toggle("active", idx === sceneIndex));
-      if (restartVoice && playing) speak(sc.voice);
+    function setScene(i, restartVoice=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));
+      sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.title}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active", idx===sceneIndex));
+      if(restartVoice && playing) speak(sc.voice);
       updateProgress(0);
     }
-
-    function updateProgress(localT) {
-      const done = offsets[sceneIndex] + localT;
-      bar.style.width = Math.min(100, (done / totalDuration()) * 100) + "%";
+    function updateProgress(localT){
+      bar.style.width=Math.min(100, ((offsets[sceneIndex]+localT)/totalDuration())*100)+"%";
     }
-
-    function tick(now) {
-      if (!playing) return;
-      const sc = SCENES[sceneIndex];
-      const localT = now - sceneStart;
+    function tick(now){
+      if(!playing) return;
+      const sc=SCENES[sceneIndex];
+      const localT=now-sceneStart;
       drawScene(sceneIndex, localT, now);
       updateProgress(localT);
-      if (localT >= sc.duration) {
-        if (sceneIndex < SCENES.length - 1) {
-          setScene(sceneIndex + 1, true);
-        } else {
-          playing = false;
-          btnPlay.textContent = "再看一遍";
-          stopSpeak();
-          drawScene(sceneIndex, sc.duration, now);
-          updateProgress(sc.duration);
-          return;
+      if(localT>=sc.duration){
+        if(sceneIndex<SCENES.length-1) setScene(sceneIndex+1,true);
+        else {
+          playing=false; btnPlay.textContent="再看一遍"; stopSpeak();
+          drawScene(sceneIndex, sc.duration, now); updateProgress(sc.duration); return;
         }
       }
-      raf = requestAnimationFrame(tick);
+      raf=requestAnimationFrame(tick);
     }
+    function play(){ playing=true; btnPlay.textContent="暂停"; setScene(sceneIndex,true); cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); }
+    function pause(){ playing=false; btnPlay.textContent="继续"; stopSpeak(); cancelAnimationFrame(raf); }
+    function restart(){ stopSpeak(); sceneIndex=0; playing=true; btnPlay.textContent="暂停"; setScene(0,true); cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); }
 
-    function play() {
-      playing = true;
-      btnPlay.textContent = "暂停";
-      setScene(sceneIndex, true);
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(tick);
-    }
-    function pause() {
-      playing = false;
-      btnPlay.textContent = "继续";
-      stopSpeak();
-      cancelAnimationFrame(raf);
-    }
-    function restart() {
-      stopSpeak();
-      sceneIndex = 0;
-      playing = true;
-      btnPlay.textContent = "暂停";
-      setScene(0, true);
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(tick);
-    }
-
-    SCENES.forEach((sc, i) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.textContent = `${i + 1}. ${sc.title}`;
-      b.addEventListener("click", () => {
-        const wasPlaying = playing;
-        stopSpeak();
-        setScene(i, wasPlaying);
-        drawScene(i, 0, performance.now());
-        if (wasPlaying) {
-          cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(tick);
-        }
+    SCENES.forEach((sc,i)=>{
+      const b=document.createElement("button"); b.type="button"; b.textContent=`${i+1}. ${sc.title}`;
+      b.addEventListener("click",()=>{
+        const was=playing; stopSpeak(); setScene(i,was); drawScene(i,0,performance.now());
+        if(was){ cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); }
       });
       sceneList.appendChild(b);
     });
-
-    btnPlay.addEventListener("click", () => {
-      if (playing) pause();
-      else {
-        if (btnPlay.textContent === "再看一遍") restart();
-        else play();
-      }
-    });
+    btnPlay.addEventListener("click",()=>{ if(playing) pause(); else { if(btnPlay.textContent==="再看一遍") restart(); else play(); }});
     btnRestart.addEventListener("click", restart);
-    btnMute.addEventListener("click", () => {
-      muted = !muted;
-      btnMute.textContent = muted ? "配音：关" : "配音：开";
-      if (muted) stopSpeak();
-      else if (playing) speak(SCENES[sceneIndex].voice);
+    btnMute.addEventListener("click",()=>{
+      muted=!muted; btnMute.textContent=muted?"配音：关":"配音：开";
+      if(muted) stopSpeak(); else if(playing) speak(SCENES[sceneIndex].voice);
     });
 
-    // Expose for recording scripts
-    window.__GUAJI__ = {
+    window.__GUAJI__={
       SCENES, drawScene, setScene, totalDuration,
-      get playing() { return playing; },
-      setMuted(v) { muted = v; },
-      jump(i, localT) {
-        sceneIndex = i;
-        const sc = SCENES[i];
-        subZh.textContent = sc.zh;
-        subTag.textContent = sc.tag;
-        meta.textContent = `场景 ${i + 1} / ${SCENES.length} · ${sc.title}`;
-        [...sceneList.children].forEach((b, idx) => b.classList.toggle("active", idx === i));
+      get playing(){return playing;},
+      setMuted(v){muted=v;},
+      jump(i, localT){
+        sceneIndex=i; const sc=SCENES[i];
+        meta.textContent=`场景 ${i+1} / ${SCENES.length} · ${sc.title}`;
+        [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active", idx===i));
         drawScene(i, localT, performance.now());
-        const done = offsets[i] + localT;
-        bar.style.width = Math.min(100, (done / totalDuration()) * 100) + "%";
-      },
+        bar.style.width=Math.min(100, ((offsets[i]+localT)/totalDuration())*100)+"%";
+      }
     };
-
-    setScene(0, false);
-    drawScene(0, 0, performance.now());
+    setScene(0,false);
+    drawScene(0,800,performance.now());
   </script>
 </body>
 </html>
