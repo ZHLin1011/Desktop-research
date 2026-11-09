@@ -10,7 +10,7 @@
 | 1 | 为什么大模型说话有快有慢 | ~72s | [index.html](llm-explainer/index.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/017be90/exports/guaji-llm-speed-vertical-with-audio.mp4) |
 | 2 | 没有网络还能运行 AI 吗 | ~82s | [edge-vs-cloud.html](llm-explainer/edge-vs-cloud.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/63ef79f/exports/guaji-edge-vs-cloud-with-audio.mp4) |
 | 3 | 大模型除了会读会写还有什么技能 | ~93s | [modalities.html](llm-explainer/modalities.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/d09fca3/exports/guaji-modalities-with-audio.mp4) |
-| 4 | 为什么问同一个问题，AI 每次回复都不一样 | ~70s | [same-question.html](llm-explainer/same-question.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/10bd4d63f895d57ce2a00fda3e422d588e41f152/exports/guaji-same-question-with-audio.mp4) |
+| 4 | 为什么问同一个问题，AI 每次回复都不一样 | ~70s | [same-question.html](llm-explainer/same-question.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba77847434b1b2ecce/exports/guaji-same-question-with-audio.mp4) |
 
 ## 制作规范（定稿）
 

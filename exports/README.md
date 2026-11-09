@@ -38,4 +38,4 @@ https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdraw
 内容：概率生成 · 温度旋钮 · 想稳/想创意怎么调。
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/10bd4d63f895d57ce2a00fda3e422d588e41f152/exports/guaji-same-question-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba77847434b1b2ecce/exports/guaji-same-question-with-audio.mp4
