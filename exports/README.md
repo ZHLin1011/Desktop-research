@@ -30,3 +30,10 @@ https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdraw
 
 手机：浏览器打开 → 分享 → 存储到文件 / 相册  
 电脑：打开后「另存为」  
+
+## 第 4 期 · 为什么问同一个问题，AI 每次回复都不一样
+
+`guaji-same-question-with-audio.mp4`（约 70 秒）
+
+内容：概率生成 · 温度旋钮 · 想稳/想创意怎么调。
+
