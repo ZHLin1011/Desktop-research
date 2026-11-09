@@ -36,4 +36,6 @@ https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdraw
 `guaji-same-question-with-audio.mp4`（约 70 秒）
 
 内容：概率生成 · 温度旋钮 · 想稳/想创意怎么调。
+锁定本版提交：
 
+https://github.com/ZHLin1011/Desktop-research/raw/10bd4d63f895d57ce2a00fda3e422d588e41f152/exports/guaji-same-question-with-audio.mp4
