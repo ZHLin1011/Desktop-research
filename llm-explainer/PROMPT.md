@@ -16,7 +16,8 @@
 1) 大模型为什么有快有慢（Prefill/Decode）
 2) 没有网络还能运行 AI 吗（端侧 vs 云端）
 3) 大模型除了会读会写还有什么技能（LLM / VLM / Omni 的输入输出与场景）
-4) 为什么问同一个问题，AI 每次回复都不一样（概率生成 / 温度 / 实操）
+4) 为什么问同一个问题，AI 每次回复都不一样（概率生成 / 温度值 / 实操）
+5) 端边云到底是什么（三层分工、例子、未来趋势）
 
 动画约定：说到哪画到哪；最早版粉笔风；概念要演出来（对比、流程、类比），少堆装饰图标。
 
@@ -31,3 +32,4 @@
 | 2 | `edge-vs-cloud.html` | `SCRIPT-edge-vs-cloud.md` | `../exports/guaji-edge-vs-cloud-with-audio.mp4` |
 | 3 | `modalities.html` | `SCRIPT-modalities.md` | `../exports/guaji-modalities-with-audio.mp4` |
 | 4 | `same-question.html` | `SCRIPT-same-question.md` | `../exports/guaji-same-question-with-audio.mp4` |
+| 5 | `device-edge-cloud.html` | `SCRIPT-device-edge-cloud.md` | `../exports/guaji-device-edge-cloud-with-audio.mp4` |

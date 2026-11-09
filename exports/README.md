@@ -39,3 +39,13 @@ https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdraw
 锁定本版提交：
 
 https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba77847434b1b2ecce/exports/guaji-same-question-with-audio.mp4
+
+## 第 5 期 · 端、边、云到底是什么
+
+`guaji-device-edge-cloud-with-audio.mp4`（约 95 秒）
+
+内容：三层分工 · 产线/监控/驾驶例子 · 未来趋势。与第 2 期互补（第 2 期讲离线，本期讲协作）。
+
+锁定本版提交（推送后更新 SHA）：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4

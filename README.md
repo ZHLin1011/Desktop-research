@@ -11,6 +11,7 @@
 | 2 | 没有网络还能运行 AI 吗 | ~82s | [edge-vs-cloud.html](llm-explainer/edge-vs-cloud.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/63ef79f/exports/guaji-edge-vs-cloud-with-audio.mp4) |
 | 3 | 大模型除了会读会写还有什么技能 | ~93s | [modalities.html](llm-explainer/modalities.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/d09fca3/exports/guaji-modalities-with-audio.mp4) |
 | 4 | 为什么问同一个问题，AI 每次回复都不一样 | ~70s | [same-question.html](llm-explainer/same-question.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba77847434b1b2ecce/exports/guaji-same-question-with-audio.mp4) |
+| 5 | 端、边、云到底是什么 | ~95s | [device-edge-cloud.html](llm-explainer/device-edge-cloud.html) | [下载](exports/guaji-device-edge-cloud-with-audio.mp4) |
 
 ## 制作规范（定稿）
 
@@ -36,6 +37,7 @@ cd llm-explainer && python3 -m http.server 8765
 - 第 2 期：`http://127.0.0.1:8765/edge-vs-cloud.html`
 - 第 3 期：`http://127.0.0.1:8765/modalities.html`
 - 第 4 期：`http://127.0.0.1:8765/same-question.html`
+- 第 5 期：`http://127.0.0.1:8765/device-edge-cloud.html`
 
 ## 文件
 
@@ -45,6 +47,7 @@ cd llm-explainer && python3 -m http.server 8765
 | `llm-explainer/edge-vs-cloud.html` | 第 2 期 |
 | `llm-explainer/modalities.html` | 第 3 期 |
 | `llm-explainer/same-question.html` | 第 4 期 |
+| `llm-explainer/device-edge-cloud.html` | 第 5 期 |
 | `llm-explainer/SCRIPT*.md` | 各期脚本 |
 | `llm-explainer/PROMPT.md` | 可复用 Prompt |
 | `exports/*.mp4` | 有声成片 |
