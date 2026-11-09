@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>呱基讲 AI · 为什么还要有「边」</title>
+  <title>呱基讲 AI · 「边」到底帮了你什么</title>
   <style>
     :root {
       --bg:#071018; --ink:#f4f7fb; --mute:#a8b8cc; --accent:#9ad7ff;
@@ -35,8 +35,8 @@
 <body>
   <header class="brand">
     <div class="host">呱基 · AI 概念课 · 第 5 期</div>
-    <h1>为什么还要有「边」？<br>边缘计算讲清楚</h1>
-    <p>就近算原理 · 边的四件事 · 路口数据流 · 怎么判断</p>
+    <h1>「边」到底<br>帮了你什么？</h1>
+    <p>就近算 · 门铃与商场例子 · 更快更省更安心</p>
   </header>
   <p class="nav">
     <a href="./index.html">第1期</a> ·
@@ -54,7 +54,7 @@
     <div class="meta" id="meta">场景 1 / 7</div>
   </div>
   <div class="scene-list" id="sceneList"></div>
-  <p class="hint">竖屏 9:16 · 侧重「边」原理 · 粉笔风 · 与第2期互补</p>
+  <p class="hint">竖屏 9:16 · 生活例子 + 用户价值 · 粉笔风</p>
 
   <script>
     const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
@@ -63,83 +63,86 @@
     const btnMute=document.getElementById("btnMute"), sceneList=document.getElementById("sceneList");
     const W=canvas.width, H=canvas.height;
     const SAFE_TOP=240, SAFE_BOTTOM=150, SUB_H=290, CONTENT_BOTTOM=H-SAFE_BOTTOM-SUB_H;
-    const C_D="rgba(141,255,156,0.95)", C_E="rgba(154,215,255,0.98)", C_C="rgba(255,213,154,0.95)";
+    const C_D="rgba(141,255,156,0.95)", C_E="rgba(154,215,255,0.98)", C_C="rgba(255,213,154,0.95)", C_W="rgba(255,170,170,0.9)";
 
     const SCENES=[
-      {id:"hook",title:"引出",tag:"从端云到边",
-        zh:"嗨，我是呱基。上一期我们说过：端侧在身边、云端在远方。可很多真实系统，中间还会再放一层——叫「边」。今天把「边」讲透：它为什么存在，又怎么干活。",
-        voice:"嗨，我是呱基。上一期我们说过：端侧在身边、云端在远方。可很多真实系统，中间还会再放一层——叫边。今天把边讲透：它为什么存在，又怎么干活。",
-        duration:14956,
-        beats:[
-          {key:"intro",at:0,text:"嗨，我是呱基。"},
-          {key:"recall",at:1700,text:"上一期我们说过：端侧在身边、云端在远方。"},
-          {key:"edge",at:6119,text:"可很多真实系统，中间还会再放一层——叫边。"},
-          {key:"goal",at:10538,text:"今天把边讲透：它为什么存在，又怎么干活。"},
-        ]},
-      {id:"why",title:"为什么需要边",tag:"两个麻烦",
-        zh:"先看两个麻烦。麻烦一：路口摄像头一天拍不停，若每一帧都送上云，带宽贵、排队慢，还可能堵。麻烦二：产线质检要毫秒级反应，等云端来回一趟，次品可能已经流走了。端侧又常常算力不够、模型放不下。于是需要一个就近的中转站。",
-        voice:"先看两个麻烦。麻烦一：路口摄像头一天拍不停，若每一帧都送上云，带宽贵、排队慢，还可能堵。麻烦二：产线质检要毫秒级反应，等云端来回一趟，次品可能已经流走了。端侧又常常算力不够、模型放不下。于是需要一个就近的中转站。",
-        duration:21724,
-        beats:[
-          {key:"t1",at:0,text:"先看两个麻烦。"},
-          {key:"p1",at:1337,text:"麻烦一：路口摄像头一天拍不停，若每一帧都送上云，带宽贵、排队慢，还可能堵。"},
-          {key:"p2",at:9358,text:"麻烦二：产线质检要毫秒级反应，等云端来回一趟，次品可能已经流走了。"},
-          {key:"gap",at:16042,text:"端侧又常常算力不够、模型放不下。"},
-          {key:"need",at:19384,text:"于是需要一个就近的中转站。"},
-        ]},
-      {id:"principle",title:"原理：就近算",tag:"核心原理",
-        zh:"边的核心原理就四个字：就近算。设备先把数据送到离自己不远的边缘节点——可能是车间网关、基站旁的小机房。节点在本地做筛选、推理、汇总；只有该上报的结果或摘要，再送上云。路程短了，延迟就低；无用数据被挡下，带宽也省了。",
-        voice:"边的核心原理就四个字：就近算。设备先把数据送到离自己不远的边缘节点——可能是车间网关、基站旁的小机房。节点在本地做筛选、推理、汇总；只有该上报的结果或摘要，再送上云。路程短了，延迟就低；无用数据被挡下，带宽也省了。",
-        duration:21772,
-        beats:[
-          {key:"core",at:0,text:"边的核心原理就四个字：就近算。"},
-          {key:"path",at:2969,text:"设备先把数据送到离自己不远的边缘节点——可能是车间网关、基站旁的小机房。"},
-          {key:"do",at:9896,text:"节点在本地做筛选、推理、汇总；"},
-          {key:"up",at:13195,text:"只有该上报的结果或摘要，再送上云。"},
-          {key:"gain",at:16494,text:"路程短了，延迟就低；无用数据被挡下，带宽也省了。"},
-        ]},
-      {id:"jobs",title:"边的四件事",tag:"边在干什么",
-        zh:"边具体干什么？四件事。一是过滤：把无关画面、噪声丢掉。二是聚合：把多路传感器合成一份结论。三是本地推理：跑中等大小的模型，现场给答案。四是短时决策：先刹车、先报警，不必事事问云。你可以把它想成小区门口的便利站——比口袋工具箱强，又比远方总仓近。",
-        voice:"边具体干什么？四件事。一是过滤：把无关画面、噪声丢掉。二是聚合：把多路传感器合成一份结论。三是本地推理：跑中等大小的模型，现场给答案。四是短时决策：先刹车、先报警，不必事事问云。你可以把它想成小区门口的便利站——比口袋工具箱强，又比远方总仓近。",
-        duration:25468,
-        beats:[
-          {key:"ask",at:0,text:"边具体干什么？四件事。"},
-          {key:"f1",at:2315,text:"一是过滤：把无关画面、噪声丢掉。"},
-          {key:"f2",at:5953,text:"二是聚合：把多路传感器合成一份结论。"},
-          {key:"f3",at:9591,text:"三是本地推理：跑中等大小的模型，现场给答案。"},
-          {key:"f4",at:14222,text:"四是短时决策：先刹车、先报警，不必事事问云。"},
-          {key:"analogy",at:19183,text:"你可以把它想成小区门口的便利站——比口袋工具箱强，又比远方总仓近。"},
-        ]},
-      {id:"where",title:"边在哪儿",tag:"常见落点",
-        zh:"边常落在哪儿？工厂边缘网关、5G 基站旁的边缘节点、园区或商场机房。共同点：离现场近、有一定算力、能连上云，但不是千里之外的超大中心。",
-        voice:"边常落在哪儿？工厂边缘网关、5G 基站旁的边缘节点、园区或商场机房。共同点：离现场近、有一定算力、能连上云，但不是千里之外的超大中心。",
-        duration:13924,
-        beats:[
-          {key:"where",at:0,text:"边常落在哪儿？"},
-          {key:"list",at:1326,text:"工厂边缘网关、5G 基站旁的边缘节点、园区或商场机房。"},
-          {key:"same",at:6962,text:"共同点：离现场近、有一定算力、能连上云，但不是千里之外的超大中心。"},
-        ]},
-      {id:"example",title:"路口走一遍",tag:"数据怎么走",
-        zh:"拿路口监控走一遍。摄像头在端，负责采集。路边边缘盒子先识别车辆、行人、拥堵，立刻触发本地告警。城市大脑在云，只收统计结果和异常片段，去做全市调度和长期优化。关键动作在边，全局策略在云——这就是分工。",
-        voice:"拿路口监控走一遍。摄像头在端，负责采集。路边边缘盒子先识别车辆、行人、拥堵，立刻触发本地告警。城市大脑在云，只收统计结果和异常片段，去做全市调度和长期优化。关键动作在边，全局策略在云——这就是分工。",
+      {id:"hook",title:"引出",tag:"先想一件事",
+        zh:"嗨，我是呱基。想象一下：你家门铃摄像头，一天到晚对着空走廊狂拍。如果每一秒画面都要寄到很远的云端再判断——贵、慢，还总感觉数据到处跑。其实很多产品中间还藏着一层，叫「边」。今天不背名词，我们看：它到底帮了你什么。",
+        voice:"嗨，我是呱基。想象一下：你家门铃摄像头，一天到晚对着空走廊狂拍。如果每一秒画面都要寄到很远的云端再判断——贵、慢，还总感觉数据到处跑。其实很多产品中间还藏着一层，叫边。今天不背名词，我们看：它到底帮了你什么。",
         duration:21508,
         beats:[
-          {key:"ex",at:0,text:"拿路口监控走一遍。"},
-          {key:"dev",at:1792,text:"摄像头在端，负责采集。"},
-          {key:"edg",at:4301,text:"路边边缘盒子先识别车辆、行人、拥堵，立刻触发本地告警。"},
-          {key:"cld",at:10395,text:"城市大脑在云，只收统计结果和异常片段，去做全市调度和长期优化。"},
-          {key:"div",at:16847,text:"关键动作在边，全局策略在云——这就是分工。"},
+          {key:"intro",at:0,text:"嗨，我是呱基。"},
+          {key:"scene",at:1680,text:"想象一下：你家门铃摄像头，一天到晚对着空走廊狂拍。"},
+          {key:"pain",at:6721,text:"如果每一秒画面都要寄到很远的云端再判断——贵、慢，还总感觉数据到处跑。"},
+          {key:"edge",at:13778,text:"其实很多产品中间还藏着一层，叫边。"},
+          {key:"goal",at:17139,text:"今天不背名词，我们看：它到底帮了你什么。"},
         ]},
-      {id:"end",title:"怎么判断",tag:"记住一句",
-        zh:"怎么判断要不要上边？看四点：要不要很低延迟；数据量是否大到不宜全传；隐私能不能只在本地园区处理；现场设备算力够不够。够轻就留在端，够重、够全局再上云；中间这一档，优先想边。记住：边不是第三种玄学，而是把算力搬近现场的工程选择。我是呱基，我们下期见。",
-        voice:"怎么判断要不要上边？看四点：要不要很低延迟；数据量是否大到不宜全传；隐私能不能只在本地园区处理；现场设备算力够不够。够轻就留在端，够重、够全局再上云；中间这一档，优先想边。记住：边不是第三种玄学，而是把算力搬近现场的工程选择。我是呱基，我们下期见。",
-        duration:25372,
+      {id:"why",title:"说人话",tag:"为什么需要边",
+        zh:"把问题说人话。远方的云很强，但像跨城快递：东西好，就是路远。视频、传感器数据天天往云上灌，流量账单先疼；你等个有人按门铃的提醒，也可能慢半拍；人脸、家居画面全出小区，心里也不踏实。手机端侧呢，又常常扛不住复杂识别。所以聪明办法是：在附近先拦一道。",
+        voice:"把问题说人话。远方的云很强，但像跨城快递：东西好，就是路远。视频、传感器数据天天往云上灌，流量账单先疼；你等个有人按门铃的提醒，也可能慢半拍；人脸、家居画面全出小区，心里也不踏实。手机端侧呢，又常常扛不住复杂识别。所以聪明办法是：在附近先拦一道。",
+        duration:25732,
         beats:[
-          {key:"how",at:0,text:"怎么判断要不要上边？看四点："},
-          {key:"q",at:2966,text:"要不要很低延迟；数据量是否大到不宜全传；隐私能不能只在本地园区处理；现场设备算力够不够。"},
-          {key:"pick",at:11533,text:"够轻就留在端，够重、够全局再上云；中间这一档，优先想边。"},
-          {key:"sum",at:17794,text:"记住：边不是第三种玄学，而是把算力搬近现场的工程选择。"},
-          {key:"bye",at:23066,text:"我是呱基，我们下期见。"},
+          {key:"talk",at:0,text:"把问题说人话。"},
+          {key:"express",at:1354,text:"远方的云很强，但像跨城快递：东西好，就是路远。"},
+          {key:"bill",at:6433,text:"视频、传感器数据天天往云上灌，流量账单先疼；"},
+          {key:"slow",at:11173,text:"你等个有人按门铃的提醒，也可能慢半拍；"},
+          {key:"priv",at:14897,text:"人脸、家居画面全出小区，心里也不踏实。"},
+          {key:"end",at:18960,text:"手机端侧呢，又常常扛不住复杂识别。"},
+          {key:"fix",at:22346,text:"所以聪明办法是：在附近先拦一道。"},
+        ]},
+      {id:"principle",title:"就近算",tag:"原理",
+        zh:"边的原理，四个字：就近算。设备旁边不远，有个小柜台——可能是家里的网关盒子、小区机房、商场小机柜。数据先到柜台：能本地解决的当场办；真正需要汇总、训练、全市调度的，再寄云端。路近了，反应就快；垃圾数据被挡下，流量和隐私压力也小了。",
+        voice:"边的原理，四个字：就近算。设备旁边不远，有个小柜台——可能是家里的网关盒子、小区机房、商场小机柜。数据先到柜台：能本地解决的当场办；真正需要汇总、训练、全市调度的，再寄云端。路近了，反应就快；垃圾数据被挡下，流量和隐私压力也小了。",
+        duration:22828,
+        beats:[
+          {key:"core",at:0,text:"边的原理，四个字：就近算。"},
+          {key:"counter",at:2776,text:"设备旁边不远，有个小柜台——可能是家里的网关盒子、小区机房、商场小机柜。"},
+          {key:"local",at:9871,text:"数据先到柜台：能本地解决的当场办；"},
+          {key:"cloud",at:12956,text:"真正需要汇总、训练、全市调度的，再寄云端。"},
+          {key:"gain",at:17275,text:"路近了，反应就快；垃圾数据被挡下，流量和隐私压力也小了。"},
+        ]},
+      {id:"value",title:"帮你四件事",tag:"用户价值",
+        zh:"落到你身上，边大致帮四件事。一，少打扰：空走廊、空车位，先滤掉，别把你手机刷爆。二，护隐私：敏感画面可以本地打码或只留结论，不必整段外传。三，抢时间：危险靠近、异常闯入，先本地报警，不等云端回信。四，省流量：上传的是结果和摘要，不是整部监控大片。",
+        voice:"落到你身上，边大致帮四件事。一，少打扰：空走廊、空车位，先滤掉，别把你手机刷爆。二，护隐私：敏感画面可以本地打码或只留结论，不必整段外传。三，抢时间：危险靠近、异常闯入，先本地报警，不等云端回信。四，省流量：上传的是结果和摘要，不是整部监控大片。",
+        duration:26236,
+        beats:[
+          {key:"ask",at:0,text:"落到你身上，边大致帮四件事。"},
+          {key:"f1",at:2880,text:"一，少打扰：空走廊、空车位，先滤掉，别把你手机刷爆。"},
+          {key:"f2",at:8959,text:"二，护隐私：敏感画面可以本地打码或只留结论，不必整段外传。"},
+          {key:"f3",at:14718,text:"三，抢时间：危险靠近、异常闯入，先本地报警，不等云端回信。"},
+          {key:"f4",at:21117,text:"四，省流量：上传的是结果和摘要，不是整部监控大片。"},
+        ]},
+      {id:"doorbell",title:"门铃例子",tag:"生活场景①",
+        zh:"拿智能门铃走一遍。摄像头在门口采集；门口或家里的边缘盒子先看：是风吹树叶，还是真有人？只有像人才推送；夜里异常才响铃。对你来说：提醒更准、流量更省、家里画面少往外跑——这就是边给你的实惠。",
+        voice:"拿智能门铃走一遍。摄像头在门口采集；门口或家里的边缘盒子先看：是风吹树叶，还是真有人？只有像人才推送；夜里异常才响铃。对你来说：提醒更准、流量更省、家里画面少往外跑——这就是边给你的实惠。",
+        duration:19036,
+        beats:[
+          {key:"ex",at:0,text:"拿智能门铃走一遍。"},
+          {key:"cam",at:1670,text:"摄像头在门口采集；"},
+          {key:"box",at:3340,text:"门口或家里的边缘盒子先看：是风吹树叶，还是真有人？"},
+          {key:"push",at:8349,text:"只有像人才推送；夜里异常才响铃。"},
+          {key:"val",at:11689,text:"对你来说：提醒更准、流量更省、家里画面少往外跑——这就是边给你的实惠。"},
+        ]},
+      {id:"mall",title:"商场路口",tag:"生活场景②",
+        zh:"再看商场或路口。摄像头在端；附近边缘设备先数人流、认拥堵、发现异常，屏幕或广播马上引导；云端只收统计和特殊片段，做长期规划。你能感觉到的是：少排队瞎转、疏散或通行更顺——边把马上有用的决定留在现场。",
+        voice:"再看商场或路口。摄像头在端；附近边缘设备先数人流、认拥堵、发现异常，屏幕或广播马上引导；云端只收统计和特殊片段，做长期规划。你能感觉到的是：少排队瞎转、疏散或通行更顺——边把马上有用的决定留在现场。",
+        duration:21100,
+        beats:[
+          {key:"ex2",at:0,text:"再看商场或路口。"},
+          {key:"flow",at:1730,text:"摄像头在端；附近边缘设备先数人流、认拥堵、发现异常，屏幕或广播马上引导；"},
+          {key:"cloud2",at:9686,text:"云端只收统计和特殊片段，做长期规划。"},
+          {key:"feel",at:13491,text:"你能感觉到的是：少排队瞎转、疏散或通行更顺——边把马上有用的决定留在现场。"},
+        ]},
+      {id:"end",title:"怎么辨认",tag:"带走一句",
+        zh:"以后看产品，可以问一句：它是不是本地先处理，再按需上云？强调秒回、离线也能告警、数据不出园区——多半用了边的思路。记住：边不是又一个时髦词，而是把算力挪近你，让体验更快、更省、更安心。我是呱基，我们下期见。",
+        voice:"以后看产品，可以问一句：它是不是本地先处理，再按需上云？强调秒回、离线也能告警、数据不出园区——多半用了边的思路。记住：边不是又一个时髦词，而是把算力挪近你，让体验更快、更省、更安心。我是呱基，我们下期见。",
+        duration:20500,
+        beats:[
+          {key:"ask2",at:0,text:"以后看产品，可以问一句："},
+          {key:"q",at:2485,text:"它是不是本地先处理，再按需上云？"},
+          {key:"hint",at:5591,text:"强调秒回、离线也能告警、数据不出园区——多半用了边的思路。"},
+          {key:"sum",at:11182,text:"记住：边不是又一个时髦词，而是把算力挪近你，让体验更快、更省、更安心。"},
+          {key:"bye",at:18326,text:"我是呱基，我们下期见。"},
         ]},
     ];
 
@@ -206,12 +209,10 @@
       chalkStroke([{x:x+22*s,y:cy+34*s},{x:x+42*s,y:cy+60*s},{x:x+16*s,y:cy+56*s}],{width:3.2,color:C_D});
       text("呱基",x,cy+84*s,26*Math.min(1.15,s),C_D);
     }
-    function titleBig(str,y=SAFE_TOP+36){text(str,W/2,y,56,"rgba(154,215,255,0.98)")}
-    function nodeBox(x,y,w,h,label,color,a=1){
-      ctx.save();ctx.globalAlpha=a;
-      roundRect(x,y,w,h,{width:3.2,color});
-      text(label,x+w/2,y+h/2,Math.min(40,Math.floor(w/label.length*1.4)),color);
-      ctx.restore();
+    function titleBig(str,y=SAFE_TOP+36){text(str,W/2,y,54,C_E)}
+    function chip(x,y,w,h,label,color,a=1){
+      ctx.save();ctx.globalAlpha=a;roundRect(x,y,w,h,{width:2.8,color});
+      text(label,x+w/2,y+h/2,Math.min(34,Math.floor(w/(Math.max(2,label.length)*.55))),color);ctx.restore();
     }
     function drawSubtitle(sc,localT){
       const bandTop=H-SAFE_BOTTOM-SUB_H;
@@ -237,9 +238,9 @@
         case"hook":drawHook(localT,totalT);break;
         case"why":drawWhy(localT,totalT);break;
         case"principle":drawPrinciple(localT,totalT);break;
-        case"jobs":drawJobs(localT,totalT);break;
-        case"where":drawWhere(localT,totalT);break;
-        case"example":drawExample(localT,totalT);break;
+        case"value":drawValue(localT,totalT);break;
+        case"doorbell":drawDoorbell(localT,totalT);break;
+        case"mall":drawMall(localT,totalT);break;
         case"end":drawEnd(localT,totalT);break;
       }
       drawSubtitle(sc,localT);
@@ -247,177 +248,159 @@
       if(fade<1){ctx.fillStyle=`rgba(7,16,24,${1-fade})`;ctx.fillRect(0,0,W,H)}
     }
 
+    // 简笔画门铃
+    function doodleDoorbell(cx,cy,a=1){
+      ctx.save();ctx.globalAlpha=a;
+      roundRect(cx-70,cy-90,140,180,{width:3,color:C_D});
+      circle(cx,cy-20,36,{width:2.8,color:C_D});
+      text("门铃",cx,cy+70,28,C_D);
+      ctx.restore();
+    }
+
     function drawHook(localT,t){
-      if(show(localT,"intro")>0){titleBig("中间还有一层");drawFrog(W/2,400,1.05,"talk",t)}
-      if(show(localT,"recall")>0){
-        nodeBox(90,560,280,120,"端",C_D,show(localT,"recall"));
-        nodeBox(710,560,280,120,"云",C_C,show(localT,"recall"));
-        text("身边",230,720,26,C_D); text("远方",850,720,26,C_C);
-        arrow(390,620,690,620,{width:2.6,color:"rgba(244,247,251,0.4)",alpha:.7});
+      if(show(localT,"intro")>0){titleBig("先别背名词");drawFrog(W*.86,SAFE_TOP+100,.55,"talk",t)}
+      if(show(localT,"scene")>0){
+        doodleDoorbell(280,520,show(localT,"scene"));
+        // 空走廊狂拍
+        chip(480,430,480,100,"空走廊…还在拍",C_W,show(localT,"scene"));
+        chip(480,560,480,100,"空走廊…还在拍",C_W,show(localT,"scene")*.85);
+        text("咔  咔  咔",720,700,36,C_W);
+      }
+      if(show(localT,"pain")>0){
+        chip(100,800,880,100,"全寄远方云端 → 贵 · 慢 · 数据乱跑",C_C,show(localT,"pain"));
       }
       if(show(localT,"edge")>0){
-        const a=show(localT,"edge");
-        ctx.save();ctx.globalAlpha=a;
-        nodeBox(390,760,300,140,"边",C_E,1);
-        text("就近中转",W/2,940,32,C_E);
-        // highlight edge as the missing piece
-        circle(W/2,830,110,{width:2.4,color:C_E,alpha:.5});
-        ctx.restore();
+        chip(300,940,480,100,"中间还有一层：边",C_E,show(localT,"edge"));
       }
-      if(show(localT,"goal")>0) text("为什么存在 · 怎么干活",W/2,1040,34,"rgba(255,213,154,0.95)");
+      if(show(localT,"goal")>0) text("它到底帮了你什么？",W/2,1085,36,C_D);
     }
 
     function drawWhy(localT,t){
-      if(show(localT,"t1")>0) titleBig("为什么需要边");
-      if(show(localT,"p1")>0){
-        const a=show(localT,"p1");
-        ctx.save();ctx.globalAlpha=a;
-        roundRect(80,380,920,220,{width:3,color:"rgba(255,160,160,0.75)"});
-        text("麻烦① 全帧上云",W/2,440,40,"rgba(255,180,180,0.95)");
-        // fat pipe jammed
-        arrow(160,520,920,520,{width:4,color:"rgba(255,180,180,0.8)"});
-        text("带宽贵 · 排队慢 · 易堵",W/2,560,30);
-        ctx.restore();
+      if(show(localT,"talk")>0) titleBig("把问题说人话");
+      if(show(localT,"express")>0){
+        // 跨城快递
+        chip(100,400,880,120,"云 ≈ 跨城快递：东西好，路太远",C_C,show(localT,"express"));
+        arrow(200,560,880,560,{width:3,color:C_C,alpha:show(localT,"express")*.7});
+        text("家",160,600,26,C_D); text("远方仓库",920,600,26,C_C);
       }
-      if(show(localT,"p2")>0){
-        const a=show(localT,"p2");
-        ctx.save();ctx.globalAlpha=a;
-        roundRect(80,640,920,200,{width:3,color:"rgba(255,213,154,0.7)"});
-        text("麻烦② 等云来回太慢",W/2,700,40,C_C);
-        text("毫秒级质检 · 次品已流走",W/2,780,30);
-        ctx.restore();
-      }
-      if(show(localT,"gap")>0) text("端侧：算力不够 / 模型放不下",W/2,900,32,C_D);
-      if(show(localT,"need")>0){
-        roundRect(140,960,800,100,{width:3.2,color:C_E});
-        text("→ 需要就近的中转站",W/2,1010,36,C_E);
-      }
+      const pains=[
+        {k:"bill",lab:"流量账单先疼"},
+        {k:"slow",lab:"提醒慢半拍"},
+        {k:"priv",lab:"画面全出小区 → 不踏实"},
+      ];
+      pains.forEach((p,i)=>{
+        const a=show(localT,p.k); if(a<=0) return;
+        chip(100,660+i*90,880,75,p.lab,C_W,a);
+      });
+      if(show(localT,"end")>0) text("端侧又常常扛不住复杂识别",W/2,960,30,C_D);
+      if(show(localT,"fix")>0) chip(140,1000,800,90,"聪明办法：在附近先拦一道",C_E,show(localT,"fix"));
     }
 
     function drawPrinciple(localT,t){
       if(show(localT,"core")>0){
-        titleBig("核心：就近算");
-        text("就 近 算",W/2,400,72,C_E);
+        titleBig("原理：就近算");
+        text("就 近 算",W/2,400,70,C_E);
       }
-      // flow: 端 → 边 → 云
-      const y=560;
-      if(show(localT,"path")>0){
-        nodeBox(70,y,220,130,"端",C_D,show(localT,"path"));
-        arrow(300,y+65,420,y+65,{width:3,color:C_E,alpha:show(localT,"path")});
-        nodeBox(430,y,220,130,"边",C_E,show(localT,"path"));
-        text("车间网关 / 基站机房",W/2,730,28,"rgba(154,215,255,0.85)");
+      if(show(localT,"counter")>0){
+        chip(80,480,240,110,"门铃/端",C_D,show(localT,"counter"));
+        arrow(340,535,420,535,{width:3,color:C_E,alpha:show(localT,"counter")});
+        // 小柜台 = 边
+        roundRect(430,450,220,170,{width:3.5,color:C_E});
+        text("小柜台",W/2,510,36,C_E);
+        text("边",W/2,570,44,C_E);
+        text("网关 / 小区机房",W/2,660,26,"rgba(154,215,255,0.85)");
       }
-      if(show(localT,"do")>0){
-        ["筛选","推理","汇总"].forEach((lab,i)=>{
-          const a=listShow(localT,"do",i,3,2800); if(a<=0) return;
-          ctx.save();ctx.globalAlpha=a;
-          const x=300+i*160;
-          roundRect(x,780,140,70,{width:2.4,color:C_E});
-          text(lab,x+70,815,28,C_E);
-          ctx.restore();
-        });
+      if(show(localT,"local")>0){
+        chip(160,720,760,80,"能本地办的 → 当场办",C_E,show(localT,"local"));
       }
-      if(show(localT,"up")>0){
-        arrow(660,y+65,790,y+65,{width:3,color:C_C,alpha:show(localT,"up")});
-        nodeBox(800,y,210,130,"云",C_C,show(localT,"up"));
-        text("只上送结果 / 摘要",900,730,26,C_C);
+      if(show(localT,"cloud")>0){
+        arrow(660,535,760,535,{width:3,color:C_C,alpha:show(localT,"cloud")});
+        chip(770,480,230,110,"云端",C_C,show(localT,"cloud"));
+        text("再寄真正需要的",880,660,24,C_C);
       }
       if(show(localT,"gain")>0){
-        roundRect(100,900,880,120,{width:3,color:"rgba(255,213,154,0.85)"});
-        text("路程短 → 延迟低　｜　挡无用数据 → 省带宽",W/2,960,30,C_C);
+        chip(100,840,880,120,"更快反应  ·  更少垃圾流量  ·  更安心",C_C,show(localT,"gain"));
       }
     }
 
-    function drawJobs(localT,t){
-      if(show(localT,"ask")>0) titleBig("边的四件事");
-      const jobs=[
-        {k:"f1",n:"① 过滤",d:"丢掉无关画面 / 噪声"},
-        {k:"f2",n:"② 聚合",d:"多路传感器 → 一份结论"},
-        {k:"f3",n:"③ 本地推理",d:"中等模型 · 现场给答案"},
-        {k:"f4",n:"④ 短时决策",d:"先刹车 / 先报警"},
+    function drawValue(localT,t){
+      if(show(localT,"ask")>0) titleBig("落到你身上");
+      const items=[
+        {k:"f1",title:"少打扰",sub:"空走廊先滤掉，手机不被刷爆",c:C_E},
+        {k:"f2",title:"护隐私",sub:"本地打码 / 只留结论",c:C_D},
+        {k:"f3",title:"抢时间",sub:"异常先本地报警",c:C_C},
+        {k:"f4",title:"省流量",sub:"上传结果，不是整部大片",c:C_E},
       ];
-      jobs.forEach((j,i)=>{
-        const a=show(localT,j.k,450); if(a<=0) return;
-        const y=380+i*120;
+      items.forEach((it,i)=>{
+        const a=show(localT,it.k,450); if(a<=0) return;
+        const y=380+i*145;
         ctx.save();ctx.globalAlpha=a;
-        roundRect(80,y,920,100,{width:2.8,color:C_E});
-        text(j.n,200,y+50,34,C_E,"left");
-        text(j.d,720,y+50,28,"rgba(244,247,251,0.95)");
+        roundRect(80,y,920,125,{width:3,color:it.c});
+        text(it.title,220,y+45,38,it.c,"left");
+        text(it.sub,W/2,y+90,28,"rgba(244,247,251,0.95)");
         ctx.restore();
       });
-      if(show(localT,"analogy")>0){
-        roundRect(80,900,920,140,{width:3,color:"rgba(255,213,154,0.8)"});
-        text("便利站：比口袋工具箱强，比远方总仓近",W/2,970,30,C_C);
+    }
+
+    function drawDoorbell(localT,t){
+      if(show(localT,"ex")>0) titleBig("智能门铃走一遍");
+      if(show(localT,"cam")>0){
+        doodleDoorbell(W/2,470,show(localT,"cam"));
+        text("门口采集",W/2,620,28,C_D);
+      }
+      if(show(localT,"box")>0){
+        chip(100,660,880,110,"边缘盒子：树叶？还是人？",C_E,show(localT,"box"));
+        // 二分叉
+        const a=show(localT,"box");
+        chip(80,800,420,80,"风吹树叶 → 忽略",C_W,a*.9);
+        chip(580,800,420,80,"像人 → 再处理",C_D,a);
+      }
+      if(show(localT,"push")>0){
+        chip(160,910,760,80,"像人才推送 · 异常才响铃",C_E,show(localT,"push"));
+      }
+      if(show(localT,"val")>0){
+        chip(80,1010,920,90,"对你：提醒更准 · 流量更省 · 画面少外传",C_C,show(localT,"val"));
       }
     }
 
-    function drawWhere(localT,t){
-      if(show(localT,"where")>0) titleBig("边常落在哪儿");
-      if(show(localT,"list")>0){
-        ["工厂边缘网关","5G 边缘节点","园区 / 商场机房"].forEach((lab,i)=>{
-          const a=listShow(localT,"list",i,3,4800); if(a<=0) return;
-          ctx.save();ctx.globalAlpha=a;
-          const y=420+i*140;
-          roundRect(100,y,880,110,{width:3,color:C_E});
-          text(lab,W/2,y+55,40,C_E);
-          ctx.restore();
-        });
+    function drawMall(localT,t){
+      if(show(localT,"ex2")>0) titleBig("商场 / 路口");
+      if(show(localT,"flow")>0){
+        chip(80,400,920,100,"端：摄像头看着现场",C_D,show(localT,"flow"));
+        arrow(W/2,510,W/2,550,{width:3,color:C_E,alpha:show(localT,"flow")});
+        roundRect(80,560,920,200,{width:3.5,color:C_E});
+        text("边：数人流 · 认拥堵 · 马上引导",W/2,630,34,C_E);
+        text("屏幕 / 广播立刻给你用",W/2,710,28,"rgba(244,247,251,0.95)");
       }
-      if(show(localT,"same")>0){
-        text("近现场 · 有算力 · 能连云 · 非超大中心",W/2,920,30,C_C);
+      if(show(localT,"cloud2")>0){
+        arrow(W/2,770,W/2,810,{width:3,color:C_C,alpha:show(localT,"cloud2")});
+        chip(120,820,840,90,"云：只收统计 + 特殊片段，做长期规划",C_C,show(localT,"cloud2"));
       }
-    }
-
-    function drawExample(localT,t){
-      if(show(localT,"ex")>0) titleBig("路口监控走一遍");
-      // vertical flow emphasizing edge
-      if(show(localT,"dev")>0){
-        nodeBox(240,380,600,110,"端 · 摄像头采集",C_D,show(localT,"dev"));
-        arrow(W/2,500,W/2,540,{width:3,color:C_E,alpha:show(localT,"dev")});
-      }
-      if(show(localT,"edg")>0){
-        const a=show(localT,"edg");
-        ctx.save();ctx.globalAlpha=a;
-        // bigger edge box - hero of this scene
-        roundRect(120,550,840,220,{width:4,color:C_E});
-        text("边 · 路边盒子",W/2,600,42,C_E);
-        text("识别车 / 人 / 拥堵 → 本地告警",W/2,680,30);
-        text("★ 关键动作在这里",W/2,740,28,"rgba(255,213,154,0.95)");
-        ctx.restore();
-        arrow(W/2,780,W/2,820,{width:3,color:C_C,alpha:a});
-      }
-      if(show(localT,"cld")>0){
-        nodeBox(180,830,720,120,"云 · 城市大脑（统计 + 长期优化）",C_C,show(localT,"cld"));
-      }
-      if(show(localT,"div")>0){
-        text("关键在边 · 全局在云",W/2,1000,36,C_E);
+      if(show(localT,"feel")>0){
+        chip(80,950,920,110,"你能感觉到：少瞎转 · 通行更顺",C_E,show(localT,"feel"));
       }
     }
 
     function drawEnd(localT,t){
-      if(show(localT,"how")>0){
-        titleBig("要不要上边？");
-        drawFrog(W*.88,SAFE_TOP+100,.5,"idle",t);
+      if(show(localT,"ask2")>0){
+        titleBig("看产品问一句");
+        drawFrog(W*.86,SAFE_TOP+100,.5,"idle",t);
       }
       if(show(localT,"q")>0){
-        ["延迟够不够低？","数据量大不大？","隐私能否只在园区？","端侧算力够不够？"].forEach((lab,i)=>{
-          const a=listShow(localT,"q",i,4,7500); if(a<=0) return;
-          ctx.save();ctx.globalAlpha=a;
-          const y=380+i*110;
-          roundRect(100,y,880,90,{width:2.6,color:C_E});
-          text((i+1)+". "+lab,W/2,y+45,32);
-          ctx.restore();
+        roundRect(80,400,920,160,{width:3.5,color:C_E});
+        wrapText("本地先处理，再按需上云？",W/2,480,820,40,C_E,1.3);
+      }
+      if(show(localT,"hint")>0){
+        ["秒回","离线也能告警","数据不出园区"].forEach((lab,i)=>{
+          const a=listShow(localT,"hint",i,3,4500); if(a<=0) return;
+          chip(90+i*320,620,290,100,lab,C_D,a);
         });
       }
-      if(show(localT,"pick")>0){
-        // clear triage
-        text("轻 → 端　　中间 → 边　　重/全局 → 云",W/2,860,30,C_C);
-      }
       if(show(localT,"sum")>0){
-        roundRect(80,920,920,120,{width:3.2,color:C_E});
-        wrapText("边 = 把算力搬近现场的工程选择",W/2,980,860,32,C_E,1.3);
+        roundRect(80,780,920,180,{width:3.2,color:C_C});
+        wrapText("把算力挪近你 → 更快 · 更省 · 更安心",W/2,870,840,34,C_C,1.35);
       }
-      if(show(localT,"bye")>0) text("下期见",W/2,1085,40,C_D);
+      if(show(localT,"bye")>0) text("下期见",W/2,1030,40,C_D);
     }
 
     function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
@@ -461,7 +444,7 @@
       },
       jump(i,localT){this.drawAt(offsets[i]+localT)}
     };
-    setScene(0,false);drawScene(0,4000,performance.now());
+    setScene(0,false);drawScene(0,5000,performance.now());
   </script>
 </body>
 </html>

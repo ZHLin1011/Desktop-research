@@ -40,12 +40,12 @@ https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdraw
 
 https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba77847434b1b2ecce/exports/guaji-same-question-with-audio.mp4
 
-## 第 5 期 · 为什么还要有「边」（边缘计算）
+## 第 5 期 · 「边」到底帮了你什么
 
-`guaji-device-edge-cloud-with-audio.mp4`（约 145 秒）
+`guaji-device-edge-cloud-with-audio.mp4`（约 157 秒）
 
-内容：为什么需要边 · 就近算原理 · 边的四件事 · 路口数据流 · 怎么判断。端/云从略，承接第 2 期。
+内容：门铃/商场生活例子 · 就近算原理 · 少打扰/护隐私/抢时间/省流量 · 更快更省更安心。语气偏聊天、仍专业。
 
-锁定本版提交：
+锁定本版提交（推送后更新 SHA）：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cdbbc4798140a4c949d4983e73ca74033a693c5a/exports/guaji-device-edge-cloud-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4
