@@ -46,6 +46,6 @@ https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba778474
 
 内容：为什么需要边 · 就近算原理 · 边的四件事 · 路口数据流 · 怎么判断。端/云从略，承接第 2 期。
 
-锁定本版提交（推送后更新 SHA）：
+锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/cdbbc4798140a4c949d4983e73ca74033a693c5a/exports/guaji-device-edge-cloud-with-audio.mp4
