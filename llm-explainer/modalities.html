@@ -36,7 +36,7 @@
   <header class="brand">
     <div class="host">呱基 · AI 概念课 · 第 3 期</div>
     <h1>大模型除了会读会写<br>还有什么技能？</h1>
-    <p>按模态认识 LLM、VLM、Omni：输入输出能力 + 应用场景。</p>
+    <p>说到哪画到哪：按口播分句同步出画 · LLM / VLM / Omni</p>
   </header>
   <p class="nav">
     <a href="./index.html">第1期</a> ·
@@ -52,7 +52,7 @@
     <div class="meta" id="meta">场景 1 / 7</div>
   </div>
   <div class="scene-list" id="sceneList"></div>
-  <p class="hint">竖屏 9:16 · 精修动画 · 底部字幕 · 安全边距 · 音画同轴</p>
+  <p class="hint">竖屏 9:16 · 口播同步出画 · 底部字幕 · 安全边距</p>
 
   <script>
     const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
@@ -62,211 +62,410 @@
     const W=canvas.width, H=canvas.height;
     const SAFE_TOP=240, SAFE_BOTTOM=150, SUB_H=290, CONTENT_BOTTOM=H-SAFE_BOTTOM-SUB_H;
 
+    // beats.at = 口播该分句开始时刻（相对本场景，毫秒）——画面元素跟这个时间轴走
     const SCENES=[
       {id:"hook",title:"引出",tag:"常见疑问",
         zh:"嗨，我是呱基。很多人觉得大模型只会聊天、写文章。其实按「能接收什么、能产出什么」，本领远不止文字。",
         voice:"嗨，我是呱基。很多人觉得大模型只会聊天、写文章。其实按能接收什么、能产出什么，本领远不止文字。",
-        duration:10732},
+        duration:10732,
+        beats:[
+          {key:"intro",at:0,text:"嗨，我是呱基。"},
+          {key:"chat",at:1850,text:"很多人觉得大模型只会聊天、写文章。"},
+          {key:"io",at:5551,text:"其实按能接收什么、能产出什么，"},
+          {key:"more",at:8882,text:"本领远不止文字。"},
+        ]},
       {id:"map",title:"三种模型",tag:"总览",
         zh:"先记三个名字：LLM 大语言模型，主要和文字打交道；VLM 视觉语言模型，还能看图、看屏幕；Omni 全能模型，往听和说再迈一步，多模态进出更完整。",
         voice:"先记三个名字：LLM 大语言模型，主要和文字打交道；VLM 视觉语言模型，还能看图、看屏幕；Omni 全能模型，往听和说再迈一步，多模态进出更完整。",
-        duration:14572},
+        duration:14572,
+        beats:[
+          {key:"title",at:0,text:"先记三个名字："},
+          {key:"llm",at:1214,text:"LLM 大语言模型，主要和文字打交道；"},
+          {key:"vlm",at:4857,text:"VLM 视觉语言模型，还能看图、看屏幕；"},
+          {key:"omni",at:9107,text:"Omni 全能模型，往听和说再迈一步，多模态进出更完整。"},
+        ]},
       {id:"llm",title:"LLM",tag:"文字技能",
         zh:"LLM：输入主要是文字，输出也是文字。适合问答、写作、翻译、改稿、写代码、整理会议纪要。像一位超级文字助手。",
         voice:"LLM：输入主要是文字，输出也是文字。适合问答、写作、翻译、改稿、写代码、整理会议纪要。像一位超级文字助手。",
-        duration:12388},
+        duration:12388,
+        beats:[
+          {key:"title",at:0,text:"LLM："},
+          {key:"inp",at:1032,text:"输入主要是文字，"},
+          {key:"out",at:2753,text:"输出也是文字。"},
+          {key:"apps",at:4129,text:"适合问答、写作、翻译、改稿、写代码、整理会议纪要。"},
+          {key:"sum",at:10323,text:"像一位超级文字助手。"},
+        ]},
       {id:"vlm",title:"VLM",tag:"视觉技能",
         zh:"VLM：输入可以是图片、文档截图，再加你的文字问题；输出多是文字解释。比如识图答题、读表读票、看设计稿提意见、拍白板帮你整理要点。",
         voice:"VLM：输入可以是图片、文档截图，再加你的文字问题；输出多是文字解释。比如识图答题、读表读票、看设计稿提意见、拍白板帮你整理要点。",
-        duration:13612},
+        duration:13612,
+        beats:[
+          {key:"title",at:0,text:"VLM："},
+          {key:"pic",at:1021,text:"输入可以是图片、文档截图，"},
+          {key:"q",at:3743,text:"再加你的文字问题；"},
+          {key:"out",at:5445,text:"输出多是文字解释。"},
+          {key:"apps",at:7147,text:"比如识图答题、读表读票、看设计稿提意见、拍白板帮你整理要点。"},
+        ]},
       {id:"omni",title:"Omni",tag:"全能技能",
         zh:"Omni：目标是听、说、看、写更打通。你可以语音提问，它口头回答；也能边看画面边解说。适合免打字对话、口语练习、现场讲解。",
         voice:"Omni：目标是听、说、看、写更打通。你可以语音提问，它口头回答；也能边看画面边解说。适合免打字对话、口语练习、现场讲解。",
-        duration:13444},
+        duration:13444,
+        beats:[
+          {key:"title",at:0,text:"Omni："},
+          {key:"goal",at:984,text:"目标是听、说、看、写更打通。"},
+          {key:"voice",at:4591,text:"你可以语音提问，它口头回答；"},
+          {key:"watch",at:7542,text:"也能边看画面边解说。"},
+          {key:"apps",at:9509,text:"适合免打字对话、口语练习、现场讲解。"},
+        ]},
       {id:"pick",title:"怎么选",tag:"干货",
         zh:"怎么选？纯文字任务用 LLM 就够。要理解图片、截图、扫描件，找 VLM。想语音连聊、少动手，再看 Omni。名字不重要，先看输入输出够不够用。",
         voice:"怎么选？纯文字任务用 LLM 就够。要理解图片、截图、扫描件，找 VLM。想语音连聊、少动手，再看 Omni。名字不重要，先看输入输出够不够用。",
-        duration:15580},
+        duration:15580,
+        beats:[
+          {key:"title",at:0,text:"怎么选？"},
+          {key:"llm",at:935,text:"纯文字任务用 LLM 就够。"},
+          {key:"vlm",at:4051,text:"要理解图片、截图、扫描件，找 VLM。"},
+          {key:"omni",at:8413,text:"想语音连聊、少动手，再看 Omni。"},
+          {key:"tip",at:12464,text:"名字不重要，先看输入输出够不够用。"},
+        ]},
       {id:"end",title:"收尾",tag:"记住一句",
         zh:"一句话：LLM 主攻文字，VLM 加上眼睛，Omni 往耳朵嘴巴再扩展。按场景选技能，比死记缩写更有用。我是呱基，我们下期见。",
         voice:"一句话：LLM 主攻文字，VLM 加上眼睛，Omni 往耳朵嘴巴再扩展。按场景选技能，比死记缩写更有用。我是呱基，我们下期见。",
-        duration:12820},
+        duration:12820,
+        beats:[
+          {key:"title",at:0,text:"一句话："},
+          {key:"llm",at:938,text:"LLM 主攻文字，"},
+          {key:"vlm",at:2814,text:"VLM 加上眼睛，"},
+          {key:"omni",at:4690,text:"Omni 往耳朵嘴巴再扩展。"},
+          {key:"tip",at:7504,text:"按场景选技能，比死记缩写更有用。"},
+          {key:"bye",at:10631,text:"我是呱基，我们下期见。"},
+        ]},
     ];
 
-    let playing=false, muted=false, sceneIndex=0, sceneStart=0, raf=0;
+    let playing=false, muted=false, sceneIndex=0, sceneStart=0, raf=0, activeBeats=null;
 
-    // ---- math / easing ----
     function clamp01(t){ return Math.min(1, Math.max(0, t)); }
     function lerp(a,b,t){ return a+(b-a)*t; }
     function easeOutCubic(t){ t=clamp01(t); return 1-Math.pow(1-t,3); }
-    function easeInOutCubic(t){ t=clamp01(t); return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
-    function easeOutBack(t){ t=clamp01(t); const c1=1.4,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); }
-    function appear(localT, delay, dur=520){ return easeOutCubic((localT-delay)/dur); }
-    function stagger(localT, i, base=180, step=140, dur=560){ return appear(localT, base+i*step, dur); }
+    function easeOutBack(t){ t=clamp01(t); const c1=1.35,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); }
+    function hash(n){ n=Math.imul(n^0x9e3779b9,0x85ebca6b); n^=n>>>13; n=Math.imul(n,0xc2b2ae35); return ((n^(n>>>16))>>>0)/4294967296; }
+    function wob(id,i,amp=1.5){ return (hash(id*97+i*13)-0.5)*amp; }
 
-    // Stable seeded noise (does NOT change every frame → no chalk flicker)
-    function hash(n){ n=Math.imul(n^0x9e3779b9, 0x85ebca6b); n^=n>>>13; n=Math.imul(n,0xc2b2ae35); return ((n^(n>>>16))>>>0)/4294967296; }
-    function wob(id, i, amp=1.6){ return (hash(id*97+i*13)-0.5)*amp; }
+    function beatAt(key){
+      const b=(activeBeats||[]).find(x=>x.key===key);
+      return b?b.at:Infinity;
+    }
+    // 从口播该句开始后淡入；未说到则为 0
+    function onBeat(localT, key, dur=480){
+      return easeOutCubic((localT - beatAt(key))/dur);
+    }
+    function onBeatBack(localT, key, dur=520){
+      return easeOutBack((localT - beatAt(key))/dur);
+    }
+    // 列表项：在 apps 句内按顺序错落出现
+    function onList(localT, key, index, count, span){
+      const start=beatAt(key);
+      const step=span/Math.max(1,count);
+      return easeOutCubic((localT - (start + index*step))/420);
+    }
 
     function clear(){
       ctx.fillStyle="#071018"; ctx.fillRect(0,0,W,H);
-      // soft vignette
-      const g=ctx.createRadialGradient(W/2,H*0.42,120,W/2,H*0.5,1100);
-      g.addColorStop(0,"rgba(20,40,58,0.35)"); g.addColorStop(1,"rgba(7,16,24,0)");
+      const g=ctx.createRadialGradient(W/2,H*0.4,80,W/2,H*0.5,1050);
+      g.addColorStop(0,"rgba(22,44,64,0.32)"); g.addColorStop(1,"rgba(7,16,24,0)");
       ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-      // stable dust
-      for(let i=0;i<160;i++){
-        const x=hash(i*3)*W, y=hash(i*7+2)*H, a=0.02+hash(i*11)*0.04;
-        ctx.fillStyle=`rgba(255,255,255,${a})`; ctx.fillRect(x,y,1.6,1.6);
+      for(let i=0;i<140;i++){
+        ctx.fillStyle=`rgba(255,255,255,${0.018+hash(i*5)*0.035})`;
+        ctx.fillRect(hash(i*3)*W, hash(i*7+1)*H, 1.5, 1.5);
       }
     }
-
     function chalkStroke(points, opts={}){
       const {color="rgba(244,247,251,0.94)", width=3.1, alpha=1, id=1, progress=1}=opts;
       if(points.length<2) return;
       const n=Math.max(2, Math.floor((points.length-1)*clamp01(progress))+1);
       const pts=points.slice(0,n);
       const stroke=(amp,wMul,aMul)=>{
-        ctx.save();
-        ctx.globalAlpha=alpha*aMul;
+        ctx.save(); ctx.globalAlpha=alpha*aMul;
         ctx.strokeStyle=color; ctx.lineWidth=width*wMul; ctx.lineCap="round"; ctx.lineJoin="round";
         ctx.beginPath();
         ctx.moveTo(pts[0].x+wob(id,0,amp), pts[0].y+wob(id,1,amp));
         for(let i=1;i<pts.length;i++){
           const p=pts[i], prev=pts[i-1];
-          const mx=(prev.x+p.x)/2+wob(id,i*2,amp*0.7);
-          const my=(prev.y+p.y)/2+wob(id,i*2+1,amp*0.7);
-          ctx.quadraticCurveTo(prev.x+wob(id,i*3,amp*0.5), prev.y+wob(id,i*4,amp*0.5), mx, my);
+          ctx.quadraticCurveTo(
+            prev.x+wob(id,i*3,amp*0.45), prev.y+wob(id,i*4,amp*0.45),
+            (prev.x+p.x)/2+wob(id,i*2,amp*0.65), (prev.y+p.y)/2+wob(id,i*2+1,amp*0.65)
+          );
         }
         ctx.stroke(); ctx.restore();
       };
-      stroke(1.8,1,1); stroke(2.8,1.65,0.18); stroke(1.1,0.65,0.28);
+      stroke(1.7,1,1); stroke(2.6,1.55,0.16); stroke(1.0,0.62,0.26);
     }
-    function line(x1,y1,x2,y2,o={}){
-      const id=o.id||((x1*13+y1*7+x2)|0);
-      chalkStroke([{x:x1,y:y1},{x:x2,y:y2}], {...o,id});
-    }
+    function line(x1,y1,x2,y2,o={}){ chalkStroke([{x:x1,y:y1},{x:x2,y:y2}],{...o,id:o.id||((x1*13+y1*7)|0)}); }
     function circle(cx,cy,r,o={}){
-      const id=o.id||((cx*11+cy*17+r*3)|0);
-      const pts=[]; const segs=36;
-      for(let i=0;i<=segs;i++){
-        const t=(i/segs)*Math.PI*2;
-        pts.push({x:cx+Math.cos(t)*r, y:cy+Math.sin(t)*r});
-      }
-      chalkStroke(pts,{...o,id,progress:o.progress??1});
+      const pts=[], segs=40;
+      for(let i=0;i<=segs;i++){ const t=i/segs*Math.PI*2; pts.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r}); }
+      chalkStroke(pts,{...o,id:o.id||((cx*11+cy)|0)});
     }
     function roundRect(x,y,w,h,o={}){
-      const id=o.id||((x*5+y*9+w)|0);
-      chalkStroke([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h},{x,y}],{...o,id});
+      chalkStroke([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h},{x,y}],{...o,id:o.id||((x*5+y*9)|0)});
+    }
+    function hatch(x,y,w,h,color,a=0.12,step=14){
+      ctx.save(); ctx.globalAlpha=a; ctx.strokeStyle=color; ctx.lineWidth=1.4;
+      for(let i=-h;i<w+h;i+=step){
+        ctx.beginPath(); ctx.moveTo(x+i,y); ctx.lineTo(x+i+h,y+h); ctx.stroke();
+      }
+      ctx.restore();
     }
     function text(str,x,y,size=40,color="rgba(244,247,251,0.96)",align="center",alpha=1){
-      ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle=color;
+      ctx.save(); ctx.globalAlpha=clamp01(alpha); ctx.fillStyle=color;
       ctx.font=`700 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
-      ctx.textAlign=align; ctx.textBaseline="middle";
-      ctx.fillText(str,x,y); ctx.restore();
+      ctx.textAlign=align; ctx.textBaseline="middle"; ctx.fillText(str,x,y); ctx.restore();
     }
     function wrapText(str,x,y,maxWidth,size=34,color="rgba(244,247,251,0.95)",lineH=1.35,alpha=1){
-      ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle=color;
+      ctx.save(); ctx.globalAlpha=clamp01(alpha); ctx.fillStyle=color;
       ctx.font=`600 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
       ctx.textAlign="center"; ctx.textBaseline="middle";
       const chars=[...str]; let cur=""; const lines=[];
       for(const ch of chars){
         const test=cur+ch;
-        if(ctx.measureText(test).width>maxWidth && cur){ lines.push(cur); cur=ch; }
-        else cur=test;
+        if(ctx.measureText(test).width>maxWidth && cur){ lines.push(cur); cur=ch; } else cur=test;
       }
       if(cur) lines.push(cur);
       const totalH=(lines.length-1)*size*lineH;
       lines.forEach((ln,i)=>ctx.fillText(ln,x,y-totalH/2+i*size*lineH));
-      ctx.restore(); return lines.length;
+      ctx.restore();
     }
-
-    function withAlpha(a, fn){ ctx.save(); ctx.globalAlpha=clamp01(a); fn(); ctx.restore(); }
+    function withA(a, fn){ if(a<=0) return; ctx.save(); ctx.globalAlpha=clamp01(a); fn(); ctx.restore(); }
     function withLift(a, dy, fn){
+      if(a<=0) return;
       ctx.save(); ctx.globalAlpha=clamp01(a); ctx.translate(0, dy*(1-clamp01(a))); fn(); ctx.restore();
     }
-
-    function ground(t){
-      const pts=[]; const y0=CONTENT_BOTTOM+8;
-      for(let x=70;x<W-70;x+=28) pts.push({x, y:y0+Math.sin(x*0.015+t*0.001)*3});
-      chalkStroke(pts,{width:2.6,alpha:0.75,id:42});
-    }
-    function stars(t){
-      for(let i=0;i<48;i++){
-        const x=hash(i*19)*W, y=SAFE_TOP+hash(i*23+1)*(CONTENT_BOTTOM-SAFE_TOP)*0.48;
-        const tw=0.25+0.45*(0.5+0.5*Math.sin(t*0.0035+i));
-        ctx.fillStyle=`rgba(244,247,251,${tw*0.55})`;
-        ctx.beginPath(); ctx.arc(x,y,1.2+hash(i)*1.2,0,Math.PI*2); ctx.fill();
-      }
-    }
-    function softGlow(x,y,r,color,a=0.18){
+    function softGlow(x,y,r,rgb,a=0.16){
       const g=ctx.createRadialGradient(x,y,2,x,y,r);
-      g.addColorStop(0,color.replace("0.95", String(a)).replace("0.9", String(a)).replace("0.98", String(a)));
-      // fallback: parse roughly
-      g.addColorStop(0, color.includes("141,255,156") ? `rgba(141,255,156,${a})`
-        : color.includes("255,213,154") ? `rgba(255,213,154,${a})`
-        : `rgba(154,215,255,${a})`);
-      g.addColorStop(1,"rgba(0,0,0,0)");
+      g.addColorStop(0,`rgba(${rgb},${a})`); g.addColorStop(1,"rgba(0,0,0,0)");
       ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
     }
+    function ground(t){
+      const pts=[], y0=CONTENT_BOTTOM+6;
+      for(let x=70;x<W-70;x+=26) pts.push({x,y:y0+Math.sin(x*0.016+t*0.001)*2.5});
+      chalkStroke(pts,{width:2.4,alpha:0.7,id:42});
+    }
+    function stars(t){
+      for(let i=0;i<36;i++){
+        const x=hash(i*19)*W, y=SAFE_TOP+hash(i*23+1)*(CONTENT_BOTTOM-SAFE_TOP)*0.42;
+        const tw=0.2+0.4*(0.5+0.5*Math.sin(t*0.003+i));
+        ctx.fillStyle=`rgba(244,247,251,${tw*0.5})`;
+        ctx.beginPath(); ctx.arc(x,y,1.1+hash(i)*1.1,0,Math.PI*2); ctx.fill();
+      }
+    }
 
-    function drawFrog(x,y,scale=1,mood="idle",t=0,alpha=1){
-      const s=scale;
-      const bounce=Math.sin(t*0.005)*3.2*s;
-      const cy=y+bounce;
-      withAlpha(alpha,()=>{
-        softGlow(x,cy,90*s,"rgba(141,255,156,0.95)",0.12);
-        circle(x,cy,46*s,{width:3.3,color:"rgba(141,255,156,0.95)",id:101});
-        circle(x-20*s,cy-30*s,15*s,{width:2.7,id:102});
-        circle(x+20*s,cy-30*s,15*s,{width:2.7,id:103});
-        // blink every ~3.2s
-        const blink=Math.abs(Math.sin(t*0.002))*1;
-        const eyeOpen = (Math.floor(t/3200)%1===0 && (t%3200)>3000) ? 0.15 : 1;
-        ctx.save(); ctx.fillStyle="#071018";
-        const look=mood==="think"?2:0;
-        ctx.beginPath();
-        ctx.ellipse(x-20*s, cy-30*s+look, 5*s, 5*s*eyeOpen, 0, 0, Math.PI*2);
-        ctx.ellipse(x+20*s, cy-30*s+look, 5*s, 5*s*eyeOpen, 0, 0, Math.PI*2);
-        ctx.fill(); ctx.restore();
-        if(mood==="talk"){
-          const open=4+Math.abs(Math.sin(t*0.02))*7;
-          chalkStroke([{x:x-14*s,y:cy+10*s},{x:x,y:cy+10*s+open},{x:x+14*s,y:cy+10*s}],{width:2.5,id:104});
-        } else {
-          chalkStroke([{x:x-14*s,y:cy+12*s},{x:x,y:cy+19*s},{x:x+14*s,y:cy+12*s}],{width:2.5,id:105});
-        }
-        chalkStroke([{x:x-22*s,y:cy+34*s},{x:x-42*s,y:cy+58*s},{x:x-16*s,y:cy+54*s}],{width:3.1,color:"rgba(141,255,156,0.9)",id:106});
-        chalkStroke([{x:x+22*s,y:cy+34*s},{x:x+42*s,y:cy+58*s},{x:x+16*s,y:cy+54*s}],{width:3.1,color:"rgba(141,255,156,0.9)",id:107});
-        text("呱基", x, cy+82*s, 26*Math.min(1.15,s), "rgba(141,255,156,0.95)");
+    function chalkDust(x,y,a,t,id=50){
+      if(a<=0) return;
+      for(let i=0;i<10;i++){
+        const ang=hash(id+i)*Math.PI*2, r=(8+hash(id+i*3)*22)*a;
+        const px=x+Math.cos(ang+t*0.001)*r, py=y+Math.sin(ang+t*0.001)*r;
+        ctx.fillStyle=`rgba(244,247,251,${0.18*a*(1-hash(id+i+1)*0.5)})`;
+        ctx.fillRect(px,py,1.8,1.8);
+      }
+    }
+    function boardPanel(x,y,w,h,a,id=60){
+      if(a<=0) return;
+      withA(a*0.9,()=>{
+        roundRect(x,y,w,h,{width:2.2,color:"rgba(244,247,251,0.22)",id,progress:a});
+        // corner ticks
+        line(x+10,y+10,x+34,y+10,{width:1.6,color:"rgba(154,215,255,0.35)",id:id+1});
+        line(x+10,y+10,x+10,y+34,{width:1.6,color:"rgba(154,215,255,0.35)",id:id+2});
+        line(x+w-10,y+h-10,x+w-34,y+h-10,{width:1.6,color:"rgba(154,215,255,0.35)",id:id+3});
+        line(x+w-10,y+h-10,x+w-10,y+h-34,{width:1.6,color:"rgba(154,215,255,0.35)",id:id+4});
       });
     }
 
-    function titleBig(str, localT, y=SAFE_TOP+36){
-      const a=appear(localT, 40, 480);
-      withLift(a, 18, ()=> text(str, W/2, y, 62, "rgba(154,215,255,0.98)"));
-      // underline draw
-      const u=appear(localT, 180, 500);
-      if(u>0){
-        const tw=Math.min(420, str.length*28);
-        line(W/2-tw/2, y+42, W/2-tw/2+tw*u, y+42, {width:2.4, color:"rgba(154,215,255,0.55)", id:201});
+    // ---- doodle icons (richer chalk) ----
+    function iconBook(x,y,s,a,id=1000){
+      withA(a,()=>{
+        // open book
+        chalkStroke([{x:x,y:y-48*s},{x:x-52*s,y:y-40*s},{x:x-48*s,y:y+42*s},{x:x,y:y+34*s},{x:x,y:y-48*s}],{width:2.6,color:"rgba(141,255,156,0.95)",id,progress:a});
+        chalkStroke([{x:x,y:y-48*s},{x:x+52*s,y:y-40*s},{x:x+48*s,y:y+42*s},{x:x,y:y+34*s}],{width:2.6,color:"rgba(141,255,156,0.95)",id:id+1,progress:a});
+        for(let i=0;i<4;i++){
+          line(x-40*s,y-22*s+i*16*s,x-8*s,y-18*s+i*16*s,{width:1.6,color:"rgba(244,247,251,0.5)",id:id+2+i});
+          line(x+8*s,y-18*s+i*16*s,x+40*s,y-22*s+i*16*s,{width:1.6,color:"rgba(244,247,251,0.5)",id:id+6+i});
+        }
+      });
+    }
+    function iconBubble(x,y,s,a,id=1100){
+      withA(a,()=>{
+        chalkStroke([
+          {x:x-54*s,y:y-32*s},{x:x+46*s,y:y-32*s},{x:x+56*s,y:y},{x:x+46*s,y:y+32*s},
+          {x:x-18*s,y:y+32*s},{x:x-40*s,y:y+54*s},{x:x-26*s,y:y+32*s},{x:x-54*s,y:y-32*s}
+        ],{width:2.7,color:"rgba(154,215,255,0.95)",id,progress:a});
+        line(x-28*s,y-8*s,x+24*s,y-8*s,{width:1.9,id:id+1});
+        line(x-28*s,y+8*s,x+12*s,y+8*s,{width:1.9,id:id+2});
+        line(x-28*s,y+22*s,x+2*s,y+22*s,{width:1.7,color:"rgba(244,247,251,0.45)",id:id+3});
+      });
+    }
+    function iconEye(x,y,s,a,id=1200){
+      withA(a,()=>{
+        chalkStroke([
+          {x:x-52*s,y:y},{x:x-22*s,y:y-30*s},{x:x+22*s,y:y-30*s},{x:x+52*s,y:y},
+          {x:x+22*s,y:y+30*s},{x:x-22*s,y:y+30*s},{x:x-52*s,y:y}
+        ],{width:2.9,color:"rgba(154,215,255,0.95)",id,progress:a});
+        circle(x,y,16*s,{width:2.5,color:"rgba(154,215,255,0.95)",id:id+1,progress:a});
+        circle(x+3*s,y-2*s,6*s,{width:2,color:"rgba(244,247,251,0.85)",id:id+2,progress:a});
+        // lashes
+        line(x-30*s,y-28*s,x-34*s,y-40*s,{width:1.8,id:id+3});
+        line(x,y-32*s,x,y-44*s,{width:1.8,id:id+4});
+        line(x+30*s,y-28*s,x+34*s,y-40*s,{width:1.8,id:id+5});
+      });
+    }
+    function iconMic(x,y,s,a,id=1300){
+      withA(a,()=>{
+        roundRect(x-18*s,y-46*s,36*s,54*s,{width:2.6,color:"rgba(255,213,154,0.95)",id,progress:a});
+        for(let i=0;i<3;i++) line(x-10*s,y-32*s+i*14*s,x+10*s,y-32*s+i*14*s,{width:1.5,color:"rgba(255,213,154,0.55)",id:id+1+i});
+        chalkStroke([{x:x-30*s,y:y+2*s},{x:x-30*s,y:y+22*s},{x:x+30*s,y:y+22*s},{x:x+30*s,y:y+2*s}],{width:2.5,color:"rgba(255,213,154,0.9)",id:id+5,progress:a});
+        line(x,y+22*s,x,y+40*s,{width:2.5,color:"rgba(255,213,154,0.9)",id:id+6});
+        line(x-20*s,y+40*s,x+20*s,y+40*s,{width:2.5,color:"rgba(255,213,154,0.9)",id:id+7});
+      });
+    }
+    function iconSpeaker(x,y,s,a,id=1400){
+      withA(a,()=>{
+        chalkStroke([{x:x-14*s,y:y-18*s},{x:x+10*s,y:y-32*s},{x:x+10*s,y:y+32*s},{x:x-14*s,y:y+18*s},{x:x-28*s,y:y+18*s},{x:x-28*s,y:y-18*s},{x:x-14*s,y:y-18*s}],{width:2.5,color:"rgba(141,255,156,0.95)",id,progress:a});
+        for(let i=0;i<3;i++){
+          const r=24+i*15;
+          chalkStroke([{x:x+16*s,y:y-r*0.55*s},{x:x+16*s+r*0.4*s,y:y},{x:x+16*s,y:y+r*0.55*s}],{width:2.1,color:"rgba(141,255,156,0.75)",id:id+1+i,progress:a,alpha:a*(1-i*0.18)});
+        }
+      });
+    }
+    function iconPhone(x,y,s,a,id=1500){
+      withA(a,()=>{
+        roundRect(x-40*s,y-72*s,80*s,144*s,{width:2.9,color:"rgba(154,215,255,0.9)",id,progress:a});
+        roundRect(x-30*s,y-54*s,60*s,96*s,{width:2,color:"rgba(154,215,255,0.55)",id:id+1,progress:a});
+        line(x-12*s,y-62*s,x+12*s,y-62*s,{width:2,id:id+2});
+        circle(x,y+56*s,8*s,{width:2,id:id+3,progress:a});
+      });
+    }
+    function iconCamera(x,y,s,a,id=1600){
+      withA(a,()=>{
+        roundRect(x-54*s,y-34*s,108*s,68*s,{width:2.7,color:"rgba(154,215,255,0.9)",id,progress:a});
+        chalkStroke([{x:x-20*s,y:y-34*s},{x:x-8*s,y:y-52*s},{x:x+20*s,y:y-52*s},{x:x+32*s,y:y-34*s}],{width:2.3,id:id+1,progress:a});
+        circle(x,y,20*s,{width:2.5,id:id+2,progress:a});
+        circle(x,y,9*s,{width:2,id:id+3,progress:a});
+        circle(x+38*s,y-18*s,5*s,{width:1.8,color:"rgba(255,213,154,0.8)",id:id+4,progress:a});
+      });
+    }
+    function iconBoard(x,y,s,a,id=1700){
+      withA(a,()=>{
+        roundRect(x-74*s,y-50*s,148*s,100*s,{width:2.7,color:"rgba(255,213,154,0.9)",id,progress:a});
+        line(x,y+50*s,x,y+72*s,{width:2.4,id:id+1});
+        line(x-32*s,y+72*s,x+32*s,y+72*s,{width:2.4,id:id+2});
+        for(let i=0;i<3;i++) line(x-52*s,y-28*s+i*22*s,x+52*s,y-28*s+i*22*s,{width:1.7,color:"rgba(244,247,251,0.5)",id:id+3+i});
+        // stick figure mark
+        circle(x+40*s,y-18*s,6*s,{width:1.6,color:"rgba(141,255,156,0.7)",id:id+8,progress:a});
+      });
+    }
+    function iconTable(x,y,s,a,id=1800){
+      withA(a,()=>{
+        roundRect(x-58*s,y-42*s,116*s,84*s,{width:2.5,color:"rgba(154,215,255,0.9)",id,progress:a});
+        line(x-58*s,y-12*s,x+58*s,y-12*s,{width:2.1,id:id+1});
+        line(x-12*s,y-42*s,x-12*s,y+42*s,{width:2.1,id:id+2});
+        line(x+26*s,y-42*s,x+26*s,y+42*s,{width:2.1,id:id+3});
+        text("¥", x-34*s, y+12*s, 18*s, "rgba(255,213,154,0.8)", "center", a);
+      });
+    }
+    function iconArrow(x1,y1,x2,y2,a,color="rgba(154,215,255,0.95)",id=1900){
+      if(a<=0) return;
+      const x=lerp(x1,x2,a), y=lerp(y1,y2,a);
+      line(x1,y1,x,y,{width:3.4,color,id,alpha:a});
+      if(a>0.72){
+        const ang=Math.atan2(y2-y1,x2-x1);
+        line(x,y,x-14*Math.cos(ang-0.45),y-14*Math.sin(ang-0.45),{width:3,color,id:id+1});
+        line(x,y,x-14*Math.cos(ang+0.45),y-14*Math.sin(ang+0.45),{width:3,color,id:id+2});
       }
+    }
+    function flowDots(x1,y1,x2,y2,t,a,color="154,215,255"){
+      if(a<=0) return;
+      for(let i=0;i<5;i++){
+        const u=((t*0.0012+i*0.18)%1);
+        const x=lerp(x1,x2,u), y=lerp(y1,y2,u);
+        ctx.fillStyle=`rgba(${color},${0.35*a})`;
+        ctx.beginPath(); ctx.arc(x,y,3.2,0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    function drawFrog(x,y,scale=1,mood="idle",t=0,alpha=1){
+      const s=scale, bounce=Math.sin(t*0.0048)*3.2*s, cy=y+bounce;
+      withA(alpha,()=>{
+        softGlow(x,cy,96*s,"141,255,156",0.13);
+        // body
+        chalkStroke([
+          {x:x-36*s,y:cy+8*s},{x:x-40*s,y:cy+48*s},{x:x,y:cy+58*s},{x:x+40*s,y:cy+48*s},{x:x+36*s,y:cy+8*s}
+        ],{width:3,color:"rgba(141,255,156,0.88)",id:100});
+        // head
+        circle(x,cy-8*s,44*s,{width:3.3,color:"rgba(141,255,156,0.95)",id:101});
+        // cheeks
+        circle(x-28*s,cy+4*s,8*s,{width:1.8,color:"rgba(141,255,156,0.45)",id:108});
+        circle(x+28*s,cy+4*s,8*s,{width:1.8,color:"rgba(141,255,156,0.45)",id:109});
+        // eyes
+        circle(x-20*s,cy-34*s,16*s,{width:2.7,id:102});
+        circle(x+20*s,cy-34*s,16*s,{width:2.7,id:103});
+        const blink=((t%3400)>3180)?0.12:1;
+        ctx.fillStyle="#071018";
+        ctx.beginPath();
+        ctx.ellipse(x-20*s,cy-34*s,5.5*s,5.5*s*blink,0,0,Math.PI*2);
+        ctx.ellipse(x+20*s,cy-34*s,5.5*s,5.5*s*blink,0,0,Math.PI*2);
+        ctx.fill();
+        // mouth
+        if(mood==="talk"){
+          const open=5+Math.abs(Math.sin(t*0.022))*8;
+          chalkStroke([{x:x-16*s,y:cy+4*s},{x:x,y:cy+4*s+open},{x:x+16*s,y:cy+4*s}],{width:2.5,id:104});
+        } else {
+          chalkStroke([{x:x-16*s,y:cy+6*s},{x:x,y:cy+14*s},{x:x+16*s,y:cy+6*s}],{width:2.5,id:105});
+        }
+        // arms / legs
+        chalkStroke([{x:x-30*s,y:cy+28*s},{x:x-58*s,y:cy+18*s},{x:x-62*s,y:cy+2*s}],{width:3,color:"rgba(141,255,156,0.9)",id:106});
+        chalkStroke([{x:x+30*s,y:cy+28*s},{x:x+58*s,y:cy+18*s},{x:x+62*s,y:cy+2*s}],{width:3,color:"rgba(141,255,156,0.9)",id:107});
+        chalkStroke([{x:x-18*s,y:cy+54*s},{x:x-34*s,y:cy+78*s},{x:x-8*s,y:cy+72*s}],{width:3.1,color:"rgba(141,255,156,0.9)",id:110});
+        chalkStroke([{x:x+18*s,y:cy+54*s},{x:x+34*s,y:cy+78*s},{x:x+8*s,y:cy+72*s}],{width:3.1,color:"rgba(141,255,156,0.9)",id:111});
+        // pointer when talking
+        if(mood==="talk"){
+          chalkStroke([{x:x+62*s,y:cy+2*s},{x:x+110*s,y:cy-40*s}],{width:2.4,color:"rgba(255,213,154,0.85)",id:112});
+          chalkStroke([{x:x+110*s,y:cy-40*s},{x:x+98*s,y:cy-36*s},{x:x+106*s,y:cy-28*s}],{width:2.2,color:"rgba(255,213,154,0.85)",id:113});
+        }
+      });
+    }
+
+    function titleBig(str, a, y=SAFE_TOP+36){
+      withLift(a, 16, ()=>{
+        text(str, W/2, y, 58, "rgba(154,215,255,0.98)");
+        const tw=Math.min(460, str.length*26);
+        line(W/2-tw/2, y+40, W/2-tw/2+tw*a, y+40, {width:2.2, color:"rgba(154,215,255,0.5)", id:201});
+      });
     }
 
     function drawSubtitle(sc, localT){
       const bandTop=H-SAFE_BOTTOM-SUB_H;
-      const g=ctx.createLinearGradient(0,bandTop-60,0,H-SAFE_BOTTOM);
-      g.addColorStop(0,"rgba(7,16,24,0)"); g.addColorStop(0.3,"rgba(7,16,24,0.82)"); g.addColorStop(1,"rgba(7,16,24,0.94)");
-      ctx.fillStyle=g; ctx.fillRect(0,bandTop-60,W,H-SAFE_BOTTOM-(bandTop-60));
-      // speech-synced reveal (slower, closer to narration pace)
-      const chars=Math.min(sc.zh.length, Math.floor(easeOutCubic(localT/(sc.duration*0.82))*sc.zh.length)+1);
-      const a=appear(localT, 80, 400);
-      wrapText(sc.zh.slice(0,Math.max(1,chars)), W/2, bandTop+SUB_H*0.38, 900, 40, "rgba(244,247,251,0.98)", 1.34, a);
-      text(sc.tag, W/2, bandTop+SUB_H*0.72, 24, "rgba(154,215,255,0.88)", "center", a*0.95);
+      const g=ctx.createLinearGradient(0,bandTop-50,0,H-SAFE_BOTTOM);
+      g.addColorStop(0,"rgba(7,16,24,0)"); g.addColorStop(0.28,"rgba(7,16,24,0.82)"); g.addColorStop(1,"rgba(7,16,24,0.94)");
+      ctx.fillStyle=g; ctx.fillRect(0,bandTop-50,W,H-SAFE_BOTTOM-(bandTop-50));
+
+      // 字幕只显示已说到的分句累计
+      let shown="";
+      for(const b of sc.beats){
+        if(localT < b.at) break;
+        const nextAt = sc.beats.find(x=>x.at>b.at)?.at ?? sc.duration;
+        const span=Math.max(1, nextAt-b.at);
+        const frac=clamp01((localT-b.at)/(span*0.92));
+        const n=Math.max(1, Math.floor(frac * b.text.length));
+        shown += b.text.slice(0,n);
+      }
+      if(!shown) shown = sc.beats[0]?.text?.slice(0,1) || "";
+      wrapText(shown, W/2, bandTop+SUB_H*0.36, 900, 38, "rgba(244,247,251,0.98)", 1.34, 1);
+      text(sc.tag, W/2, bandTop+SUB_H*0.72, 24, "rgba(154,215,255,0.88)");
     }
 
-    // ---- scenes ----
     function drawScene(index, localT, totalT){
       clear(); stars(totalT); ground(totalT);
       const sc=SCENES[index];
+      activeBeats=sc.beats;
       switch(sc.id){
         case "hook": drawHook(localT,totalT); break;
         case "map": drawMap(localT,totalT); break;
@@ -277,195 +476,283 @@
         case "end": drawEnd(localT,totalT); break;
       }
       drawSubtitle(sc, localT);
-      // soft scene enter/exit
-      const fadeIn=appear(localT,0,260);
-      if(fadeIn<1){ ctx.fillStyle=`rgba(7,16,24,${1-fadeIn})`; ctx.fillRect(0,0,W,H); }
-      const fadeOut=clamp01((localT-(sc.duration-220))/220);
-      if(fadeOut>0){ ctx.fillStyle=`rgba(7,16,24,${fadeOut*0.55})`; ctx.fillRect(0,0,W,H); }
     }
 
+    // ===== scenes: only reveal when spoken =====
     function drawHook(localT,t){
-      titleBig("不止会读会写", localT);
-      const fa=appear(localT,120,600);
-      drawFrog(W/2, 470, 1.28, "talk", t, fa);
-      const icons=[
-        {l:"文", c:"rgba(141,255,156,0.95)"},
-        {l:"图", c:"rgba(154,215,255,0.95)"},
-        {l:"声", c:"rgba(255,213,154,0.95)"},
-      ];
-      icons.forEach((ic,i)=>{
-        const a=stagger(localT,i,520,180,620);
-        if(a<=0) return;
-        const x=W*0.22+i*W*0.28, y=900;
-        withLift(a, 28, ()=>{
-          softGlow(x,y,90,ic.c,0.16*a);
-          circle(x,y,72,{width:3.1,color:ic.c,id:300+i,progress:a});
-          text(ic.l,x,y,50,ic.c,"center",a);
-        });
+      const aIntro=onBeat(localT,"intro",520);
+      withLift(aIntro,20,()=>{
+        drawFrog(W/2, 400, 1.28, "talk", t, 1);
+        text("呱基", W/2, 560, 30, "rgba(141,255,156,0.95)");
+        chalkDust(W/2+110, 360, aIntro, t, 70);
       });
-      const tip=appear(localT, 1400, 500);
-      if(tip>0) withLift(tip,16,()=>text("看它能进什么、出什么", W/2, 1120, 36, "rgba(255,213,154,0.95)"));
+
+      // 聊天 / 写文章：跟口播「聊天、写文章」错落出现
+      const aChat=onBeat(localT,"chat",480);
+      const aWrite=easeOutCubic((localT-(beatAt("chat")+1400))/480);
+      withLift(aChat,24,()=>{
+        boardPanel(70, 620, 420, 220, aChat, 2090);
+        iconBubble(W*0.28, 700, 1.2, 1, 2100);
+        chalkDust(W*0.28, 700, aChat, t, 71);
+        text("只会聊天？", W*0.28, 800, 30, "rgba(168,184,204,0.95)");
+      });
+      withLift(aWrite,24,()=>{
+        boardPanel(590, 620, 420, 220, aWrite, 2095);
+        iconBook(W*0.72, 700, 1.15, 1, 2110);
+        chalkDust(W*0.72, 700, aWrite, t, 72);
+        text("只会写文章？", W*0.72, 800, 30, "rgba(168,184,204,0.95)");
+      });
+
+      const aIo=onBeatBack(localT,"io",560);
+      withLift(aIo,22,()=>{
+        softGlow(W*0.28, 980, 80, "141,255,156", 0.15);
+        softGlow(W*0.72, 980, 80, "154,215,255", 0.15);
+        roundRect(90, 880, 380, 180, {width:3, color:"rgba(141,255,156,0.9)", id:2200, progress:aIo});
+        hatch(100,890,360,160,"141,255,156",0.1);
+        text("能接收什么", W*0.28, 950, 34, "rgba(141,255,156,0.98)");
+        text("IN", W*0.28, 1005, 24, "rgba(141,255,156,0.65)");
+        roundRect(610, 880, 380, 180, {width:3, color:"rgba(154,215,255,0.9)", id:2210, progress:aIo});
+        hatch(620,890,360,160,"154,215,255",0.1);
+        text("能产出什么", W*0.72, 950, 34, "rgba(154,215,255,0.98)");
+        text("OUT", W*0.72, 1005, 24, "rgba(154,215,255,0.65)");
+        iconArrow(W*0.42, 970, W*0.58, 970, aIo, "rgba(255,213,154,0.85)", 2220);
+      });
+
+      const aMore=onBeat(localT,"more",500);
+      withLift(aMore,14,()=>{
+        text("本领远不止文字", W/2, 1145, 40, "rgba(255,213,154,0.98)");
+        chalkDust(W/2, 1145, aMore, t, 73);
+      });
     }
 
     function drawMap(localT,t){
-      titleBig("三种模型", localT);
-      drawFrog(W*0.88, SAFE_TOP+120, 0.58, "idle", t, appear(localT,80,400));
+      titleBig("三种模型", onBeat(localT,"title",450));
+      drawFrog(W*0.88, SAFE_TOP+118, 0.58, "idle", t, onBeat(localT,"title",400));
+      withLift(onBeat(localT,"title",400),10,()=> text("先记三个名字", W/2, SAFE_TOP+110, 28, "rgba(168,184,204,0.85)"));
+
       const cards=[
-        {n:"LLM", s:"文字助手", c:"rgba(141,255,156,0.95)", y:430},
-        {n:"VLM", s:"带眼睛", c:"rgba(154,215,255,0.95)", y:655},
-        {n:"Omni", s:"能听能说", c:"rgba(255,213,154,0.95)", y:880},
+        {key:"llm", n:"LLM", sub:"大语言模型", tip:"主要和文字打交道", c:"141,255,156", icon:(x,y,a)=>iconBook(x,y,0.95,a,2300)},
+        {key:"vlm", n:"VLM", sub:"视觉语言模型", tip:"还能看图、看屏幕", c:"154,215,255", icon:(x,y,a)=>iconEye(x,y,0.95,a,2310)},
+        {key:"omni", n:"Omni", sub:"全能模型", tip:"往听和说再迈一步", c:"255,213,154", icon:(x,y,a)=>iconMic(x,y,0.95,a,2320)},
       ];
       cards.forEach((c,i)=>{
-        const a=stagger(localT,i,200,260,700);
+        const a=onBeatBack(localT,c.key,580);
         if(a<=0) return;
-        withLift(a, 36, ()=>{
-          softGlow(W/2, c.y+90, 220, c.c, 0.08*a);
-          roundRect(90, c.y, 900, 180, {width:3.1, color:c.c, id:400+i, progress:easeOutCubic(a)});
-          text(c.n, 250, c.y+90, 56, c.c, "left", a);
-          text(c.s, 720, c.y+90, 40, "rgba(244,247,251,0.95)", "center", a);
+        const y=400+i*215;
+        // 框先出，名字再出，说明最后出（都在该句口播窗口内）
+        const aName=easeOutCubic((localT-beatAt(c.key)-180)/420);
+        const aTip=easeOutCubic((localT-beatAt(c.key)-520)/420);
+        withLift(a, 32, ()=>{
+          softGlow(W/2, y+85, 250, c.c, 0.08);
+          roundRect(70, y, 940, 180, {width:3.2, color:`rgba(${c.c},0.95)`, id:2400+i, progress:a});
+          hatch(85, y+12, 910, 156, c.c, 0.08);
+          chalkDust(140, y+40, a, t, 80+i);
+          c.icon(175, y+90, a);
+          withA(aName,()=>{
+            text(c.n, 310, y+62, 50, `rgba(${c.c},0.98)`, "left");
+            text(c.sub, 310, y+118, 28, "rgba(244,247,251,0.9)", "left");
+          });
+          withA(aTip,()=> text(c.tip, 860, y+90, 30, "rgba(244,247,251,0.94)", "center"));
         });
       });
     }
 
     function drawLLM(localT,t){
-      titleBig("LLM · 超级文字助手", localT);
-      const aIn=appear(localT,160,560);
-      withLift(aIn,24,()=>{
-        roundRect(80,390,420,270,{width:3,color:"rgba(141,255,156,0.95)",id:501,progress:aIn});
-        text("输入", 290, 450, 32, "rgba(141,255,156,0.95)", "center", aIn);
-        text("文字提问", 290, 530, 30, "rgba(244,247,251,0.95)", "center", aIn);
-        text("文档粘贴", 290, 590, 30, "rgba(244,247,251,0.95)", "center", aIn);
+      titleBig("LLM · 文字进出", onBeat(localT,"title",450));
+      withLift(onBeat(localT,"title",400),8,()=> text("大语言模型", W/2, SAFE_TOP+105, 28, "rgba(141,255,156,0.75)"));
+
+      const aIn=onBeatBack(localT,"inp",560);
+      withLift(aIn, 24, ()=>{
+        softGlow(290, 520, 170, "141,255,156", 0.12);
+        roundRect(70, 370, 430, 290, {width:3.1, color:"rgba(141,255,156,0.95)", id:2500, progress:aIn});
+        hatch(85,385,400,260,"141,255,156",0.09);
+        text("输入", 285, 420, 30, "rgba(141,255,156,0.95)");
+        iconBubble(190, 520, 0.9, aIn, 2510);
+        iconBook(370, 520, 0.9, aIn, 2520);
+        chalkDust(285, 450, aIn, t, 90);
+        text("文字提问", 190, 610, 26, "rgba(244,247,251,0.9)");
+        text("文档粘贴", 370, 610, 26, "rgba(244,247,251,0.9)");
       });
-      const aAr=appear(localT,420,400);
-      if(aAr>0){
-        const x2=lerp(500,560,aAr);
-        line(500,525,x2,525,{width:4,color:"rgba(154,215,255,0.95)",id:510});
-        if(aAr>0.7){
-          line(560,525,544,510,{width:3,color:"rgba(154,215,255,0.95)",id:511});
-          line(560,525,544,540,{width:3,color:"rgba(154,215,255,0.95)",id:512});
-        }
-      }
-      const aOut=appear(localT,520,560);
-      withLift(aOut,24,()=>{
-        roundRect(580,390,420,270,{width:3,color:"rgba(154,215,255,0.95)",id:502,progress:aOut});
-        text("输出", 790, 450, 32, "rgba(154,215,255,0.95)", "center", aOut);
-        text("回答 / 文稿", 790, 530, 30, "rgba(244,247,251,0.95)", "center", aOut);
-        text("翻译 / 代码", 790, 590, 30, "rgba(244,247,251,0.95)", "center", aOut);
+
+      const aOut=onBeatBack(localT,"out",560);
+      iconArrow(515, 515, 580, 515, Math.min(1, onBeat(localT,"out",400)+0.01), "rgba(154,215,255,0.95)", 2530);
+      flowDots(515,515,580,515,t,aOut,"154,215,255");
+      withLift(aOut, 24, ()=>{
+        softGlow(795, 520, 170, "154,215,255", 0.12);
+        roundRect(580, 370, 430, 290, {width:3.1, color:"rgba(154,215,255,0.95)", id:2540, progress:aOut});
+        hatch(595,385,400,260,"154,215,255",0.09);
+        text("输出", 795, 420, 30, "rgba(154,215,255,0.95)");
+        text("回答 / 文稿", 795, 510, 32, "rgba(244,247,251,0.95)");
+        text("翻译 / 代码", 795, 575, 32, "rgba(244,247,251,0.95)");
+        chalkDust(795, 450, aOut, t, 91);
       });
+
       const apps=["问答","写作","翻译","改稿","写代码","会议纪要"];
       apps.forEach((name,i)=>{
-        const a=stagger(localT,i,900,90,480);
+        const a=onList(localT,"apps",i,apps.length, 5600);
         if(a<=0) return;
-        const x=120+(i%3)*300, y=760+Math.floor(i/3)*145;
-        withLift(a,20,()=>{
-          roundRect(x,y,260,105,{width:2.5,color:"rgba(141,255,156,0.65)",id:520+i,progress:a});
-          text(name,x+130,y+52,34,"rgba(244,247,251,0.98)","center",a);
+        const x=100+(i%3)*305, y=730+Math.floor(i/3)*150;
+        withLift(a, 18, ()=>{
+          roundRect(x,y,280,115,{width:2.6,color:"rgba(141,255,156,0.75)",id:2600+i,progress:a});
+          hatch(x+8,y+8,264,99,"141,255,156",0.07);
+          text(name, x+140, y+58, 34, "rgba(244,247,251,0.98)");
         });
+      });
+
+      const aSum=onBeat(localT,"sum",480);
+      withLift(aSum,12,()=>{
+        drawFrog(W*0.12, 1120, 0.48, "talk", t, aSum);
+        text("像一位超级文字助手", W/2+40, 1120, 34, "rgba(255,213,154,0.95)");
       });
     }
 
     function drawVLM(localT,t){
-      titleBig("VLM · 带眼睛的助手", localT);
-      const aPic=appear(localT,140,650);
-      withLift(aPic,26,()=>{
-        roundRect(120,380,380,300,{width:3,color:"rgba(154,215,255,0.95)",id:601,progress:aPic});
-        // landscape strokes draw in
-        chalkStroke([{x:150,y:560},{x:220,y:480},{x:280,y:540},{x:340,y:460},{x:460,y:560}],{width:2.8,color:"rgba(154,215,255,0.85)",id:602,progress:aPic});
-        circle(420,460,18,{width:2.2,color:"rgba(255,213,154,0.8)",id:603,progress:aPic});
-        text("图片 / 截图", 310, 720, 30, "rgba(168,184,204,0.95)", "center", aPic);
+      titleBig("VLM · 带眼睛的助手", onBeat(localT,"title",450));
+
+      const aPic=onBeatBack(localT,"pic",600);
+      withLift(aPic, 26, ()=>{
+        softGlow(310, 520, 180, "154,215,255", 0.1);
+        roundRect(110, 370, 400, 310, {width:3, color:"rgba(154,215,255,0.95)", id:2700, progress:aPic});
+        // landscape sketch
+        chalkStroke([{x:140,y:560},{x:210,y:470},{x:270,y:540},{x:340,y:450},{x:470,y:560}],{width:2.7,color:"rgba(154,215,255,0.85)",id:2701,progress:aPic});
+        circle(430,470,16,{width:2.2,color:"rgba(255,213,154,0.85)",id:2702,progress:aPic});
+        // document strip
+        roundRect(150,590,160,60,{width:2,color:"rgba(244,247,251,0.45)",id:2703,progress:aPic});
+        for(let i=0;i<3;i++) line(165,605+i*14,290,605+i*14,{width:1.5,color:"rgba(244,247,251,0.4)",id:2704+i});
+        text("图片 / 截图", 310, 710, 28, "rgba(168,184,204,0.95)");
       });
-      const aQ=appear(localT,480,500);
-      withLift(aQ,20,()=>{
-        roundRect(560,420,400,150,{width:2.8,color:"rgba(141,255,156,0.9)",id:604,progress:aQ});
-        text("＋ 你的问题", 760, 495, 34, "rgba(141,255,156,0.95)", "center", aQ);
+
+      const aQ=onBeatBack(localT,"q",520);
+      withLift(aQ, 20, ()=>{
+        roundRect(560, 420, 400, 150, {width:2.8, color:"rgba(141,255,156,0.9)", id:2710, progress:aQ});
+        iconBubble(640, 495, 0.7, aQ, 2711);
+        text("＋ 你的问题", 800, 495, 32, "rgba(141,255,156,0.98)");
       });
-      const aOut=appear(localT,780,520);
-      if(aOut>0){
-        line(W/2, 600, W/2, 600+80*aOut, {width:3.2,color:"rgba(255,213,154,0.9)",id:605});
-        withLift(aOut,18,()=>{
-          roundRect(160,700,760,130,{width:3,color:"rgba(255,213,154,0.9)",id:606,progress:aOut});
-          text("→ 文字解释 / 要点", W/2, 765, 36, "rgba(255,213,154,0.98)", "center", aOut);
+
+      const aOut=onBeatBack(localT,"out",560);
+      iconArrow(W/2, 600, W/2, 690, Math.min(1,onBeat(localT,"out",380)+0.01), "rgba(255,213,154,0.95)", 2720);
+      withLift(aOut, 18, ()=>{
+        roundRect(140, 700, 800, 120, {width:3, color:"rgba(255,213,154,0.92)", id:2730, progress:aOut});
+        hatch(150,710,780,100,"255,213,154",0.07);
+        text("→ 文字解释 / 要点", W/2, 760, 36, "rgba(255,213,154,0.98)");
+      });
+
+      const apps=[
+        {n:"识图答题", draw:iconEye},
+        {n:"读表读票", draw:iconTable},
+        {n:"看设计稿", draw:iconCamera},
+        {n:"整理白板", draw:iconBoard},
+      ];
+      apps.forEach((ap,i)=>{
+        const a=onList(localT,"apps",i,apps.length, 5600);
+        if(a<=0) return;
+        const x=160+(i%2)*420, y=880+Math.floor(i/2)*120;
+        withLift(a, 16, ()=>{
+          ap.draw(x, y, 0.55, a, 2800+i*10);
+          text(ap.n, x+90, y, 30, "rgba(244,247,251,0.95)", "left");
         });
-      }
-      ["识图答题","读表读票","看设计稿","整理白板"].forEach((a,i)=>{
-        const sh=stagger(localT,i,1200,110,450);
-        if(sh<=0) return;
-        withLift(sh,14,()=> text("· "+a, 180+(i%2)*400, 920+Math.floor(i/2)*70, 32, "rgba(244,247,251,0.95)", "left", sh));
       });
     }
 
     function drawOmni(localT,t){
-      titleBig("Omni · 全能感官", localT);
-      drawFrog(W/2, 410, 1.05, "talk", t, appear(localT,80,500));
-      const mods=[
-        {l:"听", x:0.22, c:"rgba(255,213,154,0.95)"},
-        {l:"说", x:0.5, c:"rgba(141,255,156,0.95)"},
-        {l:"看", x:0.78, c:"rgba(154,215,255,0.95)"},
+      titleBig("Omni · 全能感官", onBeat(localT,"title",450));
+      drawFrog(W/2, 400, 0.95, "talk", t, onBeat(localT,"title",400));
+
+      // 听、说、看、写 — 跟 goal 句内顺序出现
+      const senses=[
+        {l:"听", c:"255,213,154", draw:iconMic},
+        {l:"说", c:"141,255,156", draw:iconSpeaker},
+        {l:"看", c:"154,215,255", draw:iconEye},
+        {l:"写", c:"244,247,251", draw:(x,y,s,a)=>iconBook(x,y,s,a,2900)},
       ];
-      mods.forEach((m,i)=>{
-        const a=stagger(localT,i,420,200,650);
+      senses.forEach((s,i)=>{
+        const a=onList(localT,"goal",i,senses.length, 3200);
         if(a<=0) return;
-        const x=W*m.x, y=700;
-        withLift(a, 24, ()=>{
-          softGlow(x,y,110,m.c,0.14*a);
-          const pulse=1+0.04*Math.sin(t*0.008+i);
-          circle(x,y,76*pulse,{width:3.1,color:m.c,id:700+i,progress:a});
-          // outer breath ring
-          circle(x,y,76+18*(0.5+0.5*Math.sin(t*0.01+i)),{width:1.6,color:m.c,alpha:0.28*a,id:710+i});
-          text(m.l,x,y,48,m.c,"center",a);
+        const x=140+i*220, y=620;
+        withLift(a, 22, ()=>{
+          softGlow(x,y,70,s.c,0.12);
+          circle(x,y,62,{width:2.8,color:`rgba(${s.c},0.95)`,id:3000+i,progress:a});
+          s.draw(x,y,0.72,a,3010+i*10);
+          text(s.l, x, y+95, 30, `rgba(${s.c},0.95)`);
         });
       });
+
+      const aVoice=onBeatBack(localT,"voice",520);
+      withLift(aVoice, 18, ()=>{
+        roundRect(90, 780, 420, 100, {width:2.5, color:"rgba(255,213,154,0.85)", id:3100, progress:aVoice});
+        text("语音提问 → 口头回答", 300, 830, 28, "rgba(255,213,154,0.98)");
+      });
+
+      const aWatch=onBeatBack(localT,"watch",520);
+      withLift(aWatch, 18, ()=>{
+        roundRect(560, 780, 430, 100, {width:2.5, color:"rgba(154,215,255,0.85)", id:3110, progress:aWatch});
+        text("边看画面边解说", 775, 830, 28, "rgba(154,215,255,0.98)");
+      });
+
       ["免打字对话","口语陪练","现场讲解"].forEach((name,i)=>{
-        const a=stagger(localT,i,1100,160,500);
+        const a=onList(localT,"apps",i,3, 3400);
         if(a<=0) return;
-        withLift(a,18,()=>{
-          roundRect(120,900+i*100,840,80,{width:2.5,color:"rgba(255,213,154,0.55)",id:720+i,progress:a});
-          text(name,W/2,940+i*100,34,"rgba(244,247,251,0.98)","center",a);
+        withLift(a, 14, ()=>{
+          roundRect(120, 930+i*85, 840, 70, {width:2.4, color:"rgba(255,213,154,0.55)", id:3200+i, progress:a});
+          text(name, W/2, 965+i*85, 32, "rgba(244,247,251,0.98)");
         });
       });
     }
 
     function drawPick(localT,t){
-      titleBig("按任务选技能", localT);
-      drawFrog(W*0.88, SAFE_TOP+120, 0.58, "idle", t, appear(localT,60,400));
+      titleBig("按任务选技能", onBeat(localT,"title",450));
+      drawFrog(W*0.88, SAFE_TOP+118, 0.55, "idle", t, onBeat(localT,"title",400));
+
       const rows=[
-        {q:"纯文字", a:"→ LLM", c:"rgba(141,255,156,0.95)"},
-        {q:"图片 / 截图", a:"→ VLM", c:"rgba(154,215,255,0.95)"},
-        {q:"语音连聊", a:"→ Omni", c:"rgba(255,213,154,0.95)"},
+        {key:"llm", q:"纯文字任务", a:"→ LLM", c:"141,255,156", draw:iconBook},
+        {key:"vlm", q:"图片 / 截图 / 扫描件", a:"→ VLM", c:"154,215,255", draw:iconEye},
+        {key:"omni", q:"语音连聊、少动手", a:"→ Omni", c:"255,213,154", draw:iconMic},
       ];
       rows.forEach((r,i)=>{
-        const a=stagger(localT,i,200,280,700);
+        const a=onBeatBack(localT,r.key,600);
         if(a<=0) return;
-        const y=460+i*195;
-        withLift(a, 30, ()=>{
-          softGlow(W/2,y+75,260,r.c,0.08*a);
-          roundRect(90,y,900,150,{width:3,color:r.c,id:800+i,progress:a});
-          text(r.q, 280, y+75, 40, "rgba(244,247,251,0.98)", "left", a);
-          text(r.a, 820, y+75, 44, r.c, "center", a);
+        const y=430+i*200;
+        withLift(a, 28, ()=>{
+          softGlow(W/2, y+75, 250, r.c, 0.08);
+          roundRect(80, y, 920, 150, {width:3, color:`rgba(${r.c},0.95)`, id:3300+i, progress:a});
+          hatch(90,y+8,900,134,r.c,0.06);
+          r.draw(170, y+75, 0.85, a, 3310+i*10);
+          text(r.q, 280, y+75, 34, "rgba(244,247,251,0.96)", "left");
+          text(r.a, 860, y+75, 42, `rgba(${r.c},0.98)`);
         });
       });
-      const tip=appear(localT, 1400, 500);
-      if(tip>0) withLift(tip,12,()=>text("名字不重要，输入输出够不够用", W/2, 1120, 30, "rgba(168,184,204,0.95)"));
+
+      const aTip=onBeat(localT,"tip",500);
+      withLift(aTip,12,()=> text("名字不重要，先看输入输出够不够用", W/2, 1120, 30, "rgba(168,184,204,0.95)"));
     }
 
     function drawEnd(localT,t){
-      titleBig("记住这一句", localT);
-      drawFrog(W/2, 400, 1.18, "talk", t, appear(localT,80,500));
+      titleBig("记住这一句", onBeat(localT,"title",450));
+
       const lines=[
-        {t:"LLM  ·  主攻文字", c:"rgba(141,255,156,0.95)"},
-        {t:"VLM  ·  加上眼睛", c:"rgba(154,215,255,0.95)"},
-        {t:"Omni ·  耳朵嘴巴再扩展", c:"rgba(255,213,154,0.95)"},
+        {key:"llm", t:"LLM  ·  主攻文字", c:"141,255,156", draw:iconBook},
+        {key:"vlm", t:"VLM  ·  加上眼睛", c:"154,215,255", draw:iconEye},
+        {key:"omni", t:"Omni ·  耳朵嘴巴再扩展", c:"255,213,154", draw:iconMic},
       ];
       lines.forEach((ln,i)=>{
-        const a=stagger(localT,i,280,260,650);
+        const a=onBeatBack(localT,ln.key,560);
         if(a<=0) return;
-        withLift(a, 26, ()=>{
-          roundRect(100,560+i*145,880,115,{width:2.8,color:ln.c,id:900+i,progress:a});
-          text(ln.t, W/2, 618+i*145, 38, ln.c, "center", a);
+        const y=400+i*155;
+        withLift(a, 24, ()=>{
+          roundRect(90, y, 900, 125, {width:2.8, color:`rgba(${ln.c},0.95)`, id:3400+i, progress:a});
+          ln.draw(180, y+62, 0.7, a, 3410+i*10);
+          text(ln.t, 580, y+62, 36, `rgba(${ln.c},0.98)`);
         });
       });
-      const bye=appear(localT, 1600, 500);
-      if(bye>0) withLift(bye,12,()=>text("下期见", W/2, 1080, 36, "rgba(141,255,156,0.95)"));
+
+      const aTip=onBeat(localT,"tip",480);
+      withLift(aTip,12,()=> text("按场景选技能，比死记缩写更有用", W/2, 920, 30, "rgba(244,247,251,0.92)"));
+
+      const aBye=onBeat(localT,"bye",520);
+      withLift(aBye, 16, ()=>{
+        drawFrog(W/2, 1040, 0.85, "talk", t, 1);
+        text("我是呱基，我们下期见", W/2, 1170, 32, "rgba(141,255,156,0.98)");
+      });
     }
 
     // ---- playback ----
@@ -488,6 +775,7 @@
       sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));
       sceneStart=performance.now();
       const sc=SCENES[sceneIndex];
+      activeBeats=sc.beats;
       meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.title}`;
       [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
       if(rv&&playing) speak(sc.voice);
@@ -530,7 +818,6 @@
       if(muted) stopSpeak(); else if(playing) speak(SCENES[sceneIndex].voice);
     });
 
-    // Absolute-time jump for export sync: ms from episode start
     window.__GUAJI__={
       SCENES, totalDuration,
       get playing(){return playing},
@@ -538,9 +825,8 @@
       drawAt(ms){
         let remain=ms, idx=0;
         while(idx<SCENES.length-1 && remain>=SCENES[idx].duration){ remain-=SCENES[idx].duration; idx++; }
-        sceneIndex=idx;
-        const sc=SCENES[idx];
-        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${sc.title}`;
+        sceneIndex=idx; activeBeats=SCENES[idx].beats;
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${SCENES[idx].title}`;
         [...sceneList.children].forEach((b,j)=>b.classList.toggle("active", j===idx));
         drawScene(idx, remain, ms);
         bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
@@ -548,7 +834,8 @@
       jump(i, localT){ this.drawAt(offsets[i]+localT); }
     };
     setScene(0,false);
-    drawScene(0,900,performance.now());
+    // preview mid-hook (after chat beat) so stage isn't empty/full
+    drawScene(0, 3000, performance.now());
   </script>
 </body>
 </html>
