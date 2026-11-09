@@ -46,6 +46,6 @@ https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba778474
 
 内容：门铃/商场生活例子 · 就近算原理 · 少打扰/护隐私/抢时间/省流量 · 更快更省更安心。语气偏聊天、仍专业。
 
-锁定本版提交（推送后更新 SHA）：
+锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/029a87ec5697381ab415497e7810ac54f3aff449/exports/guaji-device-edge-cloud-with-audio.mp4
