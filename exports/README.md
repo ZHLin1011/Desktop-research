@@ -48,4 +48,4 @@ https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba778474
 
 锁定本版提交（推送后更新 SHA）：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/03c7b773374a767bd26d8c985dec1f81de9ab2d4/exports/guaji-device-edge-cloud-with-audio.mp4
