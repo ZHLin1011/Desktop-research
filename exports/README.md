@@ -22,7 +22,7 @@ https://github.com/ZHLin1011/Desktop-research/raw/63ef79f/exports/guaji-edge-vs-
 
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/c44115bdddb45d901057dccd5c082bc177e1f111/exports/guaji-modalities-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/d09fca3dcb85f317dddf8a7eb7096c1b3ddb78d2/exports/guaji-modalities-with-audio.mp4
 
 分支最新：
 

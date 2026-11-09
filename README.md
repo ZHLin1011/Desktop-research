@@ -9,7 +9,7 @@
 |----|------|------|------|------|
 | 1 | 为什么大模型说话有快有慢 | ~72s | [index.html](llm-explainer/index.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/017be90/exports/guaji-llm-speed-vertical-with-audio.mp4) |
 | 2 | 没有网络还能运行 AI 吗 | ~82s | [edge-vs-cloud.html](llm-explainer/edge-vs-cloud.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/63ef79f/exports/guaji-edge-vs-cloud-with-audio.mp4) |
-| 3 | 大模型除了会读会写还有什么技能 | ~93s | [modalities.html](llm-explainer/modalities.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/c44115bdddb45d901057dccd5c082bc177e1f111/exports/guaji-modalities-with-audio.mp4)`exports/guaji-modalities-with-audio.mp4` |
+| 3 | 大模型除了会读会写还有什么技能 | ~93s | [modalities.html](llm-explainer/modalities.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/d09fca3dcb85f317dddf8a7eb7096c1b3ddb78d2/exports/guaji-modalities-with-audio.mp4)`exports/guaji-modalities-with-audio.mp4` |
 
 ## 制作规范（定稿）
 
