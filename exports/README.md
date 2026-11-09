@@ -40,12 +40,12 @@ https://raw.githubusercontent.com/ZHLin1011/Desktop-research/cursor/llm-handdraw
 
 https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba77847434b1b2ecce/exports/guaji-same-question-with-audio.mp4
 
-## 第 5 期 · 端、边、云到底是什么
+## 第 5 期 · 为什么还要有「边」（边缘计算）
 
-`guaji-device-edge-cloud-with-audio.mp4`（约 95 秒）
+`guaji-device-edge-cloud-with-audio.mp4`（约 145 秒）
 
-内容：三层分工 · 产线/监控/驾驶例子 · 未来趋势。与第 2 期互补（第 2 期讲离线，本期讲协作）。
+内容：为什么需要边 · 就近算原理 · 边的四件事 · 路口数据流 · 怎么判断。端/云从略，承接第 2 期。
 
 锁定本版提交（推送后更新 SHA）：
 
-https://github.com/ZHLin1011/Desktop-research/raw/03c7b773374a767bd26d8c985dec1f81de9ab2d4/exports/guaji-device-edge-cloud-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4
