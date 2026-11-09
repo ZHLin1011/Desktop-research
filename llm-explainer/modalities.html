@@ -7,7 +7,7 @@
   <style>
     :root {
       --bg:#071018; --ink:#f4f7fb; --mute:#a8b8cc; --accent:#9ad7ff;
-      --frog:#8dff9c; --panel:#0f1a24; --line:rgba(244,247,251,0.16); --warn:#ffd59a;
+      --frog:#8dff9c; --panel:#0f1a24; --line:rgba(244,247,251,0.16);
     }
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{min-height:100%;background:radial-gradient(700px 480px at 50% 0%,#132033 0%,transparent 55%),var(--bg);color:var(--ink);font-family:"PingFang SC","Noto Sans SC",sans-serif}
@@ -52,7 +52,7 @@
     <div class="meta" id="meta">场景 1 / 7</div>
   </div>
   <div class="scene-list" id="sceneList"></div>
-  <p class="hint">竖屏 9:16 · 底部字幕 · 安全边距 · 「呱基」仅开场/收尾</p>
+  <p class="hint">竖屏 9:16 · 精修动画 · 底部字幕 · 安全边距 · 音画同轴</p>
 
   <script>
     const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
@@ -93,279 +93,462 @@
         duration:12820},
     ];
 
-    let playing=false,muted=false,sceneIndex=0,sceneStart=0,raf=0,seed=1;
-    function rand(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}
-    function wobble(a=2.8){return (rand()-0.5)*a}
-    function easeOut(t){return 1-Math.pow(1-Math.min(1,Math.max(0,t)),3)}
-    function clamp01(t){return Math.min(1,Math.max(0,t))}
+    let playing=false, muted=false, sceneIndex=0, sceneStart=0, raf=0;
+
+    // ---- math / easing ----
+    function clamp01(t){ return Math.min(1, Math.max(0, t)); }
+    function lerp(a,b,t){ return a+(b-a)*t; }
+    function easeOutCubic(t){ t=clamp01(t); return 1-Math.pow(1-t,3); }
+    function easeInOutCubic(t){ t=clamp01(t); return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+    function easeOutBack(t){ t=clamp01(t); const c1=1.4,c3=c1+1; return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2); }
+    function appear(localT, delay, dur=520){ return easeOutCubic((localT-delay)/dur); }
+    function stagger(localT, i, base=180, step=140, dur=560){ return appear(localT, base+i*step, dur); }
+
+    // Stable seeded noise (does NOT change every frame → no chalk flicker)
+    function hash(n){ n=Math.imul(n^0x9e3779b9, 0x85ebca6b); n^=n>>>13; n=Math.imul(n,0xc2b2ae35); return ((n^(n>>>16))>>>0)/4294967296; }
+    function wob(id, i, amp=1.6){ return (hash(id*97+i*13)-0.5)*amp; }
+
     function clear(){
-      ctx.fillStyle="#071018";ctx.fillRect(0,0,W,H);
-      seed=11;ctx.fillStyle="rgba(255,255,255,0.035)";
-      for(let i=0;i<220;i++) ctx.fillRect(rand()*W,rand()*H,1.8,1.8);
+      ctx.fillStyle="#071018"; ctx.fillRect(0,0,W,H);
+      // soft vignette
+      const g=ctx.createRadialGradient(W/2,H*0.42,120,W/2,H*0.5,1100);
+      g.addColorStop(0,"rgba(20,40,58,0.35)"); g.addColorStop(1,"rgba(7,16,24,0)");
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      // stable dust
+      for(let i=0;i<160;i++){
+        const x=hash(i*3)*W, y=hash(i*7+2)*H, a=0.02+hash(i*11)*0.04;
+        ctx.fillStyle=`rgba(255,255,255,${a})`; ctx.fillRect(x,y,1.6,1.6);
+      }
     }
-    function chalkStroke(points,opts={}){
-      const {color="rgba(244,247,251,0.94)",width=3.2,alpha=1}=opts;
+
+    function chalkStroke(points, opts={}){
+      const {color="rgba(244,247,251,0.94)", width=3.1, alpha=1, id=1, progress=1}=opts;
       if(points.length<2) return;
-      const drawOnce=(amp,wMul,aMul)=>{
-        ctx.save();ctx.globalAlpha=alpha*aMul;ctx.strokeStyle=color;ctx.lineWidth=width*wMul;ctx.lineCap="round";ctx.lineJoin="round";
-        ctx.beginPath();ctx.moveTo(points[0].x+wobble(amp),points[0].y+wobble(amp));
-        for(let i=1;i<points.length;i++){
-          const p=points[i],prev=points[i-1];
-          ctx.quadraticCurveTo(prev.x+wobble(amp*.9),prev.y+wobble(amp*.9),(prev.x+p.x)/2+wobble(amp),(prev.y+p.y)/2+wobble(amp));
+      const n=Math.max(2, Math.floor((points.length-1)*clamp01(progress))+1);
+      const pts=points.slice(0,n);
+      const stroke=(amp,wMul,aMul)=>{
+        ctx.save();
+        ctx.globalAlpha=alpha*aMul;
+        ctx.strokeStyle=color; ctx.lineWidth=width*wMul; ctx.lineCap="round"; ctx.lineJoin="round";
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x+wob(id,0,amp), pts[0].y+wob(id,1,amp));
+        for(let i=1;i<pts.length;i++){
+          const p=pts[i], prev=pts[i-1];
+          const mx=(prev.x+p.x)/2+wob(id,i*2,amp*0.7);
+          const my=(prev.y+p.y)/2+wob(id,i*2+1,amp*0.7);
+          ctx.quadraticCurveTo(prev.x+wob(id,i*3,amp*0.5), prev.y+wob(id,i*4,amp*0.5), mx, my);
         }
-        const last=points[points.length-1];ctx.lineTo(last.x+wobble(amp*.4),last.y+wobble(amp*.4));ctx.stroke();ctx.restore();
+        ctx.stroke(); ctx.restore();
       };
-      drawOnce(2.4,1,1);drawOnce(3.6,1.7,.2);drawOnce(1.4,.7,.35);
+      stroke(1.8,1,1); stroke(2.8,1.65,0.18); stroke(1.1,0.65,0.28);
     }
-    function line(x1,y1,x2,y2,o){chalkStroke([{x:x1,y:y1},{x:x2,y:y2}],o)}
-    function circle(cx,cy,r,o={}){const pts=[];for(let i=0;i<=28;i++){const t=(i/28)*Math.PI*2;pts.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r})}chalkStroke(pts,o)}
-    function roundRect(x,y,w,h,o){chalkStroke([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h},{x,y}],o)}
-    function text(str,x,y,size=40,color="rgba(244,247,251,0.96)",align="center"){
-      ctx.save();ctx.fillStyle=color;ctx.font=`700 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
-      ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(str,x+wobble(.4),y+wobble(.4));ctx.restore();
+    function line(x1,y1,x2,y2,o={}){
+      const id=o.id||((x1*13+y1*7+x2)|0);
+      chalkStroke([{x:x1,y:y1},{x:x2,y:y2}], {...o,id});
     }
-    function wrapText(str,x,y,maxWidth,size=34,color="rgba(244,247,251,0.95)",lineH=1.35){
-      ctx.save();ctx.fillStyle=color;ctx.font=`600 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
-      ctx.textAlign="center";ctx.textBaseline="middle";
-      const chars=[...str];let cur="";const lines=[];
-      for(const ch of chars){const test=cur+ch;if(ctx.measureText(test).width>maxWidth&&cur){lines.push(cur);cur=ch}else cur=test}
+    function circle(cx,cy,r,o={}){
+      const id=o.id||((cx*11+cy*17+r*3)|0);
+      const pts=[]; const segs=36;
+      for(let i=0;i<=segs;i++){
+        const t=(i/segs)*Math.PI*2;
+        pts.push({x:cx+Math.cos(t)*r, y:cy+Math.sin(t)*r});
+      }
+      chalkStroke(pts,{...o,id,progress:o.progress??1});
+    }
+    function roundRect(x,y,w,h,o={}){
+      const id=o.id||((x*5+y*9+w)|0);
+      chalkStroke([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h},{x,y}],{...o,id});
+    }
+    function text(str,x,y,size=40,color="rgba(244,247,251,0.96)",align="center",alpha=1){
+      ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle=color;
+      ctx.font=`700 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
+      ctx.textAlign=align; ctx.textBaseline="middle";
+      ctx.fillText(str,x,y); ctx.restore();
+    }
+    function wrapText(str,x,y,maxWidth,size=34,color="rgba(244,247,251,0.95)",lineH=1.35,alpha=1){
+      ctx.save(); ctx.globalAlpha=alpha; ctx.fillStyle=color;
+      ctx.font=`600 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      const chars=[...str]; let cur=""; const lines=[];
+      for(const ch of chars){
+        const test=cur+ch;
+        if(ctx.measureText(test).width>maxWidth && cur){ lines.push(cur); cur=ch; }
+        else cur=test;
+      }
       if(cur) lines.push(cur);
       const totalH=(lines.length-1)*size*lineH;
-      lines.forEach((ln,i)=>ctx.fillText(ln,x,y-totalH/2+i*size*lineH));ctx.restore();return lines.length;
+      lines.forEach((ln,i)=>ctx.fillText(ln,x,y-totalH/2+i*size*lineH));
+      ctx.restore(); return lines.length;
     }
-    function ground(y=CONTENT_BOTTOM+10){
-      const pts=[];for(let x=70;x<W-70;x+=34) pts.push({x,y:y+Math.sin(x*.016)*9});
-      chalkStroke(pts,{width:2.8,alpha:.8});
+
+    function withAlpha(a, fn){ ctx.save(); ctx.globalAlpha=clamp01(a); fn(); ctx.restore(); }
+    function withLift(a, dy, fn){
+      ctx.save(); ctx.globalAlpha=clamp01(a); ctx.translate(0, dy*(1-clamp01(a))); fn(); ctx.restore();
     }
-    function stars(t,n=50){
-      seed=77;for(let i=0;i<n;i++){
-        const x=rand()*W,y=SAFE_TOP+rand()*(CONTENT_BOTTOM-SAFE_TOP)*.5;
-        const a=.2+.55*(.5+.5*Math.sin(t*.004+i*1.7));
-        ctx.fillStyle=`rgba(244,247,251,${a})`;ctx.fillRect(x,y,2.2,2.2);
+
+    function ground(t){
+      const pts=[]; const y0=CONTENT_BOTTOM+8;
+      for(let x=70;x<W-70;x+=28) pts.push({x, y:y0+Math.sin(x*0.015+t*0.001)*3});
+      chalkStroke(pts,{width:2.6,alpha:0.75,id:42});
+    }
+    function stars(t){
+      for(let i=0;i<48;i++){
+        const x=hash(i*19)*W, y=SAFE_TOP+hash(i*23+1)*(CONTENT_BOTTOM-SAFE_TOP)*0.48;
+        const tw=0.25+0.45*(0.5+0.5*Math.sin(t*0.0035+i));
+        ctx.fillStyle=`rgba(244,247,251,${tw*0.55})`;
+        ctx.beginPath(); ctx.arc(x,y,1.2+hash(i)*1.2,0,Math.PI*2); ctx.fill();
       }
     }
-    function drawFrog(x,y,scale=1,mood="idle",t=0){
-      const s=scale,cy=y+Math.sin(t*.006)*4*s;
-      circle(x,cy,46*s,{width:3.4,color:"rgba(141,255,156,0.95)"});
-      circle(x-20*s,cy-30*s,15*s,{width:2.8});circle(x+20*s,cy-30*s,15*s,{width:2.8});
-      ctx.save();ctx.fillStyle="#071018";const look=mood==="think"?2:0;
-      ctx.beginPath();ctx.arc(x-20*s,cy-30*s+look,5*s,0,Math.PI*2);ctx.arc(x+20*s,cy-30*s+look,5*s,0,Math.PI*2);ctx.fill();ctx.restore();
-      if(mood==="talk"){const open=5+Math.abs(Math.sin(t*.025))*7;chalkStroke([{x:x-14*s,y:cy+10*s},{x:x,y:cy+10*s+open},{x:x+14*s,y:cy+10*s}],{width:2.6})}
-      else chalkStroke([{x:x-14*s,y:cy+12*s},{x:x,y:cy+20*s},{x:x+14*s,y:cy+12*s}],{width:2.6});
-      chalkStroke([{x:x-22*s,y:cy+34*s},{x:x-42*s,y:cy+60*s},{x:x-16*s,y:cy+56*s}],{width:3.2,color:"rgba(141,255,156,0.9)"});
-      chalkStroke([{x:x+22*s,y:cy+34*s},{x:x+42*s,y:cy+60*s},{x:x+16*s,y:cy+56*s}],{width:3.2,color:"rgba(141,255,156,0.9)"});
-      text("呱基",x,cy+84*s,26*Math.min(1.15,s),"rgba(141,255,156,0.95)");
+    function softGlow(x,y,r,color,a=0.18){
+      const g=ctx.createRadialGradient(x,y,2,x,y,r);
+      g.addColorStop(0,color.replace("0.95", String(a)).replace("0.9", String(a)).replace("0.98", String(a)));
+      // fallback: parse roughly
+      g.addColorStop(0, color.includes("141,255,156") ? `rgba(141,255,156,${a})`
+        : color.includes("255,213,154") ? `rgba(255,213,154,${a})`
+        : `rgba(154,215,255,${a})`);
+      g.addColorStop(1,"rgba(0,0,0,0)");
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
     }
-    function titleBig(str,y=SAFE_TOP+36){text(str,W/2,y,62,"rgba(154,215,255,0.98)")}
-    function drawSubtitle(sc,localT){
+
+    function drawFrog(x,y,scale=1,mood="idle",t=0,alpha=1){
+      const s=scale;
+      const bounce=Math.sin(t*0.005)*3.2*s;
+      const cy=y+bounce;
+      withAlpha(alpha,()=>{
+        softGlow(x,cy,90*s,"rgba(141,255,156,0.95)",0.12);
+        circle(x,cy,46*s,{width:3.3,color:"rgba(141,255,156,0.95)",id:101});
+        circle(x-20*s,cy-30*s,15*s,{width:2.7,id:102});
+        circle(x+20*s,cy-30*s,15*s,{width:2.7,id:103});
+        // blink every ~3.2s
+        const blink=Math.abs(Math.sin(t*0.002))*1;
+        const eyeOpen = (Math.floor(t/3200)%1===0 && (t%3200)>3000) ? 0.15 : 1;
+        ctx.save(); ctx.fillStyle="#071018";
+        const look=mood==="think"?2:0;
+        ctx.beginPath();
+        ctx.ellipse(x-20*s, cy-30*s+look, 5*s, 5*s*eyeOpen, 0, 0, Math.PI*2);
+        ctx.ellipse(x+20*s, cy-30*s+look, 5*s, 5*s*eyeOpen, 0, 0, Math.PI*2);
+        ctx.fill(); ctx.restore();
+        if(mood==="talk"){
+          const open=4+Math.abs(Math.sin(t*0.02))*7;
+          chalkStroke([{x:x-14*s,y:cy+10*s},{x:x,y:cy+10*s+open},{x:x+14*s,y:cy+10*s}],{width:2.5,id:104});
+        } else {
+          chalkStroke([{x:x-14*s,y:cy+12*s},{x:x,y:cy+19*s},{x:x+14*s,y:cy+12*s}],{width:2.5,id:105});
+        }
+        chalkStroke([{x:x-22*s,y:cy+34*s},{x:x-42*s,y:cy+58*s},{x:x-16*s,y:cy+54*s}],{width:3.1,color:"rgba(141,255,156,0.9)",id:106});
+        chalkStroke([{x:x+22*s,y:cy+34*s},{x:x+42*s,y:cy+58*s},{x:x+16*s,y:cy+54*s}],{width:3.1,color:"rgba(141,255,156,0.9)",id:107});
+        text("呱基", x, cy+82*s, 26*Math.min(1.15,s), "rgba(141,255,156,0.95)");
+      });
+    }
+
+    function titleBig(str, localT, y=SAFE_TOP+36){
+      const a=appear(localT, 40, 480);
+      withLift(a, 18, ()=> text(str, W/2, y, 62, "rgba(154,215,255,0.98)"));
+      // underline draw
+      const u=appear(localT, 180, 500);
+      if(u>0){
+        const tw=Math.min(420, str.length*28);
+        line(W/2-tw/2, y+42, W/2-tw/2+tw*u, y+42, {width:2.4, color:"rgba(154,215,255,0.55)", id:201});
+      }
+    }
+
+    function drawSubtitle(sc, localT){
       const bandTop=H-SAFE_BOTTOM-SUB_H;
-      const g=ctx.createLinearGradient(0,bandTop-50,0,H-SAFE_BOTTOM);
-      g.addColorStop(0,"rgba(7,16,24,0)");g.addColorStop(.28,"rgba(7,16,24,0.8)");g.addColorStop(1,"rgba(7,16,24,0.92)");
-      ctx.fillStyle=g;ctx.fillRect(0,bandTop-50,W,H-SAFE_BOTTOM-(bandTop-50));
-      const chars=Math.min(sc.zh.length,Math.floor(easeOut(localT/1600)*sc.zh.length)+1);
-      wrapText(sc.zh.slice(0,Math.max(1,chars)),W/2,bandTop+SUB_H*.38,900,40,"rgba(244,247,251,0.98)",1.34);
-      text(sc.tag,W/2,bandTop+SUB_H*.72,24,"rgba(154,215,255,0.88)");
-    }
-    function ioBox(x,y,w,h,title,items,color){
-      roundRect(x,y,w,h,{width:3,color});
-      text(title,x+w/2,y+40,32,color);
-      items.forEach((it,i)=>text(it,x+w/2,y+95+i*48,28,"rgba(244,247,251,0.95)"));
+      const g=ctx.createLinearGradient(0,bandTop-60,0,H-SAFE_BOTTOM);
+      g.addColorStop(0,"rgba(7,16,24,0)"); g.addColorStop(0.3,"rgba(7,16,24,0.82)"); g.addColorStop(1,"rgba(7,16,24,0.94)");
+      ctx.fillStyle=g; ctx.fillRect(0,bandTop-60,W,H-SAFE_BOTTOM-(bandTop-60));
+      // speech-synced reveal (slower, closer to narration pace)
+      const chars=Math.min(sc.zh.length, Math.floor(easeOutCubic(localT/(sc.duration*0.82))*sc.zh.length)+1);
+      const a=appear(localT, 80, 400);
+      wrapText(sc.zh.slice(0,Math.max(1,chars)), W/2, bandTop+SUB_H*0.38, 900, 40, "rgba(244,247,251,0.98)", 1.34, a);
+      text(sc.tag, W/2, bandTop+SUB_H*0.72, 24, "rgba(154,215,255,0.88)", "center", a*0.95);
     }
 
-    function drawScene(index,localT,totalT){
-      clear();seed=900+index*83+Math.floor(localT/70);stars(totalT);ground();
-      const p=clamp01(localT/Math.max(1,SCENES[index].duration-400));
-      switch(SCENES[index].id){
-        case"hook":drawHook(p,totalT);break;
-        case"map":drawMap(p,totalT);break;
-        case"llm":drawLLM(p,totalT);break;
-        case"vlm":drawVLM(p,totalT);break;
-        case"omni":drawOmni(p,totalT);break;
-        case"pick":drawPick(p,totalT);break;
-        case"end":drawEnd(p,totalT);break;
+    // ---- scenes ----
+    function drawScene(index, localT, totalT){
+      clear(); stars(totalT); ground(totalT);
+      const sc=SCENES[index];
+      switch(sc.id){
+        case "hook": drawHook(localT,totalT); break;
+        case "map": drawMap(localT,totalT); break;
+        case "llm": drawLLM(localT,totalT); break;
+        case "vlm": drawVLM(localT,totalT); break;
+        case "omni": drawOmni(localT,totalT); break;
+        case "pick": drawPick(localT,totalT); break;
+        case "end": drawEnd(localT,totalT); break;
       }
-      drawSubtitle(SCENES[index],localT);
-      const fade=clamp01(localT/280);
-      if(fade<1){ctx.fillStyle=`rgba(7,16,24,${1-fade})`;ctx.fillRect(0,0,W,H)}
+      drawSubtitle(sc, localT);
+      // soft scene enter/exit
+      const fadeIn=appear(localT,0,260);
+      if(fadeIn<1){ ctx.fillStyle=`rgba(7,16,24,${1-fadeIn})`; ctx.fillRect(0,0,W,H); }
+      const fadeOut=clamp01((localT-(sc.duration-220))/220);
+      if(fadeOut>0){ ctx.fillStyle=`rgba(7,16,24,${fadeOut*0.55})`; ctx.fillRect(0,0,W,H); }
     }
 
-    function drawHook(p,t){
-      titleBig("不止会读会写");
-      drawFrog(W/2,460,1.25,"talk",t);
-      if(p>.25){
-        const icons=["文","图","声"];
-        icons.forEach((ic,i)=>{
-          if(p<.25+i*.15) return;
-          const x=W*.22+i*W*.28;
-          circle(x,900,70,{width:3,color:i===0?"rgba(141,255,156,0.9)":i===1?"rgba(154,215,255,0.9)":"rgba(255,213,154,0.9)"});
-          text(ic,x,900,48);
+    function drawHook(localT,t){
+      titleBig("不止会读会写", localT);
+      const fa=appear(localT,120,600);
+      drawFrog(W/2, 470, 1.28, "talk", t, fa);
+      const icons=[
+        {l:"文", c:"rgba(141,255,156,0.95)"},
+        {l:"图", c:"rgba(154,215,255,0.95)"},
+        {l:"声", c:"rgba(255,213,154,0.95)"},
+      ];
+      icons.forEach((ic,i)=>{
+        const a=stagger(localT,i,520,180,620);
+        if(a<=0) return;
+        const x=W*0.22+i*W*0.28, y=900;
+        withLift(a, 28, ()=>{
+          softGlow(x,y,90,ic.c,0.16*a);
+          circle(x,y,72,{width:3.1,color:ic.c,id:300+i,progress:a});
+          text(ic.l,x,y,50,ic.c,"center",a);
         });
-      }
-      if(p>.75) text("看它能进什么、出什么",W/2,1120,36,"rgba(255,213,154,0.95)");
+      });
+      const tip=appear(localT, 1400, 500);
+      if(tip>0) withLift(tip,16,()=>text("看它能进什么、出什么", W/2, 1120, 36, "rgba(255,213,154,0.95)"));
     }
 
-    function drawMap(p,t){
-      titleBig("三种模型");
-      drawFrog(W*0.86,SAFE_TOP+110,0.6,"idle",t);
+    function drawMap(localT,t){
+      titleBig("三种模型", localT);
+      drawFrog(W*0.88, SAFE_TOP+120, 0.58, "idle", t, appear(localT,80,400));
       const cards=[
-        {n:"LLM",s:"文字助手",c:"rgba(141,255,156,0.9)",y:420},
-        {n:"VLM",s:"带眼睛",c:"rgba(154,215,255,0.9)",y:640},
-        {n:"Omni",s:"能听能说",c:"rgba(255,213,154,0.9)",y:860},
+        {n:"LLM", s:"文字助手", c:"rgba(141,255,156,0.95)", y:430},
+        {n:"VLM", s:"带眼睛", c:"rgba(154,215,255,0.95)", y:655},
+        {n:"Omni", s:"能听能说", c:"rgba(255,213,154,0.95)", y:880},
       ];
       cards.forEach((c,i)=>{
-        const show=easeOut(clamp01((p-.08-i*.15)/.25));
-        if(show<=0) return;
-        ctx.save();ctx.globalAlpha=show;
-        roundRect(90,c.y,900,180,{width:3.2,color:c.c});
-        text(c.n,260,c.y+90,56,c.c,"left");
-        text(c.s,700,c.y+90,40,"rgba(244,247,251,0.95)");
-        ctx.restore();
+        const a=stagger(localT,i,200,260,700);
+        if(a<=0) return;
+        withLift(a, 36, ()=>{
+          softGlow(W/2, c.y+90, 220, c.c, 0.08*a);
+          roundRect(90, c.y, 900, 180, {width:3.1, color:c.c, id:400+i, progress:easeOutCubic(a)});
+          text(c.n, 250, c.y+90, 56, c.c, "left", a);
+          text(c.s, 720, c.y+90, 40, "rgba(244,247,251,0.95)", "center", a);
+        });
       });
     }
 
-    function drawLLM(p,t){
-      titleBig("LLM · 超级文字助手");
-      if(p>.1) ioBox(80,380,420,280,"输入",["文字提问","文档粘贴"],"rgba(141,255,156,0.9)");
-      if(p>.25){
-        line(520,520,560,520,{width:4,color:"rgba(154,215,255,0.9)"});
-        line(560,520,545,505,{width:3,color:"rgba(154,215,255,0.9)"});
-        line(560,520,545,535,{width:3,color:"rgba(154,215,255,0.9)"});
+    function drawLLM(localT,t){
+      titleBig("LLM · 超级文字助手", localT);
+      const aIn=appear(localT,160,560);
+      withLift(aIn,24,()=>{
+        roundRect(80,390,420,270,{width:3,color:"rgba(141,255,156,0.95)",id:501,progress:aIn});
+        text("输入", 290, 450, 32, "rgba(141,255,156,0.95)", "center", aIn);
+        text("文字提问", 290, 530, 30, "rgba(244,247,251,0.95)", "center", aIn);
+        text("文档粘贴", 290, 590, 30, "rgba(244,247,251,0.95)", "center", aIn);
+      });
+      const aAr=appear(localT,420,400);
+      if(aAr>0){
+        const x2=lerp(500,560,aAr);
+        line(500,525,x2,525,{width:4,color:"rgba(154,215,255,0.95)",id:510});
+        if(aAr>0.7){
+          line(560,525,544,510,{width:3,color:"rgba(154,215,255,0.95)",id:511});
+          line(560,525,544,540,{width:3,color:"rgba(154,215,255,0.95)",id:512});
+        }
       }
-      if(p>.3) ioBox(580,380,420,280,"输出",["回答 / 文稿","翻译 / 代码"],"rgba(154,215,255,0.9)");
-      if(p>.55){
-        const apps=["问答","写作","翻译","改稿","写代码","会议纪要"];
-        apps.forEach((a,i)=>{
-          if(p<.55+i*.06) return;
-          const x=120+(i%3)*300, y=760+Math.floor(i/3)*140;
-          roundRect(x,y,260,100,{width:2.5,color:"rgba(141,255,156,0.55)"});
-          text(a,x+130,y+50,34);
+      const aOut=appear(localT,520,560);
+      withLift(aOut,24,()=>{
+        roundRect(580,390,420,270,{width:3,color:"rgba(154,215,255,0.95)",id:502,progress:aOut});
+        text("输出", 790, 450, 32, "rgba(154,215,255,0.95)", "center", aOut);
+        text("回答 / 文稿", 790, 530, 30, "rgba(244,247,251,0.95)", "center", aOut);
+        text("翻译 / 代码", 790, 590, 30, "rgba(244,247,251,0.95)", "center", aOut);
+      });
+      const apps=["问答","写作","翻译","改稿","写代码","会议纪要"];
+      apps.forEach((name,i)=>{
+        const a=stagger(localT,i,900,90,480);
+        if(a<=0) return;
+        const x=120+(i%3)*300, y=760+Math.floor(i/3)*145;
+        withLift(a,20,()=>{
+          roundRect(x,y,260,105,{width:2.5,color:"rgba(141,255,156,0.65)",id:520+i,progress:a});
+          text(name,x+130,y+52,34,"rgba(244,247,251,0.98)","center",a);
         });
-      }
+      });
     }
 
-    function drawVLM(p,t){
-      titleBig("VLM · 带眼睛的助手");
-      // picture frame
-      if(p>.1){
-        roundRect(120,380,380,300,{width:3,color:"rgba(154,215,255,0.9)"});
-        // simple landscape doodle
-        chalkStroke([{x:150,y:560},{x:220,y:480},{x:280,y:540},{x:340,y:460},{x:460,y:560}],{width:2.8,color:"rgba(154,215,255,0.8)"});
-        text("图片 / 截图",310,720,30,"rgba(168,184,204,0.95)");
-      }
-      if(p>.3){
-        roundRect(560,400,400,160,{width:2.8,color:"rgba(141,255,156,0.85)"});
-        text("＋ 你的问题",760,480,34,"rgba(141,255,156,0.95)");
-      }
-      if(p>.45){
-        line(W/2,600,W/2,680,{width:3.5,color:"rgba(255,213,154,0.9)"});
-        roundRect(160,700,760,140,{width:3,color:"rgba(255,213,154,0.85)"});
-        text("→ 文字解释 / 要点",W/2,770,36,"rgba(255,213,154,0.98)");
-      }
-      if(p>.7){
-        const apps=["识图答题","读表读票","看设计稿","整理白板"];
-        apps.forEach((a,i)=>{
-          if(p<.7+i*.06) return;
-          text("· "+a,180+ (i%2)*400, 920+Math.floor(i/2)*70,32,"rgba(244,247,251,0.95)","left");
+    function drawVLM(localT,t){
+      titleBig("VLM · 带眼睛的助手", localT);
+      const aPic=appear(localT,140,650);
+      withLift(aPic,26,()=>{
+        roundRect(120,380,380,300,{width:3,color:"rgba(154,215,255,0.95)",id:601,progress:aPic});
+        // landscape strokes draw in
+        chalkStroke([{x:150,y:560},{x:220,y:480},{x:280,y:540},{x:340,y:460},{x:460,y:560}],{width:2.8,color:"rgba(154,215,255,0.85)",id:602,progress:aPic});
+        circle(420,460,18,{width:2.2,color:"rgba(255,213,154,0.8)",id:603,progress:aPic});
+        text("图片 / 截图", 310, 720, 30, "rgba(168,184,204,0.95)", "center", aPic);
+      });
+      const aQ=appear(localT,480,500);
+      withLift(aQ,20,()=>{
+        roundRect(560,420,400,150,{width:2.8,color:"rgba(141,255,156,0.9)",id:604,progress:aQ});
+        text("＋ 你的问题", 760, 495, 34, "rgba(141,255,156,0.95)", "center", aQ);
+      });
+      const aOut=appear(localT,780,520);
+      if(aOut>0){
+        line(W/2, 600, W/2, 600+80*aOut, {width:3.2,color:"rgba(255,213,154,0.9)",id:605});
+        withLift(aOut,18,()=>{
+          roundRect(160,700,760,130,{width:3,color:"rgba(255,213,154,0.9)",id:606,progress:aOut});
+          text("→ 文字解释 / 要点", W/2, 765, 36, "rgba(255,213,154,0.98)", "center", aOut);
         });
       }
+      ["识图答题","读表读票","看设计稿","整理白板"].forEach((a,i)=>{
+        const sh=stagger(localT,i,1200,110,450);
+        if(sh<=0) return;
+        withLift(sh,14,()=> text("· "+a, 180+(i%2)*400, 920+Math.floor(i/2)*70, 32, "rgba(244,247,251,0.95)", "left", sh));
+      });
     }
 
-    function drawOmni(p,t){
-      titleBig("Omni · 全能感官");
-      drawFrog(W/2,420,1.05,"talk",t);
+    function drawOmni(localT,t){
+      titleBig("Omni · 全能感官", localT);
+      drawFrog(W/2, 410, 1.05, "talk", t, appear(localT,80,500));
       const mods=[
-        {l:"听",x:.22,c:"rgba(255,213,154,0.9)"},
-        {l:"说",x:.5,c:"rgba(141,255,156,0.9)"},
-        {l:"看",x:.78,c:"rgba(154,215,255,0.9)"},
+        {l:"听", x:0.22, c:"rgba(255,213,154,0.95)"},
+        {l:"说", x:0.5, c:"rgba(141,255,156,0.95)"},
+        {l:"看", x:0.78, c:"rgba(154,215,255,0.95)"},
       ];
       mods.forEach((m,i)=>{
-        if(p<.15+i*.12) return;
+        const a=stagger(localT,i,420,200,650);
+        if(a<=0) return;
         const x=W*m.x, y=700;
-        circle(x,y,78,{width:3.2,color:m.c});
-        text(m.l,x,y,48,m.c);
-        // pulse rings
-        const r=78+20*((Math.sin(t*.01+i)+1)/2);
-        circle(x,y,r,{width:1.8,color:m.c,alpha:.35});
-      });
-      if(p>.55){
-        const apps=["免打字对话","口语陪练","现场讲解"];
-        apps.forEach((a,i)=>{
-          if(p<.55+i*.1) return;
-          roundRect(120,900+i*100,840,80,{width:2.5,color:"rgba(255,213,154,0.5)"});
-          text(a,W/2,940+i*100,34);
+        withLift(a, 24, ()=>{
+          softGlow(x,y,110,m.c,0.14*a);
+          const pulse=1+0.04*Math.sin(t*0.008+i);
+          circle(x,y,76*pulse,{width:3.1,color:m.c,id:700+i,progress:a});
+          // outer breath ring
+          circle(x,y,76+18*(0.5+0.5*Math.sin(t*0.01+i)),{width:1.6,color:m.c,alpha:0.28*a,id:710+i});
+          text(m.l,x,y,48,m.c,"center",a);
         });
-      }
+      });
+      ["免打字对话","口语陪练","现场讲解"].forEach((name,i)=>{
+        const a=stagger(localT,i,1100,160,500);
+        if(a<=0) return;
+        withLift(a,18,()=>{
+          roundRect(120,900+i*100,840,80,{width:2.5,color:"rgba(255,213,154,0.55)",id:720+i,progress:a});
+          text(name,W/2,940+i*100,34,"rgba(244,247,251,0.98)","center",a);
+        });
+      });
     }
 
-    function drawPick(p,t){
-      titleBig("按任务选技能");
-      drawFrog(W*.86,SAFE_TOP+110,.62,"idle",t);
+    function drawPick(localT,t){
+      titleBig("按任务选技能", localT);
+      drawFrog(W*0.88, SAFE_TOP+120, 0.58, "idle", t, appear(localT,60,400));
       const rows=[
-        {q:"纯文字",a:"→ LLM",c:"rgba(141,255,156,0.9)"},
-        {q:"图片 / 截图",a:"→ VLM",c:"rgba(154,215,255,0.9)"},
-        {q:"语音连聊",a:"→ Omni",c:"rgba(255,213,154,0.9)"},
+        {q:"纯文字", a:"→ LLM", c:"rgba(141,255,156,0.95)"},
+        {q:"图片 / 截图", a:"→ VLM", c:"rgba(154,215,255,0.95)"},
+        {q:"语音连聊", a:"→ Omni", c:"rgba(255,213,154,0.95)"},
       ];
       rows.forEach((r,i)=>{
-        const show=easeOut(clamp01((p-.1-i*.18)/.25));
-        if(show<=0) return;
-        const y=450+i*200;
-        ctx.save();ctx.globalAlpha=show;
-        roundRect(90,y,900,150,{width:3,color:r.c});
-        text(r.q,280,y+75,40,"rgba(244,247,251,0.98)","left");
-        text(r.a,820,y+75,44,r.c);
-        ctx.restore();
+        const a=stagger(localT,i,200,280,700);
+        if(a<=0) return;
+        const y=460+i*195;
+        withLift(a, 30, ()=>{
+          softGlow(W/2,y+75,260,r.c,0.08*a);
+          roundRect(90,y,900,150,{width:3,color:r.c,id:800+i,progress:a});
+          text(r.q, 280, y+75, 40, "rgba(244,247,251,0.98)", "left", a);
+          text(r.a, 820, y+75, 44, r.c, "center", a);
+        });
       });
-      if(p>.8) text("名字不重要，输入输出够不够用",W/2,1120,30,"rgba(168,184,204,0.95)");
+      const tip=appear(localT, 1400, 500);
+      if(tip>0) withLift(tip,12,()=>text("名字不重要，输入输出够不够用", W/2, 1120, 30, "rgba(168,184,204,0.95)"));
     }
 
-    function drawEnd(p,t){
-      titleBig("记住这一句");
-      drawFrog(W/2,400,1.2,"talk",t);
+    function drawEnd(localT,t){
+      titleBig("记住这一句", localT);
+      drawFrog(W/2, 400, 1.18, "talk", t, appear(localT,80,500));
       const lines=[
-        {t:"LLM  ·  主攻文字",c:"rgba(141,255,156,0.95)"},
-        {t:"VLM  ·  加上眼睛",c:"rgba(154,215,255,0.95)"},
-        {t:"Omni ·  耳朵嘴巴再扩展",c:"rgba(255,213,154,0.95)"},
+        {t:"LLM  ·  主攻文字", c:"rgba(141,255,156,0.95)"},
+        {t:"VLM  ·  加上眼睛", c:"rgba(154,215,255,0.95)"},
+        {t:"Omni ·  耳朵嘴巴再扩展", c:"rgba(255,213,154,0.95)"},
       ];
       lines.forEach((ln,i)=>{
-        if(p<.2+i*.15) return;
-        roundRect(100,560+i*140,880,110,{width:2.8,color:ln.c});
-        text(ln.t,W/2,615+i*140,38,ln.c);
+        const a=stagger(localT,i,280,260,650);
+        if(a<=0) return;
+        withLift(a, 26, ()=>{
+          roundRect(100,560+i*145,880,115,{width:2.8,color:ln.c,id:900+i,progress:a});
+          text(ln.t, W/2, 618+i*145, 38, ln.c, "center", a);
+        });
       });
-      if(p>.75) text("下期见",W/2,1080,36,"rgba(141,255,156,0.95)");
+      const bye=appear(localT, 1600, 500);
+      if(bye>0) withLift(bye,12,()=>text("下期见", W/2, 1080, 36, "rgba(141,255,156,0.95)"));
     }
 
-    function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
-    function speak(s){if(muted||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang="zh-CN";u.rate=1.06;u.pitch=1.15;const v=pickVoice();if(v)u.voice=v;speechSynthesis.speak(u)}
-    function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
-    function totalDuration(){return SCENES.reduce((s,sc)=>s+sc.duration,0)}
-    function sceneOffsets(){const o=[];let a=0;SCENES.forEach(sc=>{o.push(a);a+=sc.duration});return o}
-    const offsets=sceneOffsets();
-    function setScene(i,rv=true){
-      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));sceneStart=performance.now();
-      const sc=SCENES[sceneIndex];meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.title}`;
-      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
-      if(rv&&playing) speak(sc.voice);updateProgress(0);
+    // ---- playback ----
+    function pickVoice(){
+      const v=speechSynthesis.getVoices();
+      return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null;
     }
-    function updateProgress(localT){bar.style.width=Math.min(100,((offsets[sceneIndex]+localT)/totalDuration())*100)+"%"}
+    function speak(s){
+      if(muted||!("speechSynthesis"in window)) return;
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(s); u.lang="zh-CN"; u.rate=1.06; u.pitch=1.15;
+      const v=pickVoice(); if(v) u.voice=v; speechSynthesis.speak(u);
+    }
+    function stopSpeak(){ if("speechSynthesis"in window) speechSynthesis.cancel(); }
+    function totalDuration(){ return SCENES.reduce((s,sc)=>s+sc.duration,0); }
+    function sceneOffsets(){ const o=[]; let a=0; SCENES.forEach(sc=>{o.push(a);a+=sc.duration}); return o; }
+    const offsets=sceneOffsets();
+
+    function setScene(i, rv=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));
+      sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.title}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
+      if(rv&&playing) speak(sc.voice);
+      updateProgress(0);
+    }
+    function updateProgress(localT){
+      bar.style.width=Math.min(100, ((offsets[sceneIndex]+localT)/totalDuration())*100)+"%";
+    }
     function tick(now){
-      if(!playing)return;const sc=SCENES[sceneIndex],localT=now-sceneStart;
-      drawScene(sceneIndex,localT,now);updateProgress(localT);
-      if(localT>=sc.duration){if(sceneIndex<SCENES.length-1)setScene(sceneIndex+1,true);else{playing=false;btnPlay.textContent="再看一遍";stopSpeak();drawScene(sceneIndex,sc.duration,now);updateProgress(sc.duration);return}}
+      if(!playing) return;
+      const sc=SCENES[sceneIndex];
+      const localT=now-sceneStart;
+      drawScene(sceneIndex, localT, now);
+      updateProgress(localT);
+      if(localT>=sc.duration){
+        if(sceneIndex<SCENES.length-1) setScene(sceneIndex+1,true);
+        else {
+          playing=false; btnPlay.textContent="再看一遍"; stopSpeak();
+          drawScene(sceneIndex, sc.duration, now); updateProgress(sc.duration); return;
+        }
+      }
       raf=requestAnimationFrame(tick);
     }
-    function play(){playing=true;btnPlay.textContent="暂停";setScene(sceneIndex,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
-    function pause(){playing=false;btnPlay.textContent="继续";stopSpeak();cancelAnimationFrame(raf)}
-    function restart(){stopSpeak();sceneIndex=0;playing=true;btnPlay.textContent="暂停";setScene(0,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
-    SCENES.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`${i+1}. ${sc.title}`;
-      b.addEventListener("click",()=>{const was=playing;stopSpeak();setScene(i,was);drawScene(i,0,performance.now());if(was){cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}});sceneList.appendChild(b)});
-    btnPlay.addEventListener("click",()=>{if(playing)pause();else{if(btnPlay.textContent==="再看一遍")restart();else play()}});
-    btnRestart.addEventListener("click",restart);
-    btnMute.addEventListener("click",()=>{muted=!muted;btnMute.textContent=muted?"配音：关":"配音：开";if(muted)stopSpeak();else if(playing)speak(SCENES[sceneIndex].voice)});
-    window.__GUAJI__={SCENES,drawScene,setScene,totalDuration,get playing(){return playing},setMuted(v){muted=v},
-      jump(i,localT){sceneIndex=i;const sc=SCENES[i];meta.textContent=`场景 ${i+1} / ${SCENES.length} · ${sc.title}`;
-        [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===i));drawScene(i,localT,performance.now());
-        bar.style.width=Math.min(100,((offsets[i]+localT)/totalDuration())*100)+"%"}};
-    setScene(0,false);drawScene(0,800,performance.now());
+    function play(){ playing=true; btnPlay.textContent="暂停"; setScene(sceneIndex,true); cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); }
+    function pause(){ playing=false; btnPlay.textContent="继续"; stopSpeak(); cancelAnimationFrame(raf); }
+    function restart(){ stopSpeak(); sceneIndex=0; playing=true; btnPlay.textContent="暂停"; setScene(0,true); cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); }
+
+    SCENES.forEach((sc,i)=>{
+      const b=document.createElement("button"); b.type="button"; b.textContent=`${i+1}. ${sc.title}`;
+      b.addEventListener("click",()=>{
+        const was=playing; stopSpeak(); setScene(i,was); drawScene(i,0,performance.now());
+        if(was){ cancelAnimationFrame(raf); raf=requestAnimationFrame(tick); }
+      });
+      sceneList.appendChild(b);
+    });
+    btnPlay.addEventListener("click",()=>{ if(playing) pause(); else { if(btnPlay.textContent==="再看一遍") restart(); else play(); }});
+    btnRestart.addEventListener("click", restart);
+    btnMute.addEventListener("click",()=>{
+      muted=!muted; btnMute.textContent=muted?"配音：关":"配音：开";
+      if(muted) stopSpeak(); else if(playing) speak(SCENES[sceneIndex].voice);
+    });
+
+    // Absolute-time jump for export sync: ms from episode start
+    window.__GUAJI__={
+      SCENES, totalDuration,
+      get playing(){return playing},
+      setMuted(v){muted=v},
+      drawAt(ms){
+        let remain=ms, idx=0;
+        while(idx<SCENES.length-1 && remain>=SCENES[idx].duration){ remain-=SCENES[idx].duration; idx++; }
+        sceneIndex=idx;
+        const sc=SCENES[idx];
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${sc.title}`;
+        [...sceneList.children].forEach((b,j)=>b.classList.toggle("active", j===idx));
+        drawScene(idx, remain, ms);
+        bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
+      },
+      jump(i, localT){ this.drawAt(offsets[i]+localT); }
+    };
+    setScene(0,false);
+    drawScene(0,900,performance.now());
   </script>
 </body>
 </html>
