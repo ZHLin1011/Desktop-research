@@ -52,4 +52,4 @@ https://github.com/ZHLin1011/Desktop-research/raw/210804c9a2f1ea52e07c99f92bdfdd
 
 封面 `guaji-device-edge-cloud-cover.png`（1080×1920，主体落在中间 3:4 区域）：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-cover.png
+https://github.com/ZHLin1011/Desktop-research/raw/83a105f7e4a9583d3750429b59620580c5400800/exports/guaji-device-edge-cloud-cover.png
