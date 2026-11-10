@@ -53,3 +53,17 @@ https://github.com/ZHLin1011/Desktop-research/raw/210804c9a2f1ea52e07c99f92bdfdd
 封面 `guaji-device-edge-cloud-cover.png`（1080×1920，主体落在中间 3:4 区域）：
 
 https://github.com/ZHLin1011/Desktop-research/raw/83a105f7e4a9583d3750429b59620580c5400800/exports/guaji-device-edge-cloud-cover.png
+
+## 第 6 期 · 手机里的 AI，是怎么跑起来的
+
+`guaji-on-device-pipeline-with-audio.mp4`（约 190 秒）
+
+内容：跟着一句请假消息走完端侧链路——闪存里的模型搬进内存（30 亿参数 ≈ 1.5 GB，内存不够就挤不下）· NPU 并行乘加读懂问题（几十 TOPS）· 每写一个 token 都要搬一遍全部参数（带宽 60–70 GB/s → 一秒最多四十来个）· 量化一招两得 · 三样不够时你的体感。
+
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-on-device-pipeline-with-audio.mp4
+
+封面 `guaji-on-device-pipeline-cover.png`：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-on-device-pipeline-cover.png

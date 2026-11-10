@@ -18,6 +18,7 @@
 3) 大模型除了会读会写还有什么技能（LLM / VLM / Omni 的输入输出与场景）
 4) 为什么问同一个问题，AI 每次回复都不一样（概率生成 / 温度值 / 实操）
 5) 「边」到底帮了你什么（具体数字 + 用户价值；就近算；云边分工闭环；门铃/红绿灯；端/云从略）
+6) 手机里的 AI，是怎么跑起来的（闪存→内存→NPU→带宽→屏幕；量化一招两得；内存/算力/带宽不够时的体感）
 
 动画约定：说到哪画到哪；最早版粉笔风；概念要演出来（对比、流程、类比），少堆装饰图标。
 
@@ -33,3 +34,4 @@
 | 3 | `modalities.html` | `SCRIPT-modalities.md` | `../exports/guaji-modalities-with-audio.mp4` |
 | 4 | `same-question.html` | `SCRIPT-same-question.md` | `../exports/guaji-same-question-with-audio.mp4` |
 | 5 | `device-edge-cloud.html` | `SCRIPT-device-edge-cloud.md` | `../exports/guaji-device-edge-cloud-with-audio.mp4` |
+| 6 | `on-device-pipeline.html` | `SCRIPT-on-device-pipeline.md` | `../exports/guaji-on-device-pipeline-with-audio.mp4` |
