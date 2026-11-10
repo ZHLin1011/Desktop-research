@@ -756,6 +756,46 @@
       withA(ap("bye",500),()=>frog(540,1340,.75,true));
     };
 
+    // ---------- cover ----------
+    function richLine(parts,cx,y,size,weight=700){
+      const total=parts.reduce((s,[str,,sz])=>s+measure(str,sz||size,weight),0);let x=cx-total/2;const spans=[];
+      for(const [str,color,sz,glow] of parts){const s=sz||size,w=measure(str,s,weight);
+        if(glow){ctx.save();ctx.shadowColor=glow;ctx.shadowBlur=42;text(str,x,y,{size:s,color,weight,align:"left",rise:0});ctx.restore()}
+        text(str,x,y,{size:s,color,weight,align:"left",rise:0});spans.push({x,w});x+=w}
+      return spans}
+    function drawCover(){
+      BEATS=[];T=577;GA=1;
+      ctx.drawImage(bgCanvas,0,0);
+      const halo=ctx.createRadialGradient(540,1000,40,540,1000,420);halo.addColorStop(0,"rgba(127,211,255,0.13)");halo.addColorStop(1,"rgba(127,211,255,0)");
+      ctx.fillStyle=halo;ctx.fillRect(0,560,W,880);
+
+      pill("呱基讲 AI  ·  第 5 期",W/2,330,{tone:COL.green,size:30,padX:30});
+
+      richLine([["「",COL.ink],["边",COL.blue,156,"rgba(127,211,255,0.85)"],["」到底",COL.ink]],W/2,510,136);
+      richLine([["帮了你什么？",COL.ink]],W/2,684,136);
+
+      const y=1000;
+      iconCam(165,y,.62,1);
+      iconEdge(540,y,1.15,1,1);
+      iconCloud(918,y-8,.64,1);
+      const inA=poly([{x:228,y},{x:392,y}]),outA=poly([{x:690,y},{x:826,y}]);
+      stroke(inA,{color:COL.ink,width:4,alpha:.6,glow:0,tip:false,amp:0});arrowHead(inA,1,{alpha:.6,width:4});
+      stroke(outA,{color:COL.warm,width:4,alpha:.8,glow:0,tip:false,amp:0});arrowHead(outA,1,{color:COL.warm,alpha:.8,width:4});
+      [.12,.38,.64].forEach(u=>{const q=along(inA,u);ctx.save();ctx.globalAlpha=.85;ctx.strokeStyle=COL.ink;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(q.x-17,q.y-13,34,26,5);ctx.stroke();ctx.restore()});
+      {const q=along(outA,.42);ctx.save();ctx.fillStyle=COL.warm;ctx.globalAlpha=.4;ctx.beginPath();ctx.roundRect(q.x-12,q.y-10,24,20,4);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=COL.warm;ctx.lineWidth=2.5;ctx.stroke();ctx.restore()}
+      text("25 GB",310,y-74,{size:40,weight:700,color:COL.red,rise:0});
+      text("全部画面",310,y+70,{size:26,color:COL.mute,rise:0});
+      text("25 MB",758,y-74,{size:40,weight:700,color:COL.warm,rise:0});
+      text("只传结论",758,y+70,{size:26,color:COL.mute,rise:0});
+      text("边 · 就近判断",540,y+150,{size:34,weight:700,color:COL.blue,rise:0});
+
+      text("离你最近的地方，先把事办了",W/2,1300,{size:52,weight:700,rise:0});
+      stroke(quadPts(300,1352,540,1368,780,1350),{color:COL.blue,width:5,glow:.2,tip:false});
+      text("云边分工  ·  门铃  ·  红绿灯",W/2,1430,{size:30,color:COL.mute,rise:0,spacing:2});
+
+      frog(520,1565,.95,true);
+    }
+
     // ---------- render ----------
     function drawScene(index,localT){
       const sc=SCENES[index];BEATS=sc.beats;T=localT;GA=1;
@@ -806,9 +846,11 @@
         drawScene(idx,remain);
         bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
       },
-      jump(i,localT){this.drawAt(offsets[i]+localT)}
+      jump(i,localT){this.drawAt(offsets[i]+localT)},
+      drawCover
     };
-    if(SCENES.length){setScene(0,false);drawScene(0,6000)}
+    if(new URLSearchParams(location.search).has("cover"))drawCover();
+    else if(SCENES.length){setScene(0,false);drawScene(0,6000)}
   </script>
 </body>
 </html>

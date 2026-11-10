@@ -49,3 +49,7 @@ https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba778474
 锁定本版提交：
 
 https://github.com/ZHLin1011/Desktop-research/raw/210804c9a2f1ea52e07c99f92bdfdda975143e2f/exports/guaji-device-edge-cloud-with-audio.mp4
+
+封面 `guaji-device-edge-cloud-cover.png`（1080×1920，主体落在中间 3:4 区域）：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-cover.png
