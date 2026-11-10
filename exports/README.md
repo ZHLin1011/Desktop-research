@@ -67,3 +67,17 @@ https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f62
 封面 `guaji-on-device-pipeline-cover.png`：
 
 https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f623d628f1776/exports/guaji-on-device-pipeline-cover.png
+
+## 第 7 期 · CV 小模型和视觉大模型，差在哪
+
+`guaji-cv-vs-vlm-with-audio.mp4`（约 172 秒）
+
+内容：同一张门口画面的两种答案 · 小模型分层识别、做选择题（几百万参数、几 MB、每秒几十张）· 大模型切块读图、做问答题（几十亿参数、一张图一两秒）· 瓶盖质检 / 外文菜单 / 车牌抬杆 · 各自短板 · 小模型站岗、大模型解说（几十万帧 → 几十张）。
+
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-cv-vs-vlm-with-audio.mp4
+
+封面 `guaji-cv-vs-vlm-cover.png`：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-cv-vs-vlm-cover.png
