@@ -42,10 +42,10 @@ https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba778474
 
 ## 第 5 期 · 「边」到底帮了你什么
 
-`guaji-device-edge-cloud-with-audio.mp4`（约 147 秒）
+`guaji-device-edge-cloud-with-audio.mp4`（约 157 秒）
 
-内容：门铃/商场场景简笔画 · 就近算 · 少打扰/护隐私/抢时间/省流量。口播不念制作指令；画面以场景与动效表达。
+内容：一笔账（二三十 GB 里有用几十秒）· 全上云三笔代价 · 就近算（上传量约千分之一）· 云训练边推理的分工闭环 · 门铃与红绿灯。
 
-锁定本版提交：
+锁定本版提交（推送后更新 SHA）：
 
-https://github.com/ZHLin1011/Desktop-research/raw/23f2015e5d70e76a0525982973d78af3d3d11098/exports/guaji-device-edge-cloud-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4
