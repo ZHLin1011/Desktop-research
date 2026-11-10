@@ -62,8 +62,8 @@ https://github.com/ZHLin1011/Desktop-research/raw/83a105f7e4a9583d3750429b596205
 
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-on-device-pipeline-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f623d628f1776/exports/guaji-on-device-pipeline-with-audio.mp4
 
 封面 `guaji-on-device-pipeline-cover.png`：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-on-device-pipeline-cover.png
+https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f623d628f1776/exports/guaji-on-device-pipeline-cover.png

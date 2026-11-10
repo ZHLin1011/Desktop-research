@@ -12,7 +12,7 @@
 | 3 | 大模型除了会读会写还有什么技能 | ~93s | [modalities.html](llm-explainer/modalities.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/d09fca3/exports/guaji-modalities-with-audio.mp4) |
 | 4 | 为什么问同一个问题，AI 每次回复都不一样 | ~70s | [same-question.html](llm-explainer/same-question.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba77847434b1b2ecce/exports/guaji-same-question-with-audio.mp4) |
 | 5 | 「边」到底帮了你什么 | ~157s | [device-edge-cloud.html](llm-explainer/device-edge-cloud.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/210804c9a2f1ea52e07c99f92bdfdda975143e2f/exports/guaji-device-edge-cloud-with-audio.mp4) |
-| 6 | 手机里的 AI，是怎么跑起来的 | ~190s | [on-device-pipeline.html](llm-explainer/on-device-pipeline.html) | [下载](exports/guaji-on-device-pipeline-with-audio.mp4) |
+| 6 | 手机里的 AI，是怎么跑起来的 | ~190s | [on-device-pipeline.html](llm-explainer/on-device-pipeline.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f623d628f1776/exports/guaji-on-device-pipeline-with-audio.mp4) |
 
 ## 制作规范（定稿）
 
