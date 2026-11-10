@@ -76,8 +76,8 @@ https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f62
 
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-cv-vs-vlm-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df89f5917840/exports/guaji-cv-vs-vlm-with-audio.mp4
 
 封面 `guaji-cv-vs-vlm-cover.png`：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-cv-vs-vlm-cover.png
+https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df89f5917840/exports/guaji-cv-vs-vlm-cover.png
