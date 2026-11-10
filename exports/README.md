@@ -46,6 +46,6 @@ https://github.com/ZHLin1011/Desktop-research/raw/85c4dad70dca766ea47b68ba778474
 
 内容：一笔账（二三十 GB 里有用几十秒）· 全上云三笔代价 · 就近算（上传量约千分之一）· 云训练边推理的分工闭环 · 门铃与红绿灯。
 
-锁定本版提交（推送后更新 SHA）：
+锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-device-edge-cloud-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/210804c9a2f1ea52e07c99f92bdfdda975143e2f/exports/guaji-device-edge-cloud-with-audio.mp4
