@@ -90,8 +90,8 @@ https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df
 
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-code-vs-imagegen-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/08a881afe6f0cf987b6743ca26f35716ef5aa371/exports/guaji-code-vs-imagegen-with-audio.mp4
 
 封面 `guaji-code-vs-imagegen-cover.png`：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-code-vs-imagegen-cover.png
+https://github.com/ZHLin1011/Desktop-research/raw/08a881afe6f0cf987b6743ca26f35716ef5aa371/exports/guaji-code-vs-imagegen-cover.png
