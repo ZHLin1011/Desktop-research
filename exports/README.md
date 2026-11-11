@@ -81,3 +81,17 @@ https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df
 封面 `guaji-cv-vs-vlm-cover.png`：
 
 https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df89f5917840/exports/guaji-cv-vs-vlm-cover.png
+
+## 第 8 期 · AI 画画的两条路：写代码画 vs 生图模型
+
+`guaji-code-vs-imagegen-with-audio.mp4`（约 195 秒，白色底）
+
+内容：Claude Fable 5.2 不用生图模型、写一两千行 Python 画了 70 万笔 · 写代码画 = 一行指令一笔、交出图纸（改一个数只改一处、放大不糊）· 生图模型 = 几十亿图文对、从雪花二三十步显影、交出照片（约 100 万像素、几秒）· 改背景和写字的差别 · 要逼真找生图 · 图表/氛围图/生日海报该用谁。
+
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-code-vs-imagegen-with-audio.mp4
+
+封面 `guaji-code-vs-imagegen-cover.png`：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-code-vs-imagegen-cover.png

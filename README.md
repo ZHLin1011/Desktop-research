@@ -14,6 +14,7 @@
 | 5 | 「边」到底帮了你什么 | ~157s | [device-edge-cloud.html](llm-explainer/device-edge-cloud.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/210804c9a2f1ea52e07c99f92bdfdda975143e2f/exports/guaji-device-edge-cloud-with-audio.mp4) |
 | 6 | 手机里的 AI，是怎么跑起来的 | ~190s | [on-device-pipeline.html](llm-explainer/on-device-pipeline.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f623d628f1776/exports/guaji-on-device-pipeline-with-audio.mp4) |
 | 7 | CV 小模型和视觉大模型，差在哪 | ~172s | [cv-vs-vlm.html](llm-explainer/cv-vs-vlm.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df89f5917840/exports/guaji-cv-vs-vlm-with-audio.mp4) |
+| 8 | AI 画画的两条路：写代码画 vs 生图模型（白底） | ~195s | [code-vs-imagegen.html](llm-explainer/code-vs-imagegen.html) | [下载](exports/guaji-code-vs-imagegen-with-audio.mp4) |
 
 ## 制作规范（定稿）
 
@@ -42,6 +43,7 @@ cd llm-explainer && python3 -m http.server 8765
 - 第 5 期：`http://127.0.0.1:8765/device-edge-cloud.html`
 - 第 6 期：`http://127.0.0.1:8765/on-device-pipeline.html`
 - 第 7 期：`http://127.0.0.1:8765/cv-vs-vlm.html`
+- 第 8 期：`http://127.0.0.1:8765/code-vs-imagegen.html`
 
 ## 文件
 
@@ -54,6 +56,7 @@ cd llm-explainer && python3 -m http.server 8765
 | `llm-explainer/device-edge-cloud.html` | 第 5 期 |
 | `llm-explainer/on-device-pipeline.html` | 第 6 期 |
 | `llm-explainer/cv-vs-vlm.html` | 第 7 期 |
+| `llm-explainer/code-vs-imagegen.html` | 第 8 期 |
 | `llm-explainer/SCRIPT*.md` | 各期脚本 |
 | `llm-explainer/PROMPT.md` | 可复用 Prompt |
 | `exports/*.mp4` | 有声成片 |
