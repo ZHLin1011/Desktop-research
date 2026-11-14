@@ -21,6 +21,7 @@
 6) 手机里的 AI，是怎么跑起来的（闪存→内存→NPU→带宽→屏幕；量化一招两得；内存/算力/带宽不够时的体感）
 7) CV 小模型和视觉大模型，差在哪（选择题 vs 问答题；分层识别 vs 切块读图；瓶盖/菜单/车牌；各自短板；小模型站岗、大模型解说）
 8) AI 画画的两条路：写代码画 vs 生图模型（Claude Fable 5.2 写代码画了 70 万笔开场；一笔一笔下指令 vs 从雪花里显影；改图与写字；要逼真；该用谁）。本期起白色底
+9) 什么是模型 Infra（冰山 + 大厨与后厨；卡、网络和电；训练拆模型拆数据、断点续训；推理服务与扩缩容；拼锅 / 备菜 / 压缩；快不快、稳不稳、贵不贵）
 
 动画约定：说到哪画到哪；最早版粉笔风；概念要演出来（对比、流程、类比），少堆装饰图标。
 
@@ -39,3 +40,4 @@
 | 6 | `on-device-pipeline.html` | `SCRIPT-on-device-pipeline.md` | `../exports/guaji-on-device-pipeline-with-audio.mp4` |
 | 7 | `cv-vs-vlm.html` | `SCRIPT-cv-vs-vlm.md` | `../exports/guaji-cv-vs-vlm-with-audio.mp4` |
 | 8 | `code-vs-imagegen.html` | `SCRIPT-code-vs-imagegen.md` | `../exports/guaji-code-vs-imagegen-with-audio.mp4` |
+| 9 | `model-infra.html` | `SCRIPT-model-infra.md` | `../exports/guaji-model-infra-with-audio.mp4` |

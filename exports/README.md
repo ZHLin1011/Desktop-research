@@ -95,3 +95,17 @@ https://github.com/ZHLin1011/Desktop-research/raw/08a881afe6f0cf987b6743ca26f357
 封面 `guaji-code-vs-imagegen-cover.png`：
 
 https://github.com/ZHLin1011/Desktop-research/raw/08a881afe6f0cf987b6743ca26f35716ef5aa371/exports/guaji-code-vs-imagegen-cover.png
+
+## 第 9 期 · 什么是模型 Infra
+
+`guaji-model-infra-with-audio.mp4`（约 206 秒，白色底）
+
+内容：冰山开场（模型是水上那一角，Infra 是水下一大块）· 模型是大厨、Infra 是后厨 · 显卡 → 机柜 → 机房，Llama 3 用 16,384 张卡算 54 天，高速网络和一万多千瓦的电 · 训练：810 GB 的模型切段分卡、数据分份对答案，54 天中断 466 次靠存档续跑 · 推理：入口排队 → 调度 → 空闲机器，逐字推回，高峰扩容 · 拼锅、备菜（缓存 1–5 折）、压缩 · 快不快、稳不稳、贵不贵。
+
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-model-infra-with-audio.mp4
+
+封面 `guaji-model-infra-cover.png`：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-model-infra-cover.png
