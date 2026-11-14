@@ -104,8 +104,8 @@ https://github.com/ZHLin1011/Desktop-research/raw/08a881afe6f0cf987b6743ca26f357
 
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-model-infra-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/e6449f1ea10dbf25ca5de2f6b6baf4b8daa535cc/exports/guaji-model-infra-with-audio.mp4
 
 封面 `guaji-model-infra-cover.png`：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-model-infra-cover.png
+https://github.com/ZHLin1011/Desktop-research/raw/e6449f1ea10dbf25ca5de2f6b6baf4b8daa535cc/exports/guaji-model-infra-cover.png

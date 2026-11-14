@@ -15,7 +15,7 @@
 | 6 | 手机里的 AI，是怎么跑起来的 | ~190s | [on-device-pipeline.html](llm-explainer/on-device-pipeline.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/3f77f5cbb59695251cc4af18264f623d628f1776/exports/guaji-on-device-pipeline-with-audio.mp4) |
 | 7 | CV 小模型和视觉大模型，差在哪 | ~172s | [cv-vs-vlm.html](llm-explainer/cv-vs-vlm.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df89f5917840/exports/guaji-cv-vs-vlm-with-audio.mp4) |
 | 8 | AI 画画的两条路：写代码画 vs 生图模型（白底） | ~195s | [code-vs-imagegen.html](llm-explainer/code-vs-imagegen.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/08a881afe6f0cf987b6743ca26f35716ef5aa371/exports/guaji-code-vs-imagegen-with-audio.mp4) |
-| 9 | 什么是模型 Infra | ~206s | [model-infra.html](llm-explainer/model-infra.html) | [下载](exports/guaji-model-infra-with-audio.mp4) |
+| 9 | 什么是模型 Infra | ~206s | [model-infra.html](llm-explainer/model-infra.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/e6449f1ea10dbf25ca5de2f6b6baf4b8daa535cc/exports/guaji-model-infra-with-audio.mp4) |
 
 ## 制作规范（定稿）
 
