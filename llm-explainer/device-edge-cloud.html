@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>呱基讲 AI · 「边」到底帮了你什么</title>
+  <style>
+    :root {
+      --bg:#071018; --ink:#f4f7fb; --mute:#a8b8cc; --accent:#9ad7ff;
+      --frog:#8dff9c; --panel:#0f1a24; --line:rgba(244,247,251,0.16);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:radial-gradient(700px 480px at 50% 0%,#132033 0%,transparent 55%),var(--bg);color:var(--ink);font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",sans-serif}
+    body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 12px 28px}
+    .brand{width:min(420px,100%);text-align:center}
+    .brand .host{color:var(--frog);font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+    .brand h1{font-family:"Songti SC","Noto Serif CJK SC","Noto Serif SC",Georgia,serif;font-size:clamp(22px,5.5vw,28px);line-height:1.25}
+    .brand p{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.55}
+    .stage-wrap{width:min(420px,100%);position:relative;border:1px solid var(--line);background:#071018;overflow:hidden;aspect-ratio:9/16}
+    canvas{display:block;width:100%;height:100%;background:#071018}
+    .progress{width:min(420px,100%);height:3px;background:rgba(255,255,255,.08);overflow:hidden}
+    .progress>i{display:block;height:100%;width:0%;background:var(--accent)}
+    .controls{width:min(420px,100%);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;font-size:13px;cursor:pointer}
+    button:hover{border-color:rgba(154,215,255,.45);background:#152433}
+    button.primary{background:#1a3348;border-color:rgba(154,215,255,.55)}
+    .meta{color:var(--mute);font-size:12px;margin-left:auto}
+    .scene-list{width:min(420px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .scene-list button{text-align:left;padding:8px 10px;font-size:11px;color:var(--mute);line-height:1.35}
+    .scene-list button.active{color:var(--ink);border-color:rgba(154,215,255,.5);background:#152433}
+    .hint{width:min(420px,100%);color:var(--mute);font-size:11px;line-height:1.5}
+    .nav{width:min(420px,100%);font-size:12px}.nav a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <div class="host">呱基 · AI 概念课 · 第 5 期</div>
+    <h1>「边」到底<br>帮了你什么？</h1>
+    <p>就近算 · 云边分工 · 门铃与红绿灯</p>
+  </header>
+  <p class="nav">
+    <a href="./index.html">第1期</a> ·
+    <a href="./edge-vs-cloud.html">第2期</a> ·
+    <a href="./modalities.html">第3期</a> ·
+    <a href="./same-question.html">第4期</a> ·
+    <span>第5期</span> ·
+    <a href="./on-device-pipeline.html">第6期</a> ·
+    <a href="./cv-vs-vlm.html">第7期</a> ·
+    <a href="./code-vs-imagegen.html">第8期</a> ·
+    <a href="./model-infra.html">第9期</a>
+  </p>
+  <div class="stage-wrap"><canvas id="stage" width="1080" height="1920"></canvas></div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnRestart">重来</button>
+    <button id="btnMute">配音：开</button>
+    <div class="meta" id="meta">场景 1 / 7</div>
+  </div>
+  <div class="scene-list" id="sceneList"></div>
+  <p class="hint">竖屏 9:16 · 逐词对齐 · 一屏一个重点</p>
+
+  <script>
+    const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
+    const bar=document.getElementById("bar"), meta=document.getElementById("meta");
+    const btnPlay=document.getElementById("btnPlay"), btnRestart=document.getElementById("btnRestart");
+    const btnMute=document.getElementById("btnMute"), sceneList=document.getElementById("sceneList");
+    const W=canvas.width, H=canvas.height;
+    const SAFE_BOTTOM=150, SUB_Y=1600;
+    const FONT='"Noto Sans CJK SC","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+    const COL={bg:"#0b1520",ink:"#eef3f8",mute:"rgba(238,243,248,0.55)",faint:"rgba(238,243,248,0.16)",
+      blue:"#7fd3ff",warm:"#ffc27a",green:"#93e6ad",red:"#ff9a9a"};
+    const LEAD=120;
+
+    /*@@SCENES*/
+    const SCENES=[
+ {
+  "id": "hook",
+  "num": "01",
+  "tag": "一笔账",
+  "headline": "拍了一整天，有用几十秒",
+  "voice": "嗨，我是呱基。门口的摄像头，一天能拍出二三十 GB 的视频，可真正有用的，也许只有几十秒。要是全部传到云端再判断，费流量、反应慢，心里也不踏实。所以很多产品，在中间加了一层：边。这期聊聊：它是怎么做到的，又给你带来了什么。",
+  "duration": 21878,
+  "beats": [
+   {
+    "key": "intro",
+    "at": 0,
+    "text": "嗨，我是呱基。"
+   },
+   {
+    "key": "s1",
+    "at": 1852,
+    "text": "门口的摄像头，一天能拍出二三十 GB 的视频，"
+   },
+   {
+    "key": "s2",
+    "at": 5567,
+    "text": "可真正有用的，也许只有几十秒。"
+   },
+   {
+    "key": "s3",
+    "at": 8565,
+    "text": "要是全部传到云端再判断，费流量、反应慢，心里也不踏实。"
+   },
+   {
+    "key": "s4",
+    "at": 13669,
+    "text": "所以很多产品，在中间加了一层：边。"
+   },
+   {
+    "key": "s5",
+    "at": 17419,
+    "text": "这期聊聊：它是怎么做到的，又给你带来了什么。"
+   }
+  ]
+ },
+ {
+  "id": "why",
+  "num": "02",
+  "tag": "全上云的代价",
+  "headline": "全交给云，要付三笔账",
+  "voice": "云端算力很强，可它离你很远。第一笔是流量：一路高清监控，一天大约二三十 GB。第二笔是时间：上传、排队、识别、再推回手机，绕一圈常要一两秒。第三笔是隐私：家门口的画面，整段离开了你家。那让摄像头自己算？它个头小、怕发热，复杂识别常常跑不动。所以最合适的位置，在两者之间。",
+  "duration": 28286,
+  "beats": [
+   {
+    "key": "far",
+    "at": 0,
+    "text": "云端算力很强，可它离你很远。"
+   },
+   {
+    "key": "flow",
+    "at": 2963,
+    "text": "第一笔是流量：一路高清监控，一天大约二三十 GB。"
+   },
+   {
+    "key": "time",
+    "at": 7720,
+    "text": "第二笔是时间：上传、排队、识别、再推回手机，绕一圈常要一两秒。"
+   },
+   {
+    "key": "priv",
+    "at": 14502,
+    "text": "第三笔是隐私：家门口的画面，整段离开了你家。"
+   },
+   {
+    "key": "dev",
+    "at": 18831,
+    "text": "那让摄像头自己算？它个头小、怕发热，复杂识别常常跑不动。"
+   },
+   {
+    "key": "mid",
+    "at": 24711,
+    "text": "所以最合适的位置，在两者之间。"
+   }
+  ]
+ },
+ {
+  "id": "principle",
+  "num": "03",
+  "tag": "原理",
+  "headline": "就近算：先在附近做判断",
+  "voice": "边的核心叫就近算：把判断，挪到离数据最近、又有足够算力的地方。比如家里的网关、小区机房，或者路口的一台小盒子。摄像头把画面交给它，它先跑识别模型，看有没有值得关注的事。没事就丢掉；有事，只把结论和几秒片段发出去。于是要上传的数据，从二三十 GB，降到几十 MB，大约千分之一。",
+  "duration": 27206,
+  "beats": [
+   {
+    "key": "core",
+    "at": 0,
+    "text": "边的核心叫就近算：把判断，挪到离数据最近、又有足够算力的地方。"
+   },
+   {
+    "key": "where",
+    "at": 5903,
+    "text": "比如家里的网关、小区机房，或者路口的一台小盒子。"
+   },
+   {
+    "key": "flow",
+    "at": 10509,
+    "text": "摄像头把画面交给它，它先跑识别模型，看有没有值得关注的事。"
+   },
+   {
+    "key": "drop",
+    "at": 16053,
+    "text": "没事就丢掉；有事，只把结论和几秒片段发出去。"
+   },
+   {
+    "key": "shrink",
+    "at": 20648,
+    "text": "于是要上传的数据，从二三十 GB，降到几十 MB，大约千分之一。"
+   }
+  ]
+ },
+ {
+  "id": "split",
+  "num": "04",
+  "tag": "云边分工",
+  "headline": "边上的模型，从哪来？",
+  "voice": "那边上的识别模型，是从哪来的？通常是云端用海量数据训练好，压缩成小模型，再下发到边。边在现场做又快又近的判断；遇到拿不准的，把样本送回云端。云端据此改进模型，再推下来，越用越准。一句话：云管大和全，边管快和近。",
+  "duration": 21854,
+  "beats": [
+   {
+    "key": "q",
+    "at": 0,
+    "text": "那边上的识别模型，是从哪来的？"
+   },
+   {
+    "key": "train",
+    "at": 2998,
+    "text": "通常是云端用海量数据训练好，压缩成小模型，再下发到边。"
+   },
+   {
+    "key": "edge",
+    "at": 8449,
+    "text": "边在现场做又快又近的判断；遇到拿不准的，把样本送回云端。"
+   },
+   {
+    "key": "loop",
+    "at": 13738,
+    "text": "云端据此改进模型，再推下来，越用越准。"
+   },
+   {
+    "key": "motto",
+    "at": 17627,
+    "text": "一句话：云管大和全，边管快和近。"
+   }
+  ]
+ },
+ {
+  "id": "door",
+  "num": "05",
+  "tag": "门铃",
+  "headline": "门铃的一次判断",
+  "voice": "回到门铃，看一次完整的过程。风吹树叶，边判断不是人，直接忽略，手机不打扰你。快递员走近，几十毫秒就认出是人，马上推送给你。深夜有人徘徊，哪怕断网，本地也能先亮灯、响警报。提醒更准、反应更快、流量更省，画面也少出家门。",
+  "duration": 22670,
+  "beats": [
+   {
+    "key": "intro5",
+    "at": 0,
+    "text": "回到门铃，看一次完整的过程。"
+   },
+   {
+    "key": "leaf",
+    "at": 2905,
+    "text": "风吹树叶，边判断不是人，直接忽略，手机不打扰你。"
+   },
+   {
+    "key": "person",
+    "at": 7905,
+    "text": "快递员走近，几十毫秒就认出是人，马上推送给你。"
+   },
+   {
+    "key": "night",
+    "at": 12338,
+    "text": "深夜有人徘徊，哪怕断网，本地也能先亮灯、响警报。"
+   },
+   {
+    "key": "value5",
+    "at": 17303,
+    "text": "提醒更准、反应更快、流量更省，画面也少出家门。"
+   }
+  ]
+ },
+ {
+  "id": "road",
+  "num": "06",
+  "tag": "路口",
+  "headline": "绿灯给谁，当场决定",
+  "voice": "再看街上的红绿灯。路口的边缘盒子实时数车，哪个方向排得长，就多给几秒绿灯。这种决定必须当场做，等云端来回就晚了。云端看全城数据，负责整体配时和长期规划。对你来说，就是少等几个红灯，过路口也更顺。",
+  "duration": 20054,
+  "beats": [
+   {
+    "key": "intro6",
+    "at": 0,
+    "text": "再看街上的红绿灯。"
+   },
+   {
+    "key": "count",
+    "at": 1944,
+    "text": "路口的边缘盒子实时数车，哪个方向排得长，就多给几秒绿灯。"
+   },
+   {
+    "key": "now",
+    "at": 7153,
+    "text": "这种决定必须当场做，等云端来回就晚了。"
+   },
+   {
+    "key": "city",
+    "at": 10787,
+    "text": "云端看全城数据，负责整体配时和长期规划。"
+   },
+   {
+    "key": "value6",
+    "at": 15475,
+    "text": "对你来说，就是少等几个红灯，过路口也更顺。"
+   }
+  ]
+ },
+ {
+  "id": "end",
+  "num": "07",
+  "tag": "记住",
+  "headline": "记住一句话",
+  "voice": "下次看到秒级提醒、断网可用、数据不出园区这类说法，背后多半就有边：本地先判断，再按需上云。边，就是在离你最近的地方，先把事办了。我是呱基，我们下期见。",
+  "duration": 15470,
+  "beats": [
+   {
+    "key": "e1",
+    "at": 0,
+    "text": "下次看到秒级提醒、断网可用、数据不出园区这类说法，"
+   },
+   {
+    "key": "e2",
+    "at": 4807,
+    "text": "背后多半就有边：本地先判断，再按需上云。"
+   },
+   {
+    "key": "e3",
+    "at": 8889,
+    "text": "边，就是在离你最近的地方，先把事办了。"
+   },
+   {
+    "key": "bye",
+    "at": 12558,
+    "text": "我是呱基，我们下期见。"
+   }
+  ]
+ }
+];
+    /*@@END*/
+
+    // ---------- timing ----------
+    let T=0, BEATS=[], GA=1;
+    const clamp01=v=>v<0?0:v>1?1:v;
+    const eOut=t=>1-Math.pow(1-clamp01(t),3);
+    const eInOut=t=>{t=clamp01(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+    const lerp=(a,b,t)=>a+(b-a)*t;
+    function beatIdx(k){return BEATS.findIndex(b=>b.key===k)}
+    function at(k){const b=BEATS.find(b=>b.key===k);return b?Math.max(0,b.at-LEAD):1e9}
+    function since(k){return T-at(k)}
+    function pr(k,dur=800,delay=0){return eInOut((T-at(k)-delay)/dur)}
+    function ap(k,dur=450,delay=0){return eOut((T-at(k)-delay)/dur)}
+    function emph(k,floor=0.32){const i=beatIdx(k),nb=BEATS[i+1];if(!nb)return 1;const t=T-(nb.at-LEAD);return t<=0?1:lerp(1,floor,eOut(t/450))}
+    function withA(a,fn){const old=GA;GA=old*a;if(GA>0.002)fn();GA=old}
+
+    // ---------- geometry ----------
+    function poly(vs,closed=false,step=6){const out=[];const L=closed?[...vs,vs[0]]:vs;
+      for(let k=0;k<L.length-1;k++){const A=L[k],B=L[k+1],d=Math.hypot(B.x-A.x,B.y-A.y),n=Math.max(1,Math.ceil(d/step));
+        for(let i=(k===0?0:1);i<=n;i++)out.push({x:A.x+(B.x-A.x)*i/n,y:A.y+(B.y-A.y)*i/n})}return out}
+    function arcPts(cx,cy,r,a0,a1,step=6){const n=Math.max(2,Math.ceil(Math.abs(a1-a0)*r/step)),out=[];
+      for(let i=0;i<=n;i++){const t=a0+(a1-a0)*i/n;out.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r})}return out}
+    function circlePts(cx,cy,r,start=-Math.PI/2){return arcPts(cx,cy,r,start,start+Math.PI*2)}
+    function ellipsePts(cx,cy,rx,ry){const out=[];for(let i=0;i<=72;i++){const t=-Math.PI/2+i/72*Math.PI*2;out.push({x:cx+Math.cos(t)*rx,y:cy+Math.sin(t)*ry})}return out}
+    function join(...parts){const out=[];for(const p of parts)for(const q of p){const l=out[out.length-1];if(l&&Math.hypot(l.x-q.x,l.y-q.y)<0.5)continue;out.push(q)}return out}
+    function rrectPts(x,y,w,h,r){r=Math.min(r,w/2,h/2);const P=Math.PI;
+      return join(poly([{x:x+r,y},{x:x+w-r,y}]),arcPts(x+w-r,y+r,r,-P/2,0),poly([{x:x+w,y:y+r},{x:x+w,y:y+h-r}]),
+        arcPts(x+w-r,y+h-r,r,0,P/2),poly([{x:x+w-r,y:y+h},{x:x+r,y:y+h}]),arcPts(x+r,y+h-r,r,P/2,P),
+        poly([{x,y:y+h-r},{x,y:y+r}]),arcPts(x+r,y+r,r,P,P*1.5))}
+    function quadPts(x0,y0,cx,cy,x1,y1,step=6){const len=Math.hypot(cx-x0,cy-y0)+Math.hypot(x1-cx,y1-cy),n=Math.max(4,Math.ceil(len/step)),out=[];
+      for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push({x:u*u*x0+2*u*t*cx+t*t*x1,y:u*u*y0+2*u*t*cy+t*t*y1})}return out}
+    function cloudPts(x,y,s){
+      const C=[[-70,15,42],[-15,-22,58],[55,-5,46],[92,20,30],[10,10,50]];
+      const base=50*s,out=[];
+      for(let i=0;i<=150;i++){const th=Math.PI+i/150*Math.PI*2,dx=Math.cos(th),dy=Math.sin(th);let best=0;
+        for(const [cx,cy,r] of C){const ox=cx*s,oy=cy*s,R=r*s,b=dx*ox+dy*oy,c=ox*ox+oy*oy-R*R,disc=b*b-c;if(disc>=0){const t=b+Math.sqrt(disc);if(t>best)best=t}}
+        let px=dx*best,py=dy*best;if(py>base){const t=base/dy;px=dx*t;py=base}
+        out.push({x:x+px,y:y+py})}
+      return out}
+    function along(pts,u){u=clamp01(u);const f=u*(pts.length-1),i=Math.floor(f),fr=f-i;const A=pts[i],B=pts[Math.min(pts.length-1,i+1)];
+      return {x:A.x+(B.x-A.x)*fr,y:A.y+(B.y-A.y)*fr,ang:Math.atan2(B.y-A.y,B.x-A.x)}}
+
+    // ---------- chalk rendering ----------
+    function rough(pts,amp){if(!amp)return pts;const s=pts[0].x*.37+pts[0].y*.91+pts.length*.13;
+      return pts.map((q,i)=>({x:q.x+(Math.sin(i*.31+s)*.6+Math.sin(i*.09+s*1.7)*.4)*amp,y:q.y+(Math.cos(i*.27+s*1.3)*.6+Math.sin(i*.06+s*.7)*.4)*amp}))}
+    function stroke(pts,o={}){
+      const {color=COL.ink,width=4,prog=1,alpha=1,glow=.12,dash=null,tip=true,amp=1.1,grain=true}=o;
+      const A=alpha*GA;if(prog<=0||A<=0.002||pts.length<2)return null;
+      const rp=rough(pts,amp),total=rp.length-1,f=total*clamp01(prog),n=Math.floor(f),fr=f-n;
+      const path=new Path2D();path.moveTo(rp[0].x,rp[0].y);for(let i=1;i<=n;i++)path.lineTo(rp[i].x,rp[i].y);
+      let end=rp[n];if(n<total&&fr>0){const P=rp[n],Q=rp[n+1];end={x:P.x+(Q.x-P.x)*fr,y:P.y+(Q.y-P.y)*fr};path.lineTo(end.x,end.y)}
+      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle=color;
+      if(dash)ctx.setLineDash(dash);
+      if(glow>0){ctx.globalAlpha=A*glow;ctx.lineWidth=width*3.4;ctx.stroke(path)}
+      ctx.globalAlpha=A*.95;ctx.lineWidth=width;ctx.stroke(path);
+      if(grain&&!dash){ctx.setLineDash([1.4,5]);ctx.globalAlpha=A*.28;ctx.lineWidth=width*.5;ctx.strokeStyle="#ffffff";ctx.stroke(path)}
+      ctx.restore();
+      if(tip&&prog<1){ctx.save();ctx.globalAlpha=A;ctx.fillStyle="#ffffff";ctx.beginPath();ctx.arc(end.x,end.y,width*.85,0,Math.PI*2);ctx.fill();ctx.restore()}
+      return end}
+    function fill(pts,color,alpha,amp=1.1){const A=alpha*GA;if(A<=0.002)return;const rp=rough(pts,amp);
+      ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(rp[0].x,rp[0].y);for(const q of rp)ctx.lineTo(q.x,q.y);ctx.closePath();ctx.fill();ctx.restore()}
+    function shape(pts,o={}){if(o.fill)fill(pts,o.fill,(o.fillA??.1)*(o.alpha??1)*Math.pow(clamp01(o.prog??1),2),o.amp??1.1);return stroke(pts,o)}
+    function arrowHead(pts,prog,o={}){if(prog<0.92)return;const {color=COL.ink,width=4,alpha=1,size=20}=o;
+      const e=along(pts,1),b=along(pts,.96),ang=Math.atan2(e.y-b.y,e.x-b.x),a=alpha*eOut((prog-.92)/.08);
+      stroke(poly([{x:e.x-Math.cos(ang-.45)*size,y:e.y-Math.sin(ang-.45)*size},e,{x:e.x-Math.cos(ang+.45)*size,y:e.y-Math.sin(ang+.45)*size}]),{color,width,alpha:a,glow:.1,tip:false,amp:.4})}
+    function dot(x,y,r,color,alpha=1){const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore()}
+    function text(str,x,y,o={}){const {size=32,color=COL.ink,weight=500,align="center",alpha=1,rise=14,spacing=0}=o;
+      const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${FONT}`;
+      ctx.textAlign=align;ctx.textBaseline="middle";if(spacing)ctx.letterSpacing=spacing+"px";ctx.fillText(str,x,y+(1-clamp01(alpha))*rise);ctx.restore()}
+    function measure(str,size,weight=500){ctx.save();ctx.font=`${weight} ${size}px ${FONT}`;const w=ctx.measureText(str).width;ctx.restore();return w}
+    function pill(str,x,y,o={}){const {size=26,color=COL.ink,tone=COL.blue,alpha=1,weight=600,padX=22}=o;
+      const A=alpha*GA;if(A<=0.002)return;const w=measure(str,size,weight)+padX*2,h=size*1.75,yy=y+(1-clamp01(alpha))*10;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(x-w/2,yy-h/2,w,h,h/2);ctx.fillStyle=tone;ctx.globalAlpha=A*.14;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+      text(str,x,yy,{size,color,weight,alpha:Math.min(1,alpha),rise:0})}
+
+    // ---------- background ----------
+    const bgCanvas=document.createElement("canvas");bgCanvas.width=W;bgCanvas.height=H;
+    (function paintBg(){const b=bgCanvas.getContext("2d");
+      const g=b.createRadialGradient(W/2,H*.38,80,W/2,H*.45,H*.75);g.addColorStop(0,"#10202c");g.addColorStop(1,"#070e15");
+      b.fillStyle=g;b.fillRect(0,0,W,H);let s=7;const r=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
+      for(let i=0;i<1400;i++){b.fillStyle=`rgba(255,255,255,${0.01+r()*0.025})`;const x=r()*W,y=r()*H,z=r()*2+.4;b.fillRect(x,y,z,z)}})();
+
+    // ---------- icons ----------
+    function iconCam(x,y,s,p,col=COL.green){
+      const w=120*s,h=200*s;
+      shape(rrectPts(x-w/2,y-h/2,w,h,32*s),{color:col,width:4.5,prog:p,fill:col,fillA:.08});
+      shape(circlePts(x,y-h*.17,34*s),{color:col,width:4,prog:clamp01(p*1.4-.35)});
+      dot(x,y-h*.17,13*s,col,clamp01(p*2-1));
+      dot(x+22*s,y-h*.36,5*s,COL.red,clamp01(p*2-1)*(.5+.5*Math.sin(T*.01)));
+      shape(circlePts(x,y+h*.26,17*s),{color:col,width:3.5,prog:clamp01(p*1.5-.5)});
+    }
+    function iconCloud(x,y,s,p,col=COL.warm){shape(cloudPts(x,y,s),{color:col,width:4.5,prog:p,fill:col,fillA:.1})}
+    function iconEdge(x,y,s,p,active=0){
+      const w=230*s,h=150*s;
+      if(active>0){const ph=(T*.0009)%1;withA(active*(1-ph)*.55,()=>stroke(rrectPts(x-w/2-ph*34*s,y-h/2-ph*34*s,w+ph*68*s,h+ph*68*s,(28+ph*30)*s),{color:COL.blue,width:2.5,glow:0,tip:false,amp:0,grain:false}))}
+      shape(rrectPts(x-w/2,y-h/2,w,h,28*s),{color:COL.blue,width:5,prog:p,fill:COL.blue,fillA:.14});
+      for(let i=0;i<2;i++){const yy=y-h*.1+i*h*.3;stroke(poly([{x:x-w*.32,y:yy},{x:x+w*.06,y:yy}]),{color:COL.blue,width:3.5,prog:clamp01(p*1.6-.6-i*.12),alpha:.7,glow:0})}
+      for(let i=0;i<3;i++){const on=.45+.55*(.5+.5*Math.sin(T*.011+i*2.1));dot(x+w*.2+i*18*s,y-h*.1,6.5*s,i===0?COL.green:COL.blue,clamp01(p*2-1)*on)}
+    }
+    function iconPhone(x,y,s,p){const w=150*s,h=270*s;
+      shape(rrectPts(x-w/2,y-h/2,w,h,28*s),{color:COL.ink,width:4,prog:p,fill:COL.ink,fillA:.04});
+      stroke(poly([{x:x-20*s,y:y-h/2+20*s},{x:x+20*s,y:y-h/2+20*s}]),{color:COL.ink,width:3.5,prog:clamp01(p*2-1),alpha:.5,glow:0})}
+    function phoneCard(x,y,s,t,str,tone){if(t<=0)return;const w=128*s,h=60*s,yy=y-70*s-(1-eOut(t))*26*s,fs=Math.floor((w-18*s)/[...str].length);
+      withA(eOut(t),()=>{ctx.save();ctx.globalAlpha=GA;ctx.beginPath();ctx.roundRect(x-w/2,yy-h/2,w,h,14*s);ctx.fillStyle=tone;ctx.globalAlpha=GA*.22;ctx.fill();ctx.globalAlpha=GA*.9;ctx.strokeStyle=tone;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+        text(str,x,yy,{size:Math.min(24,fs),color:COL.ink,weight:700,rise:0})})}
+    function iconPerson(x,y,s,col,walk=0,p=1){
+      ctx.save();ctx.translate(x,y);
+      const sw=Math.sin(walk)*.55,hy=-150*s;
+      shape(circlePts(0,hy,23*s),{color:col,width:4.5,prog:p,fill:col,fillA:.16,amp:.6});
+      const o={color:col,width:5,prog:clamp01(p*1.4-.3),amp:.4,glow:.1,tip:false};
+      stroke(poly([{x:0,y:hy+28*s},{x:0,y:-62*s}]),o);
+      stroke(poly([{x:0,y:hy+52*s},{x:(-24+sw*26)*s,y:-78*s}]),o);
+      stroke(poly([{x:0,y:hy+52*s},{x:(24-sw*26)*s,y:-78*s}]),o);
+      stroke(poly([{x:0,y:-62*s},{x:(-20+sw*34)*s,y:0}]),o);
+      stroke(poly([{x:0,y:-62*s},{x:(20-sw*34)*s,y:0}]),o);
+      ctx.restore()}
+    function iconLeaf(x,y,s,rot,col=COL.green){ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+      shape(join(quadPts(-34*s,0,0,-30*s,34*s,0),quadPts(34*s,0,0,30*s,-34*s,0)),{color:col,width:3.5,fill:col,fillA:.2,amp:.5,tip:false});
+      stroke(poly([{x:-30*s,y:0},{x:44*s,y:0}]),{color:col,width:2.5,alpha:.8,glow:0,amp:.3,tip:false});ctx.restore()}
+    function bracket(cx,cy,w,h,col,p=1){const L=Math.min(w,h)*.3,x0=cx-w/2,x1=cx+w/2,y0=cy-h/2,y1=cy+h/2;
+      [[{x:x0,y:y0+L},{x:x0,y:y0},{x:x0+L,y:y0}],[{x:x1-L,y:y0},{x:x1,y:y0},{x:x1,y:y0+L}],[{x:x1,y:y1-L},{x:x1,y:y1},{x:x1-L,y:y1}],[{x:x0+L,y:y1},{x:x0,y:y1},{x:x0,y:y1-L}]]
+        .forEach(c=>stroke(poly(c),{color:col,width:4.5,prog:p,glow:.18,tip:false,amp:0,grain:false}))}
+    function iconShield(x,y,s,p,col){shape(join(quadPts(x,y-46*s,x+22*s,y-36*s,x+40*s,y-34*s),quadPts(x+40*s,y-34*s,x+40*s,y+20*s,x,y+48*s),quadPts(x,y+48*s,x-40*s,y+20*s,x-40*s,y-34*s),quadPts(x-40*s,y-34*s,x-22*s,y-36*s,x,y-46*s)),{color:col,width:4,prog:p,fill:col,fillA:.12});
+      stroke(poly([{x:x-14*s,y:y+2*s},{x:x-3*s,y:y+14*s},{x:x+17*s,y:y-12*s}]),{color:col,width:4,prog:clamp01(p*2-1),glow:0,tip:false})}
+    function iconClock(x,y,s,p,col,spin=0){shape(circlePts(x,y,40*s),{color:col,width:4,prog:p,fill:col,fillA:.1});
+      const a=-Math.PI/2+spin;stroke(poly([{x,y},{x:x+Math.cos(a)*28*s,y:y+Math.sin(a)*28*s}]),{color:col,width:4,prog:clamp01(p*2-1),glow:0,tip:false,amp:0});
+      stroke(poly([{x,y},{x:x+16*s,y}]),{color:col,width:4,prog:clamp01(p*2-1),glow:0,tip:false,amp:0})}
+    function iconBars(x,y,s,p,col,grow=1){for(let i=0;i<3;i++){const h=(20+i*18)*s*(.6+.4*grow);const bx=x-26*s+i*26*s;stroke(poly([{x:bx,y:y+26*s},{x:bx,y:y+26*s-h}]),{color:col,width:9*s,prog:clamp01(p*1.4-i*.2),glow:.1,tip:false,amp:0,grain:false})}}
+    function iconWifi(x,y,s,p,col,off=0){for(let i=0;i<3;i++){const r=(18+i*18)*s;stroke(arcPts(x,y+18*s,r,-Math.PI*.78,-Math.PI*.22),{color:col,width:4.5,prog:clamp01(p*1.5-i*.2),glow:.08,tip:false,amp:.3})}
+      dot(x,y+18*s,6*s,col,clamp01(p*2-1));if(off>0)stroke(poly([{x:x-38*s,y:y-30*s},{x:x+38*s,y:y+30*s}]),{color:COL.red,width:5,prog:off,glow:.15,tip:false,amp:0})}
+    function iconBell(x,y,s,p,col,ring=0){ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(ring)*.18*(ring?1:0));
+      shape(join(quadPts(-34*s,22*s,-30*s,-40*s,0,-42*s),quadPts(0,-42*s,30*s,-40*s,34*s,22*s),poly([{x:34*s,y:22*s},{x:-34*s,y:22*s}])),{color:col,width:4,prog:p,fill:col,fillA:.14,amp:.5});
+      dot(0,32*s,7*s,col,clamp01(p*2-1));ctx.restore()}
+    function iconBox(x,y,s,col){ // 小模型包裹
+      shape(poly([{x:x-22*s,y:y-10*s},{x,y:y-22*s},{x:x+22*s,y:y-10*s},{x:x+22*s,y:y+16*s},{x,y:y+28*s},{x:x-22*s,y:y+16*s}],true),{color:col,width:3.5,fill:col,fillA:.22,amp:.3,tip:false,glow:.15});
+      stroke(poly([{x:x-22*s,y:y-10*s},{x,y:y+2*s},{x:x+22*s,y:y-10*s}]),{color:col,width:3,amp:.2,tip:false,glow:0});
+      stroke(poly([{x,y:y+2*s},{x,y:y+28*s}]),{color:col,width:3,amp:.2,tip:false,glow:0})}
+    function iconLamp(x,y,s,glowOn){if(glowOn>0){const ph=.5+.5*Math.sin(T*.012);
+        const g=ctx.createRadialGradient(x,y,10,x,y,220*s);g.addColorStop(0,`rgba(255,194,122,${.38*glowOn*GA*(.7+.3*ph)})`);g.addColorStop(1,"rgba(255,194,122,0)");
+        ctx.save();ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,220*s,0,Math.PI*2);ctx.fill();ctx.restore();
+        for(let i=0;i<5;i++){const a=-Math.PI*.9+i*Math.PI*.2;stroke(poly([{x:x+Math.cos(a)*50*s,y:y+Math.sin(a)*50*s},{x:x+Math.cos(a)*(70+ph*10)*s,y:y+Math.sin(a)*(70+ph*10)*s}]),{color:COL.warm,width:4,alpha:glowOn,glow:.2,tip:false,amp:0})}}
+      shape(join(arcPts(x,y,34*s,Math.PI,Math.PI*2),poly([{x:x+34*s,y},{x:x-34*s,y}])),{color:COL.warm,width:4,fill:COL.warm,fillA:.15+.4*glowOn,amp:.4,tip:false})}
+    function frog(x,y,s,wave=false){
+      shape(ellipsePts(x,y,72*s,54*s),{color:COL.green,width:4.5,fill:COL.green,fillA:.16,tip:false});
+      [-1,1].forEach(k=>{const ex=x+k*34*s,ey=y-50*s;dot(ex,ey,23*s,COL.bg,1);shape(circlePts(ex,ey,23*s),{color:COL.green,width:4,tip:false});dot(ex+k*3*s,ey+3*s,8.5*s,COL.ink,1)});
+      stroke(arcPts(x,y-8*s,30*s,.22*Math.PI,.78*Math.PI),{color:COL.ink,width:4,glow:0,tip:false});
+      dot(x-48*s,y+6*s,9*s,COL.red,.35);dot(x+48*s,y+6*s,9*s,COL.red,.35);
+      if(wave){const a=-1.15+Math.sin(T*.012)*.45,hx=x+66*s+Math.cos(a)*54*s,hy=y-4*s+Math.sin(a)*54*s;
+        stroke(poly([{x:x+62*s,y:y+2*s},{x:hx,y:hy}]),{color:COL.green,width:5.5,tip:false,amp:.3});dot(hx,hy,9*s,COL.green,1)}
+      text("呱基",x,y+86*s,{size:Math.round(26*Math.max(.8,s)),color:COL.green,weight:700,rise:0})}
+
+    // ---------- frame chrome ----------
+    function header(sc){const a=eOut(T/520);
+      text(`${sc.num}  ·  ${sc.tag}`,W/2,292,{size:26,color:COL.blue,weight:600,alpha:a,spacing:4});
+      text(sc.headline,W/2,368,{size:54,color:COL.ink,weight:700,alpha:a,rise:18})}
+    function wrapLines(str,size,maxW){ctx.save();ctx.font=`500 ${size}px ${FONT}`;const lines=[];let cur="";
+      for(const ch of [...str]){const t=cur+ch;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=ch}else cur=t}
+      if(cur)lines.push(cur);ctx.restore();
+      const noStart="，。、；：？！）」』…—,.;:?!";
+      for(let i=1;i<lines.length;i++){while(lines[i]&&noStart.includes(lines[i][0])){lines[i-1]+=lines[i][0];lines[i]=lines[i].slice(1)}}
+      const out=lines.filter(Boolean);
+      if(out.length>=2&&[...out[out.length-1]].length<=2){out[out.length-2]+=out.pop()}
+      return out}
+    function subtitle(sc){
+      const g=ctx.createLinearGradient(0,1470,0,H-SAFE_BOTTOM);g.addColorStop(0,"rgba(7,14,21,0)");g.addColorStop(.35,"rgba(7,14,21,.82)");g.addColorStop(1,"rgba(7,14,21,.9)");
+      ctx.fillStyle=g;ctx.fillRect(0,1470,W,H-SAFE_BOTTOM-1470);
+      let cur=null;for(const b of sc.beats){if(T>=b.at-60)cur=b}if(!cur)cur=sc.beats[0];
+      const a=eOut((T-(cur.at-60))/180);
+      let lines=wrapLines(cur.text,42,920);
+      for(let w=900;lines.length>1&&w>=500;w-=20){const t=wrapLines(cur.text,42,w);if(t.length!==lines.length)break;lines=t}
+      const lh=42*1.45,y0=SUB_Y-(lines.length-1)*lh/2;
+      lines.forEach((ln,i)=>text(ln,W/2,y0+i*lh,{size:42,color:COL.ink,weight:500,alpha:.35+.65*a,rise:6}))}
+
+    // ---------- scenes ----------
+    const DRAW={};
+
+    DRAW.hook=function(){
+      const fm=pr("s1",900);
+      const fx=lerp(540,930,fm),fy=lerp(900,1270,fm),fs=lerp(1.35,.75,fm);
+      withA(ap("intro",500),()=>frog(fx,fy,fs,since("intro")<2600));
+      // 摄像头 + 胶片
+      withA(emph("s3",.55),()=>{
+        iconCam(170,660,.82,pr("s1",900));
+        const stripP=pr("s1",900,250),sx=290,sy=600,sw=690,sh=120;
+        shape(rrectPts(sx,sy,sw,sh,16),{color:COL.ink,width:3.5,prog:stripP,alpha:.85,fill:COL.ink,fillA:.04});
+        if(stripP>.6){const off=(Math.min(T,at("s2"))*.09)%74;
+          ctx.save();ctx.beginPath();ctx.rect(sx+6,sy+6,sw-12,sh-12);ctx.clip();
+          withA(clamp01((stripP-.6)/.4),()=>{for(let i=-1;i<11;i++){const x=sx+14+i*74-off;
+            ctx.save();ctx.globalAlpha=GA*.55;ctx.strokeStyle=COL.ink;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(x,sy+26,58,sh-52,6);ctx.stroke();
+            ctx.fillStyle=COL.ink;ctx.globalAlpha=GA*.35;ctx.fillRect(x+6,sy+10,10,8);ctx.fillRect(x+40,sy+10,10,8);ctx.fillRect(x+6,sy+sh-18,10,8);ctx.fillRect(x+40,sy+sh-18,10,8);ctx.restore()}});
+          const dim=ap("s2",500);
+          if(dim>0){ctx.fillStyle=`rgba(7,14,21,${.62*dim*GA})`;ctx.fillRect(sx+6,sy+6,sw-12,sh-12);
+            withA(dim,()=>{ctx.save();ctx.globalAlpha=GA*.35;ctx.fillStyle=COL.warm;ctx.beginPath();ctx.roundRect(780,sy+14,62,sh-28,8);ctx.fill();ctx.restore();
+              bracket(811,sy+sh/2,84,sh-8,COL.warm,pr("s2",500))})}
+          ctx.restore()}
+        text("一天的视频",470,800,{size:28,color:COL.mute,alpha:ap("s1",450,600)});
+        text("≈ 20–30 GB",740,800,{size:46,color:COL.ink,weight:700,alpha:ap("s1",450,700)});
+        withA(ap("s2"),()=>{stroke(poly([{x:811,y:592},{x:811,y:552}]),{color:COL.warm,width:3,glow:0,tip:false,amp:0});
+          pill("有用的：几十秒",811,520,{tone:COL.warm,size:28})});
+      });
+      // 全上云
+      const route=quadPts(170,790,260,1060,760,1035);
+      withA(emph("s3",.5),()=>{
+        stroke(route,{color:COL.red,width:3,prog:pr("s3",900),alpha:.55,dash:[10,12],glow:0,tip:false,amp:0});
+        if(since("s3")>600&&since("s4")<0){for(let i=0;i<4;i++){const u=((T*.00042)+i/4)%1,q=along(route,u);
+          withA(ap("s3",400,600),()=>{ctx.save();ctx.globalAlpha=GA*.9;ctx.strokeStyle=COL.red;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(q.x-22,q.y-16,44,32,6);ctx.stroke();ctx.restore()})}}
+      });
+      iconCloud(860,1020,.9,pr("s3",900,300));
+      withA(emph("s3",.35),()=>["费流量","反应慢","不踏实"].forEach((w,i)=>pill(w,300+i*240,1190,{tone:COL.red,size:28,alpha:ap("s3",400,1400+i*900)})));
+      // 加一层边
+      const ea=pr("s4",800);
+      if(ea>0){const q={x:470,y:1010};
+        withA(ap("s4"),()=>{iconEdge(q.x,q.y,.62,ea,ap("s4",600,600));
+          text("边",q.x,q.y-86,{size:46,color:COL.blue,weight:800,alpha:ap("s4",400,300)})});
+        for(let i=0;i<3;i++){const u=((T*.00042)+i/3)%1,qq=along(route,u);
+          withA(ap("s4",400,700),()=>{if(u<.42){ctx.save();ctx.globalAlpha=GA*.9;ctx.strokeStyle=COL.red;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(qq.x-22,qq.y-16,44,32,6);ctx.stroke();ctx.restore()}
+            else if(i===0) dot(qq.x,qq.y,8,COL.blue,1)})}}
+      text("它怎么做到？又帮了你什么？",W/2,1350,{size:34,color:COL.blue,weight:600,alpha:ap("s5")});
+    };
+
+    DRAW.why=function(){
+      // 远
+      withA(1-.45*ap("mid",500),()=>{
+        iconCam(150,560,.5,pr("far",700));
+        iconCloud(925,555,.66,pr("far",800,150));
+        const road=poly([{x:225,y:560},{x:830,y:560}]);
+        stroke(road,{color:COL.faint,width:3,prog:pr("far",900,250),dash:[8,12],glow:0,tip:false,amp:0});
+        if(since("far")>900){const u=(T*.00035)%1,q=along(road,u);dot(q.x,q.y,7,COL.ink,.7)}
+        text("很远",527,520,{size:28,color:COL.mute,alpha:ap("far",400,700)*(1-ap("mid",300))})});
+      // 三笔账
+      const rows=[
+        {k:"flow",title:"流量",sub:"一路高清监控",val:"20–30 GB / 天",ic:(x,y,p)=>iconBars(x,y,1,p,COL.red,.5+.5*Math.sin(T*.006))},
+        {k:"time",title:"时间",sub:"上传 → 排队 → 识别 → 推送",val:"1–2 秒",ic:(x,y,p)=>iconClock(x,y,1,p,COL.red,since("time")>0?since("time")*.004:0)},
+        {k:"priv",title:"隐私",sub:"家门口的画面整段外传",val:"整段出门",ic:(x,y,p)=>iconShield(x,y,1,p,COL.red)},
+      ];
+      rows.forEach((r,i)=>{const y=730+i*160,a=ap(r.k,450);if(a<=0)return;
+        withA(emph(r.k,.4)*(1-.35*ap("mid",500)),()=>{
+          shape(circlePts(180,y,54),{color:COL.red,width:3,prog:pr(r.k,600),alpha:.5,fill:COL.red,fillA:.08,glow:0});
+          r.ic(180,y,pr(r.k,700,150));
+          text(r.title,262,y-22,{size:40,weight:700,align:"left",alpha:a});
+          text(r.sub,262,y+28,{size:26,color:COL.mute,align:"left",alpha:a});
+          text(r.val,968,y,{size:42,weight:700,color:COL.warm,align:"right",alpha:ap(r.k,450,500)})})});
+      // 端侧不够
+      withA(emph("dev",.45)*(1-.35*ap("mid",500)),()=>{const y=1210,a=ap("dev");if(a<=0)return;
+        iconCam(180,y,.34,pr("dev",600),COL.green);
+        text("摄像头自己算？",262,y-22,{size:36,weight:700,align:"left",alpha:a});
+        text("个头小 · 怕发热 · 跑不动",262,y+26,{size:26,color:COL.mute,align:"left",alpha:a});
+        text("不够",968,y,{size:40,weight:700,color:COL.green,align:"right",alpha:ap("dev",400,500)})});
+      // 中间位置
+      const m=pr("mid",700);
+      if(m>0){shape(rrectPts(470,505,114,110,22),{color:COL.blue,width:4,prog:m,fill:COL.blue,fillA:.14,dash:null});
+        text("边",527,560,{size:46,color:COL.blue,weight:800,alpha:ap("mid",400,400),rise:0});
+        pill("最合适的位置：在两者之间",W/2,1345,{tone:COL.blue,size:32,alpha:ap("mid",450,300)})}
+    };
+
+    DRAW.principle=function(){
+      const camP=pr("core",700),edP=pr("core",900,200),clP=pr("core",800,400);
+      const dimAll=1-.4*ap("shrink",500);
+      withA(dimAll,()=>{
+        iconCam(150,660,.6,camP);
+        iconEdge(540,660,1.05,edP,since("flow")>0?1:0);
+        iconCloud(925,650,.62,clP);
+        const inA=poly([{x:212,y:660},{x:405,y:660}]),outA=poly([{x:676,y:660},{x:840,y:660}]);
+        stroke(inA,{color:COL.ink,width:3.5,prog:pr("core",600,500),alpha:.6,glow:0,tip:false});arrowHead(inA,pr("core",600,500),{alpha:.6,width:3.5});
+        stroke(outA,{color:COL.ink,width:3.5,prog:pr("core",600,700),alpha:.6,glow:0,tip:false});arrowHead(outA,pr("core",600,700),{alpha:.6,width:3.5});
+        withA(emph("core",.55),()=>text("离数据最近 · 算力够用",540,800,{size:32,color:COL.blue,weight:600,alpha:ap("core",450,1200)}));
+        text("家庭网关 · 小区机房 · 路口小盒子",540,858,{size:27,color:COL.mute,alpha:ap("where",450)});
+        // 画面流入
+        if(since("flow")>0){const fa=ap("flow",400);
+          pill("识别模型",540,540,{tone:COL.blue,size:26,alpha:fa});
+          text("全部画面",308,618,{size:24,color:COL.mute,alpha:fa});
+          for(let i=0;i<5;i++){const u=((T*.0007)+i/5)%1,q=along(inA,u);
+            withA(fa*(u>.85?(1-u)/.15:1),()=>{ctx.save();ctx.globalAlpha=GA*.85;ctx.strokeStyle=COL.ink;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(q.x-16,q.y-12,32,24,4);ctx.stroke();ctx.restore()})}
+          const scan=(Math.sin(since("flow")*.004)*.5+.5);
+          withA(fa*.8,()=>stroke(poly([{x:430,y:610+scan*100},{x:650,y:610+scan*100}]),{color:COL.blue,width:2.5,glow:.3,tip:false,amp:0,grain:false}))}
+        if(since("drop")>0){const da=ap("drop",400);
+          text("只发结论 + 片段",758,618,{size:24,color:COL.warm,weight:600,alpha:da});
+          const u=((since("drop"))*.00055)%1,q=along(outA,u);
+          withA(da,()=>{ctx.save();ctx.globalAlpha=GA;ctx.fillStyle=COL.warm;ctx.globalAlpha=GA*.35;ctx.beginPath();ctx.roundRect(q.x-14,q.y-11,28,22,4);ctx.fill();ctx.globalAlpha=GA;ctx.strokeStyle=COL.warm;ctx.lineWidth=2.5;ctx.stroke();ctx.restore()});
+          withA(da,()=>{pill("没事 → 丢掉",380,940,{tone:COL.ink,color:COL.mute,size:26});pill("有事 → 结论 + 几秒片段",700,940,{tone:COL.warm,size:26})})}
+      });
+      // 上传量对比
+      const s=ap("shrink",450);
+      if(s>0){const y1=1080,y2=1185,x0=300,full=660;
+        withA(s,()=>{
+          text("全部上传",120,y1,{size:30,align:"left"});text("边处理后",120,y2,{size:30,align:"left",color:COL.blue});
+          ctx.save();ctx.globalAlpha=GA*.55;ctx.fillStyle=COL.red;ctx.beginPath();ctx.roundRect(x0,y1-17,full*pr("shrink",700),34,17);ctx.fill();ctx.restore();
+          const bw=lerp(full,10,eInOut((since("shrink")-800)/1500));
+          ctx.save();ctx.globalAlpha=GA*.9;ctx.fillStyle=COL.blue;ctx.beginPath();ctx.roundRect(x0,y2-17,Math.max(10,bw),34,17);ctx.fill();ctx.restore();
+          text("≈ 25 GB",x0+full,y1-44,{size:28,color:COL.red,weight:700,align:"right",alpha:ap("shrink",400,500)});
+          text("≈ 25 MB",x0+24,y2-44,{size:28,color:COL.blue,weight:700,align:"left",alpha:ap("shrink",400,2000)});
+          text("≈ 1 / 1000",W/2,1310,{size:64,color:COL.warm,weight:800,alpha:ap("shrink",500,2300)});
+          text("需要上传的数据量",W/2,1380,{size:26,color:COL.mute,alpha:ap("shrink",500,2500)})})}
+    };
+
+    DRAW.split=function(){
+      const dim=1-.45*ap("motto",500);
+      withA(dim,()=>{
+        iconCloud(540,620,1.1,pr("q",800));
+        text("云 · 训练",540,715,{size:30,color:COL.warm,weight:700,alpha:ap("q",400,500)});
+        iconEdge(540,1090,.82,pr("q",800,300),since("edge")>0?1:0);
+        text("边 · 现场判断",540,1182,{size:30,color:COL.blue,weight:700,alpha:ap("q",400,800)});
+        const down=quadPts(660,700,860,860,665,1035),up=quadPts(415,1035,220,860,420,700);
+        const dp=pr("train",900),upP=pr("edge",900);
+        stroke(down,{color:COL.warm,width:4.5,prog:dp,glow:.15});arrowHead(down,dp,{color:COL.warm,width:4.5});
+        if(dp>=1){const u=((since("train")-900)*.0004)%1;const q=along(down,u);iconBox(q.x,q.y,1,COL.warm)}
+        text("压缩成",915,835,{size:26,color:COL.warm,alpha:ap("train",400,800)});
+        text("小模型下发",915,875,{size:26,color:COL.warm,weight:700,alpha:ap("train",400,900)});
+        stroke(up,{color:COL.blue,width:4.5,prog:upP,glow:.15});arrowHead(up,upP,{color:COL.blue,width:4.5});
+        if(upP>=1){const u=((since("edge")-900)*.0004)%1;const q=along(up,u);
+          ctx.save();ctx.globalAlpha=GA;ctx.fillStyle=COL.blue;ctx.globalAlpha=GA*.3;ctx.beginPath();ctx.roundRect(q.x-16,q.y-12,32,24,5);ctx.fill();ctx.globalAlpha=GA;ctx.strokeStyle=COL.blue;ctx.lineWidth=3;ctx.stroke();ctx.restore();
+          text("?",q.x,q.y,{size:20,color:COL.ink,weight:800,rise:0})}
+        text("拿不准的",165,835,{size:26,color:COL.blue,alpha:ap("edge",400,800)});
+        text("样本回传",165,875,{size:26,color:COL.blue,weight:700,alpha:ap("edge",400,900)});
+        const la=ap("loop",500);
+        if(la>0){withA(la,()=>{const r=62,ph=T*.0016;stroke(arcPts(540,858,r,ph,ph+Math.PI*1.6),{color:COL.ink,width:3,alpha:.35,glow:0,tip:false,amp:0,grain:false});
+          text("越用越准",540,858,{size:38,weight:800})})}
+      });
+      const m=ap("motto",450);
+      if(m>0){pill("云：大 · 全",320,1340,{tone:COL.warm,size:38,alpha:m,padX:30});pill("边：快 · 近",760,1340,{tone:COL.blue,size:38,alpha:ap("motto",450,350),padX:30})}
+    };
+
+    DRAW.door=function(){
+      const sceneA=pr("intro5",900);
+      const night=ap("night",700)*(1-ap("value5",600));
+      // 门
+      withA(1,()=>{
+        stroke(poly([{x:70,y:1060},{x:1010,y:1060}]),{color:COL.faint,width:3,prog:sceneA,glow:0,tip:false});
+        shape(rrectPts(330,560,250,500,10),{color:COL.ink,width:4,prog:sceneA,alpha:.75,fill:COL.ink,fillA:.04});
+        dot(548,820,9,COL.ink,.7*sceneA);
+        iconCam(660,760,.42,pr("intro5",700,300));
+        iconEdge(868,760,.52,pr("intro5",700,500),since("leaf")>0?1:0);
+        stroke(poly([{x:700,y:760},{x:805,y:760}]),{color:COL.blue,width:3,prog:pr("intro5",500,700),dash:[6,8],glow:0,tip:false,amp:0});
+        text("家庭网关 · 边",868,838,{size:24,color:COL.blue,weight:600,alpha:ap("intro5",400,900)});
+      });
+      if(night>0){const g=ctx.createLinearGradient(0,400,0,1480);g.addColorStop(0,"rgba(3,7,12,0)");g.addColorStop(.12,`rgba(3,7,12,${.55*night})`);
+        g.addColorStop(.88,`rgba(3,7,12,${.55*night})`);g.addColorStop(1,"rgba(3,7,12,0)");ctx.fillStyle=g;ctx.fillRect(0,400,W,1080)}
+      // 树叶
+      const lf=since("leaf"),pe=since("person");
+      if(lf>0&&pe<600){const la=ap("leaf",300)*(1-eOut((pe)/600*(pe>0?1:0)));
+        const u=clamp01(lf/4200),lx=lerp(110,470,u),ly=900+Math.sin(lf*.004)*40;
+        withA(la,()=>{iconLeaf(lx,ly,1,lf*.003);bracket(lx,ly,120,100,COL.green,pr("leaf",400,700));
+          pill("树叶 · 忽略",lx,ly-92,{tone:COL.green,size:24,alpha:ap("leaf",300,900)})})}
+      // 人
+      if(pe>0){const u=eOut(pe/2600),px=lerp(60,430,u)+(night>0?Math.sin(T*.003)*24:0),walk=pe<2600?pe*.012:0;
+        withA(ap("person",300),()=>{iconPerson(px,1060,1,COL.warm,walk);
+          bracket(px,960,150,240,COL.warm,pr("person",400,1200));
+          pill("人 · 0.05 秒",px,812,{tone:COL.warm,size:24,alpha:ap("person",300,1400)})})}
+      // 夜间
+      if(night>0){withA(night,()=>{iconLamp(455,520,1,night);iconWifi(868,640,.8,1,COL.ink,pr("night",500,400));
+        pill("断网也能亮灯报警",190,640,{tone:COL.warm,size:26})})}
+      // 手机
+      const phA=1-ap("value5",500);
+      if(phA>0&&since("leaf")>0){withA(phA*ap("leaf",400,300),()=>{iconPhone(540,1260,1,pr("leaf",700,300));
+        if(pe<1800) text("安静 · 无打扰",540,1270,{size:22,color:COL.mute,weight:600,rise:0});
+        phoneCard(540,1280,1,(pe-1800)/400,"有人在门口",COL.warm)})}
+      // 价值
+      const v=ap("value5",450);
+      if(v>0){[["更准",COL.blue],["更快",COL.warm],["更省",COL.green],["少外传",COL.blue]].forEach(([w,c],i)=>{
+        const a=ap("value5",400,i*700),x=180+i*240,y=1270;
+        withA(a,()=>{shape(circlePts(x,y,74),{color:c,width:4,prog:pr("value5",600,i*700),fill:c,fillA:.12});text(w,x,y,{size:w.length>2?28:34,weight:700,color:c,rise:0})})})}
+    };
+
+    DRAW.road=function(){
+      const ra=pr("intro6",900),cx=540,cy=860;
+      withA(ra,()=>{ctx.save();ctx.globalAlpha=GA;ctx.fillStyle="#13212d";
+        ctx.fillRect(60,790,960,140);ctx.fillRect(470,470,140,780);ctx.restore()});
+      stroke(poly([{x:60,y:790},{x:470,y:790}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:610,y:790},{x:1020,y:790}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:60,y:930},{x:470,y:930}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:610,y:930},{x:1020,y:930}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:470,y:470},{x:470,y:790}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:610,y:470},{x:610,y:790}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:470,y:930},{x:470,y:1250}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:610,y:930},{x:610,y:1250}]),{color:COL.faint,width:3,prog:ra,glow:0,tip:false,amp:.5});
+      stroke(poly([{x:60,y:860},{x:470,y:860}]),{color:COL.faint,width:2,prog:ra,dash:[16,16],glow:0,tip:false,amp:0});
+      stroke(poly([{x:540,y:470},{x:540,y:790}]),{color:COL.faint,width:2,prog:ra,dash:[16,16],glow:0,tip:false,amp:0});
+      const green=at("count")+2600, isGreen=T>green;
+      // 东西向车队
+      for(let i=0;i<5;i++){let x=430-i*78;if(isGreen){x+=Math.max(0,(T-green-i*160))*.22}
+        if(x>1060)continue;const a=ap("intro6",400,300+i*120)*(x>980?(1060-x)/80:1);
+        withA(a,()=>{ctx.save();ctx.translate(x,895);ctx.globalAlpha=GA*.25;ctx.fillStyle=COL.blue;ctx.beginPath();ctx.roundRect(-30,-17,60,34,9);ctx.fill();
+          ctx.globalAlpha=GA*.95;ctx.strokeStyle=COL.blue;ctx.lineWidth=3;ctx.stroke();ctx.restore()})}
+      // 南北向一辆
+      withA(ap("intro6",400,900),()=>{ctx.save();ctx.translate(505,735);ctx.globalAlpha=GA*.25;ctx.fillStyle=COL.warm;ctx.beginPath();ctx.roundRect(-17,-30,34,60,9);ctx.fill();
+        ctx.globalAlpha=GA*.95;ctx.strokeStyle=COL.warm;ctx.lineWidth=3;ctx.stroke();ctx.restore()});
+      // 红绿灯
+      withA(ap("intro6",400,600),()=>{const lx=690,ly=690;ctx.save();ctx.globalAlpha=GA;ctx.fillStyle="#0d1822";ctx.beginPath();ctx.roundRect(lx-30,ly-74,60,148,18);ctx.fill();ctx.strokeStyle=COL.ink;ctx.globalAlpha=GA*.6;ctx.lineWidth=3;ctx.stroke();ctx.restore();
+        dot(lx,ly-40,17,COL.red,isGreen?.15:.95);dot(lx,ly,17,COL.warm,.15);dot(lx,ly+40,17,COL.green,isGreen?.95:.15);
+        if(isGreen){const g=ctx.createRadialGradient(lx,ly+40,4,lx,ly+40,60);g.addColorStop(0,`rgba(147,230,173,${.35*GA})`);g.addColorStop(1,"rgba(147,230,173,0)");ctx.fillStyle=g;ctx.beginPath();ctx.arc(lx,ly+40,60,0,Math.PI*2);ctx.fill()}});
+      // 边缘盒子
+      const bx=850,by=1110;
+      iconEdge(bx,by,.5,pr("count",700),since("count")>0?1:0);
+      text("边缘盒子",bx,by+66,{size:24,color:COL.blue,weight:600,alpha:ap("count",400,500)});
+      stroke(poly([{x:bx,y:by-38},{x:bx,y:860},{x:720,y:772}]),{color:COL.blue,width:3,prog:pr("count",700,500),dash:[6,8],glow:0,tip:false,amp:0});
+      withA(emph("count",.5),()=>{
+        pill("排队 5 辆",270,745,{tone:COL.blue,size:24,alpha:ap("count",400,900)});
+        pill("1 辆",400,620,{tone:COL.warm,size:24,alpha:ap("count",400,1200)});
+        pill("绿灯 +5 秒",820,600,{tone:COL.green,size:26,alpha:clamp01((T-green)/400)})});
+      // 当场决定
+      const nowA=ap("now",450)*(1-ap("value6",400));
+      if(nowA>0){withA(nowA,()=>{iconClock(330,1340,.6,1,COL.blue,since("now")*.01);text("毫秒级，当场决定",580,1340,{size:36,weight:700,color:COL.blue})})}
+      // 云端
+      const ca=pr("city",800);
+      if(ca>0){iconCloud(900,535,.52,ca);
+        const link=quadPts(bx+40,by-40,1010,820,935,590);
+        stroke(link,{color:COL.warm,width:2.5,prog:pr("city",900,300),alpha:.6,dash:[4,10],glow:0,tip:false,amp:0});
+        if(since("city")>1200){const q=along(link,(since("city")*.0004)%1);dot(q.x,q.y,6,COL.warm,.9)}
+        text("全城配时 · 长期规划",820,450,{size:26,color:COL.warm,weight:600,alpha:ap("city",400,700)})}
+      const v=ap("value6",450);
+      if(v>0)pill("少等红灯 · 过路口更顺",W/2,1340,{tone:COL.green,size:36,alpha:v,padX:30});
+    };
+
+    DRAW.end=function(){
+      const dim=1-.6*ap("e3",500);
+      withA(dim,()=>{
+        const items=[{lab:"秒级提醒",ic:(x,y,p)=>iconBell(x,y,1,p,COL.warm,since("e1")>0?T*.02:0)},
+          {lab:"断网可用",ic:(x,y,p)=>iconWifi(x,y,1,p,COL.green,0)},
+          {lab:"数据不出园区",ic:(x,y,p)=>iconShield(x,y,1,p,COL.blue)}];
+        items.forEach((it,i)=>{const d=i*1100,x=220+i*320,y=620;
+          withA(ap("e1",400,d),()=>{shape(circlePts(x,y,78),{color:COL.ink,width:3,alpha:.35,prog:pr("e1",600,d),glow:0});it.ic(x,y,pr("e1",700,d+150));
+            text(it.lab,x,y+122,{size:30,weight:600})})});
+        const e2=ap("e2",450);
+        if(e2>0){pill("本地先判断",370,900,{tone:COL.blue,size:32,alpha:e2,padX:26});
+          const ar=poly([{x:520,y:900},{x:600,y:900}]);stroke(ar,{color:COL.ink,width:4,prog:pr("e2",500,300),alpha:.7,glow:0,tip:false});arrowHead(ar,pr("e2",500,300),{alpha:.7});
+          pill("按需上云",735,900,{tone:COL.warm,size:32,alpha:ap("e2",450,500),padX:26})}
+      });
+      const q=ap("e3",500);
+      if(q>0){text("边，就是在离你最近的地方",W/2,1080,{size:46,weight:700,alpha:q});
+        text("先把事办了",W/2,1170,{size:66,weight:800,color:COL.blue,alpha:ap("e3",500,900)});
+        stroke(quadPts(370,1225,540,1240,710,1222),{color:COL.blue,width:5,prog:pr("e3",700,1300),glow:.2})}
+      withA(ap("bye",500),()=>frog(540,1340,.75,true));
+    };
+
+    // ---------- cover ----------
+    function richLine(parts,cx,y,size,weight=700){
+      const total=parts.reduce((s,[str,,sz])=>s+measure(str,sz||size,weight),0);let x=cx-total/2;const spans=[];
+      for(const [str,color,sz,glow] of parts){const s=sz||size,w=measure(str,s,weight);
+        if(glow){ctx.save();ctx.shadowColor=glow;ctx.shadowBlur=42;text(str,x,y,{size:s,color,weight,align:"left",rise:0});ctx.restore()}
+        text(str,x,y,{size:s,color,weight,align:"left",rise:0});spans.push({x,w});x+=w}
+      return spans}
+    function drawCover(){
+      BEATS=[];T=577;GA=1;
+      ctx.drawImage(bgCanvas,0,0);
+      const halo=ctx.createRadialGradient(540,1000,40,540,1000,420);halo.addColorStop(0,"rgba(127,211,255,0.13)");halo.addColorStop(1,"rgba(127,211,255,0)");
+      ctx.fillStyle=halo;ctx.fillRect(0,560,W,880);
+
+      pill("呱基讲 AI  ·  第 5 期",W/2,330,{tone:COL.green,size:30,padX:30});
+
+      richLine([["「",COL.ink],["边",COL.blue,156,"rgba(127,211,255,0.85)"],["」到底",COL.ink]],W/2,510,136);
+      richLine([["帮了你什么？",COL.ink]],W/2,684,136);
+
+      const y=1000;
+      iconCam(165,y,.62,1);
+      iconEdge(540,y,1.15,1,1);
+      iconCloud(918,y-8,.64,1);
+      const inA=poly([{x:228,y},{x:392,y}]),outA=poly([{x:690,y},{x:826,y}]);
+      stroke(inA,{color:COL.ink,width:4,alpha:.6,glow:0,tip:false,amp:0});arrowHead(inA,1,{alpha:.6,width:4});
+      stroke(outA,{color:COL.warm,width:4,alpha:.8,glow:0,tip:false,amp:0});arrowHead(outA,1,{color:COL.warm,alpha:.8,width:4});
+      [.12,.38,.64].forEach(u=>{const q=along(inA,u);ctx.save();ctx.globalAlpha=.85;ctx.strokeStyle=COL.ink;ctx.lineWidth=2.5;ctx.beginPath();ctx.roundRect(q.x-17,q.y-13,34,26,5);ctx.stroke();ctx.restore()});
+      {const q=along(outA,.42);ctx.save();ctx.fillStyle=COL.warm;ctx.globalAlpha=.4;ctx.beginPath();ctx.roundRect(q.x-12,q.y-10,24,20,4);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=COL.warm;ctx.lineWidth=2.5;ctx.stroke();ctx.restore()}
+      text("25 GB",310,y-74,{size:40,weight:700,color:COL.red,rise:0});
+      text("全部画面",310,y+70,{size:26,color:COL.mute,rise:0});
+      text("25 MB",758,y-74,{size:40,weight:700,color:COL.warm,rise:0});
+      text("只传结论",758,y+70,{size:26,color:COL.mute,rise:0});
+      text("边 · 就近判断",540,y+150,{size:34,weight:700,color:COL.blue,rise:0});
+
+      text("离你最近的地方，先把事办了",W/2,1300,{size:52,weight:700,rise:0});
+      stroke(quadPts(300,1352,540,1368,780,1350),{color:COL.blue,width:5,glow:.2,tip:false});
+      text("云边分工  ·  门铃  ·  红绿灯",W/2,1430,{size:30,color:COL.mute,rise:0,spacing:2});
+
+      frog(520,1565,.95,true);
+    }
+
+    // ---------- render ----------
+    function drawScene(index,localT){
+      const sc=SCENES[index];BEATS=sc.beats;T=localT;GA=1;
+      ctx.drawImage(bgCanvas,0,0);
+      header(sc);
+      (DRAW[sc.id]||(()=>{}))();
+      subtitle(sc);
+      const fade=clamp01(localT/260);if(fade<1){ctx.fillStyle=`rgba(7,14,21,${1-fade})`;ctx.fillRect(0,0,W,H)}
+    }
+
+    // ---------- player ----------
+    let playing=false,muted=false,sceneIndex=0,sceneStart=0,raf=0;
+    function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
+    function speak(s){if(muted||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang="zh-CN";u.rate=1.06;u.pitch=1.15;const v=pickVoice();if(v)u.voice=v;speechSynthesis.speak(u)}
+    function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
+    function totalDuration(){return SCENES.reduce((s,sc)=>s+sc.duration,0)}
+    const offsets=[];{let a=0;SCENES.forEach(sc=>{offsets.push(a);a+=sc.duration})}
+    function setScene(i,rv=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.tag}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
+      if(rv&&playing)speak(sc.voice);updateProgress(0);
+    }
+    function updateProgress(localT){bar.style.width=Math.min(100,((offsets[sceneIndex]+localT)/totalDuration())*100)+"%"}
+    function tick(now){
+      if(!playing)return;const sc=SCENES[sceneIndex],localT=now-sceneStart;
+      drawScene(sceneIndex,localT);updateProgress(localT);
+      if(localT>=sc.duration){if(sceneIndex<SCENES.length-1)setScene(sceneIndex+1,true);else{playing=false;btnPlay.textContent="再看一遍";stopSpeak();drawScene(sceneIndex,sc.duration);updateProgress(sc.duration);return}}
+      raf=requestAnimationFrame(tick);
+    }
+    function play(){playing=true;btnPlay.textContent="暂停";setScene(sceneIndex,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    function pause(){playing=false;btnPlay.textContent="继续";stopSpeak();cancelAnimationFrame(raf)}
+    function restart(){stopSpeak();sceneIndex=0;playing=true;btnPlay.textContent="暂停";setScene(0,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    SCENES.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`${i+1}. ${sc.tag}`;
+      b.addEventListener("click",()=>{const was=playing;stopSpeak();setScene(i,was);drawScene(i,0);if(was){cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}});sceneList.appendChild(b)});
+    btnPlay.addEventListener("click",()=>{if(playing)pause();else{if(btnPlay.textContent==="再看一遍")restart();else play()}});
+    btnRestart.addEventListener("click",restart);
+    btnMute.addEventListener("click",()=>{muted=!muted;btnMute.textContent=muted?"配音：关":"配音：开";if(muted)stopSpeak();else if(playing)speak(SCENES[sceneIndex].voice)});
+    window.__GUAJI__={
+      SCENES,totalDuration,get playing(){return playing},setMuted(v){muted=v},
+      drawAt(ms){
+        let remain=ms,idx=0;
+        while(idx<SCENES.length-1&&remain>=SCENES[idx].duration){remain-=SCENES[idx].duration;idx++}
+        sceneIndex=idx;
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${SCENES[idx].tag}`;
+        [...sceneList.children].forEach((b,j)=>b.classList.toggle("active",j===idx));
+        drawScene(idx,remain);
+        bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
+      },
+      jump(i,localT){this.drawAt(offsets[i]+localT)},
+      drawCover
+    };
+    if(new URLSearchParams(location.search).has("cover"))drawCover();
+    else if(SCENES.length){setScene(0,false);drawScene(0,6000)}
+  </script>
+</body>
+</html>

@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>呱基讲 AI · 什么是模型 Infra</title>
+  <style>
+    :root {
+      --bg:#f3f4f6; --ink:#1d232b; --mute:#5f6b7a; --accent:#1f6fd1;
+      --frog:#1f9d55; --panel:#ffffff; --line:rgba(29,35,43,0.14);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",sans-serif}
+    body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 12px 28px}
+    .brand{width:min(420px,100%);text-align:center}
+    .brand .host{color:var(--frog);font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+    .brand h1{font-family:"Songti SC","Noto Serif CJK SC","Noto Serif SC",Georgia,serif;font-size:clamp(22px,5.5vw,28px);line-height:1.25}
+    .brand p{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.55}
+    .stage-wrap{width:min(420px,100%);position:relative;border:1px solid var(--line);background:#fff;overflow:hidden;aspect-ratio:9/16;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+    canvas{display:block;width:100%;height:100%;background:#fff}
+    .progress{width:min(420px,100%);height:3px;background:rgba(0,0,0,.08);overflow:hidden}
+    .progress>i{display:block;height:100%;width:0%;background:var(--accent)}
+    .controls{width:min(420px,100%);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;font-size:13px;cursor:pointer}
+    button:hover{border-color:rgba(31,111,209,.45);background:#eef4fc}
+    button.primary{background:#1f6fd1;color:#fff;border-color:#1f6fd1}
+    .meta{color:var(--mute);font-size:12px;margin-left:auto}
+    .scene-list{width:min(420px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .scene-list button{text-align:left;padding:8px 10px;font-size:11px;color:var(--mute);line-height:1.35}
+    .scene-list button.active{color:var(--ink);border-color:rgba(31,111,209,.5);background:#eef4fc}
+    .hint{width:min(420px,100%);color:var(--mute);font-size:11px;line-height:1.5}
+    .nav{width:min(420px,100%);font-size:12px}.nav a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <div class="host">呱基 · AI 概念课 · 第 9 期</div>
+    <h1>什么是模型 Infra？</h1>
+    <p>冰山水下那一大块 · 卡和网络 · 训练 · 推理 · 省钱提速</p>
+  </header>
+  <p class="nav">
+    <a href="./index.html">第1期</a> ·
+    <a href="./edge-vs-cloud.html">第2期</a> ·
+    <a href="./modalities.html">第3期</a> ·
+    <a href="./same-question.html">第4期</a> ·
+    <a href="./device-edge-cloud.html">第5期</a> ·
+    <a href="./on-device-pipeline.html">第6期</a> ·
+    <a href="./cv-vs-vlm.html">第7期</a> ·
+    <a href="./code-vs-imagegen.html">第8期</a> ·
+    <span>第9期</span>
+  </p>
+  <div class="stage-wrap"><canvas id="stage" width="1080" height="1920"></canvas></div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnRestart">重来</button>
+    <button id="btnMute">配音：开</button>
+    <div class="meta" id="meta">场景 1 / 7</div>
+  </div>
+  <div class="scene-list" id="sceneList"></div>
+  <p class="hint">竖屏 9:16 · 逐词对齐 · 一屏一个重点</p>
+
+  <script>
+    const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
+    const bar=document.getElementById("bar"), meta=document.getElementById("meta");
+    const btnPlay=document.getElementById("btnPlay"), btnRestart=document.getElementById("btnRestart");
+    const btnMute=document.getElementById("btnMute"), sceneList=document.getElementById("sceneList");
+    const W=canvas.width, H=canvas.height;
+    const SAFE_BOTTOM=150, SUB_Y=1600;
+    const FONT='"Noto Sans CJK SC","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+    const COL={bg:"#ffffff",ink:"#1d232b",mute:"rgba(29,35,43,0.56)",faint:"rgba(29,35,43,0.16)",
+      blue:"#1f6fd1",warm:"#e8890c",green:"#1f9d55",red:"#e0393e"};
+    const LEAD=120;
+
+    /*@@SCENES*/
+    const SCENES=[
+ {
+  "id": "hook",
+  "num": "01",
+  "tag": "模型 Infra",
+  "headline": "水面下的那一大块",
+  "voice": "嗨，我是呱基。你问 AI 一个问题，比如：帮我排一个周末出游计划。几秒钟后，它就开始一个字一个字地回答你。你看到的是模型，可在它背后，还有一整套让它跑起来的系统。这套系统，就叫模型 Infra。Infra 是英文 infrastructure 的缩写，意思是基础设施。打个比方：模型是大厨，Infra 就是让这位大厨，同时给几亿人做饭的整个后厨。",
+  "duration": 30350,
+  "beats": [
+   {
+    "key": "intro",
+    "at": 0,
+    "text": "嗨，我是呱基。"
+   },
+   {
+    "key": "h1",
+    "at": 1852,
+    "text": "你问 AI 一个问题，比如：帮我排一个周末出游计划。"
+   },
+   {
+    "key": "h2",
+    "at": 6620,
+    "text": "几秒钟后，它就开始一个字一个字地回答你。"
+   },
+   {
+    "key": "h3",
+    "at": 10104,
+    "text": "你看到的是模型，可在它背后，还有一整套让它跑起来的系统。"
+   },
+   {
+    "key": "h4",
+    "at": 15023,
+    "text": "这套系统，就叫模型 Infra。Infra 是英文 infrastructure 的缩写，意思是基础设施。"
+   },
+   {
+    "key": "h5",
+    "at": 22674,
+    "text": "打个比方：模型是大厨，Infra 就是让这位大厨，同时给几亿人做饭的整个后厨。"
+   }
+  ]
+ },
+ {
+  "id": "hw",
+  "num": "02",
+  "tag": "底座",
+  "headline": "卡、网络和电",
+  "voice": "先看最底层：一张张 GPU 显卡，装进机柜，几百个机柜，排成一整座机房。训练一个顶级模型，要上万张卡一起算。Meta 训练 Llama 3，就用了一万六千多张卡，连续算了五十多天。卡和卡之间要不停地交换数据，所以要专门的高速网络，比家里的宽带快几百倍。光是这些卡，就要一万多千瓦的电。供电、散热，也都是 Infra 要管的事。",
+  "duration": 30038,
+  "beats": [
+   {
+    "key": "d1",
+    "at": 0,
+    "text": "先看最底层：一张张 GPU 显卡，装进机柜，几百个机柜，排成一整座机房。"
+   },
+   {
+    "key": "d2",
+    "at": 7199,
+    "text": "训练一个顶级模型，要上万张卡一起算。Meta 训练 Llama 3，就用了一万六千多张卡，连续算了五十多天。"
+   },
+   {
+    "key": "d3",
+    "at": 16262,
+    "text": "卡和卡之间要不停地交换数据，所以要专门的高速网络，比家里的宽带快几百倍。"
+   },
+   {
+    "key": "d4",
+    "at": 22905,
+    "text": "光是这些卡，就要一万多千瓦的电。供电、散热，也都是 Infra 要管的事。"
+   }
+  ]
+ },
+ {
+  "id": "train",
+  "num": "03",
+  "tag": "训练",
+  "headline": "把活拆给一万张卡",
+  "voice": "大模型，一张卡根本装不下：四千亿个参数，光存下来就要八百多 GB，而一张卡只有八十 GB。所以 Infra 要把活拆开：模型切成好几段，分到不同的卡上；训练数据也分成很多份，每组卡各学一份，学完再对一对答案，合成同一份进度。上万张卡一起跑，总会有卡出问题。Llama 3 那五十多天里，训练中断了四百多次，平均不到三个小时一次。所以要定时存档，像打游戏存进度：哪张卡坏了就换掉，从最近的存档接着跑，不用从头再来。",
+  "duration": 39398,
+  "beats": [
+   {
+    "key": "t1",
+    "at": 0,
+    "text": "大模型，一张卡根本装不下：四千亿个参数，光存下来就要八百多 GB，而一张卡只有八十 GB。"
+   },
+   {
+    "key": "t2",
+    "at": 8727,
+    "text": "所以 Infra 要把活拆开：模型切成好几段，分到不同的卡上；"
+   },
+   {
+    "key": "t3",
+    "at": 14294,
+    "text": "训练数据也分成很多份，每组卡各学一份，学完再对一对答案，合成同一份进度。"
+   },
+   {
+    "key": "t4",
+    "at": 21238,
+    "text": "上万张卡一起跑，总会有卡出问题。Llama 3 那五十多天里，训练中断了四百多次，平均不到三个小时一次。"
+   },
+   {
+    "key": "t5",
+    "at": 30463,
+    "text": "所以要定时存档，像打游戏存进度：哪张卡坏了就换掉，从最近的存档接着跑，不用从头再来。"
+   }
+  ]
+ },
+ {
+  "id": "serve",
+  "num": "04",
+  "tag": "推理",
+  "headline": "你的问题，怎么被回答",
+  "voice": "训练好了，模型要上线给你用，这一步叫推理服务。你按下发送，请求先到入口排队；调度系统再找一台空闲、又装着这个模型的机器。模型每算出一个字，就马上推回你的屏幕，所以你看到的是一个字一个字往外蹦。同一时刻，可能有几百万人在问。高峰来了自动加机器，半夜人少再撤下来，省钱。",
+  "duration": 26294,
+  "beats": [
+   {
+    "key": "v1",
+    "at": 0,
+    "text": "训练好了，模型要上线给你用，这一步叫推理服务。"
+   },
+   {
+    "key": "v2",
+    "at": 4340,
+    "text": "你按下发送，请求先到入口排队；调度系统再找一台空闲、又装着这个模型的机器。"
+   },
+   {
+    "key": "v3",
+    "at": 11273,
+    "text": "模型每算出一个字，就马上推回你的屏幕，所以你看到的是一个字一个字往外蹦。"
+   },
+   {
+    "key": "v4",
+    "at": 18032,
+    "text": "同一时刻，可能有几百万人在问。高峰来了自动加机器，半夜人少再撤下来，省钱。"
+   }
+  ]
+ },
+ {
+  "id": "tricks",
+  "num": "05",
+  "tag": "省钱提速",
+  "headline": "同样的卡，服务更多人",
+  "voice": "Infra 最见功力的地方，是让同样的卡，服务更多的人。第一招，拼锅。模型每写一个字，都要把全部参数从显存里读一遍，就像每炒一次菜都要热一遍锅；把几十个人的请求放进同一锅，读一遍参数，几十个人各得一个字。第二招，备菜。聊了很久的对话，算过的部分先存起来，下一句不用从头再算；很多厂商对这部分，只收一成到一半的钱。第三招，压缩。把模型压小一些，同样的卡装得下、跑得快。",
+  "duration": 35870,
+  "beats": [
+   {
+    "key": "k0",
+    "at": 0,
+    "text": "Infra 最见功力的地方，是让同样的卡，服务更多的人。"
+   },
+   {
+    "key": "k1",
+    "at": 4757,
+    "text": "第一招，拼锅。模型每写一个字，都要把全部参数从显存里读一遍，就像每炒一次菜都要热一遍锅；"
+   },
+   {
+    "key": "k2",
+    "at": 13449,
+    "text": "把几十个人的请求放进同一锅，读一遍参数，几十个人各得一个字。"
+   },
+   {
+    "key": "k3",
+    "at": 19271,
+    "text": "第二招，备菜。聊了很久的对话，算过的部分先存起来，下一句不用从头再算；很多厂商对这部分，只收一成到一半的钱。"
+   },
+   {
+    "key": "k4",
+    "at": 29560,
+    "text": "第三招，压缩。把模型压小一些，同样的卡装得下、跑得快。"
+   }
+  ]
+ },
+ {
+  "id": "you",
+  "num": "06",
+  "tag": "和你有关",
+  "headline": "快不快、稳不稳、贵不贵",
+  "voice": "那 Infra 跟你有什么关系？它决定了你用 AI 的三种感受。快不快：第一个字多久出来，后面的字蹦得多快；稳不稳：高峰期，会不会弹出一句“服务繁忙，请稍后再试”；贵不贵：同样水平的模型，价格大约每年降到原来的十分之一，这里面，有不少是 Infra 的功劳。",
+  "duration": 22598,
+  "beats": [
+   {
+    "key": "y0",
+    "at": 0,
+    "text": "那 Infra 跟你有什么关系？它决定了你用 AI 的三种感受。"
+   },
+   {
+    "key": "y1",
+    "at": 5451,
+    "text": "快不快：第一个字多久出来，后面的字蹦得多快；"
+   },
+   {
+    "key": "y2",
+    "at": 9340,
+    "text": "稳不稳：高峰期，会不会弹出一句“服务繁忙，请稍后再试”；"
+   },
+   {
+    "key": "y3",
+    "at": 14086,
+    "text": "贵不贵：同样水平的模型，价格大约每年降到原来的十分之一，这里面，有不少是 Infra 的功劳。"
+   }
+  ]
+ },
+ {
+  "id": "end",
+  "num": "07",
+  "tag": "记住",
+  "headline": "模型是大厨，Infra 是后厨",
+  "voice": "记住这个比方：模型是大厨，Infra 是后厨。灶台是 GPU，传菜靠高速网络，排单靠调度；拼锅、备菜省时省钱，还得随时存档、坏了就换。下次 AI 回得又快又便宜，别忘了水面下的那一大块。我是呱基，我们下期见。",
+  "duration": 21182,
+  "beats": [
+   {
+    "key": "e1",
+    "at": 0,
+    "text": "记住这个比方：模型是大厨，Infra 是后厨。"
+   },
+   {
+    "key": "e2",
+    "at": 4352,
+    "text": "灶台是 GPU，传菜靠高速网络，排单靠调度；拼锅、备菜省时省钱，还得随时存档、坏了就换。"
+   },
+   {
+    "key": "e3",
+    "at": 13495,
+    "text": "下次 AI 回得又快又便宜，别忘了水面下的那一大块。"
+   },
+   {
+    "key": "bye",
+    "at": 18275,
+    "text": "我是呱基，我们下期见。"
+   }
+  ]
+ }
+];
+    /*@@END*/
+
+    // ---------- timing ----------
+    let T=0, BEATS=[], GA=1;
+    const clamp01=v=>v<0?0:v>1?1:v;
+    const eOut=t=>1-Math.pow(1-clamp01(t),3);
+    const eInOut=t=>{t=clamp01(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+    const lerp=(a,b,t)=>a+(b-a)*t;
+    function beatIdx(k){return BEATS.findIndex(b=>b.key===k)}
+    function at(k){const b=BEATS.find(b=>b.key===k);return b?Math.max(0,b.at-LEAD):1e9}
+    function since(k){return T-at(k)}
+    function pr(k,dur=800,delay=0){return eInOut((T-at(k)-delay)/dur)}
+    function ap(k,dur=450,delay=0){return eOut((T-at(k)-delay)/dur)}
+    function emph(k,floor=0.32){const i=beatIdx(k),nb=BEATS[i+1];if(!nb)return 1;const t=T-(nb.at-LEAD);return t<=0?1:lerp(1,floor,eOut(t/450))}
+    function withA(a,fn){const old=GA;GA=old*a;if(GA>0.002)fn();GA=old}
+
+    // ---------- geometry ----------
+    function poly(vs,closed=false,step=6){const out=[];const L=closed?[...vs,vs[0]]:vs;
+      for(let k=0;k<L.length-1;k++){const A=L[k],B=L[k+1],d=Math.hypot(B.x-A.x,B.y-A.y),n=Math.max(1,Math.ceil(d/step));
+        for(let i=(k===0?0:1);i<=n;i++)out.push({x:A.x+(B.x-A.x)*i/n,y:A.y+(B.y-A.y)*i/n})}return out}
+    function arcPts(cx,cy,r,a0,a1,step=6){const n=Math.max(2,Math.ceil(Math.abs(a1-a0)*r/step)),out=[];
+      for(let i=0;i<=n;i++){const t=a0+(a1-a0)*i/n;out.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r})}return out}
+    function circlePts(cx,cy,r,start=-Math.PI/2){return arcPts(cx,cy,r,start,start+Math.PI*2)}
+    function ellipsePts(cx,cy,rx,ry){const out=[];for(let i=0;i<=72;i++){const t=-Math.PI/2+i/72*Math.PI*2;out.push({x:cx+Math.cos(t)*rx,y:cy+Math.sin(t)*ry})}return out}
+    function join(...parts){const out=[];for(const p of parts)for(const q of p){const l=out[out.length-1];if(l&&Math.hypot(l.x-q.x,l.y-q.y)<0.5)continue;out.push(q)}return out}
+    function rrectPts(x,y,w,h,r){r=Math.min(r,w/2,h/2);const P=Math.PI;
+      return join(poly([{x:x+r,y},{x:x+w-r,y}]),arcPts(x+w-r,y+r,r,-P/2,0),poly([{x:x+w,y:y+r},{x:x+w,y:y+h-r}]),
+        arcPts(x+w-r,y+h-r,r,0,P/2),poly([{x:x+w-r,y:y+h},{x:x+r,y:y+h}]),arcPts(x+r,y+h-r,r,P/2,P),
+        poly([{x,y:y+h-r},{x,y:y+r}]),arcPts(x+r,y+r,r,P,P*1.5))}
+    function quadPts(x0,y0,cx,cy,x1,y1,step=6){const len=Math.hypot(cx-x0,cy-y0)+Math.hypot(x1-cx,y1-cy),n=Math.max(4,Math.ceil(len/step)),out=[];
+      for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push({x:u*u*x0+2*u*t*cx+t*t*x1,y:u*u*y0+2*u*t*cy+t*t*y1})}return out}
+    function cloudPts(x,y,s){
+      const C=[[-70,15,42],[-15,-22,58],[55,-5,46],[92,20,30],[10,10,50]];
+      const base=50*s,out=[];
+      for(let i=0;i<=150;i++){const th=Math.PI+i/150*Math.PI*2,dx=Math.cos(th),dy=Math.sin(th);let best=0;
+        for(const [cx,cy,r] of C){const ox=cx*s,oy=cy*s,R=r*s,b=dx*ox+dy*oy,c=ox*ox+oy*oy-R*R,disc=b*b-c;if(disc>=0){const t=b+Math.sqrt(disc);if(t>best)best=t}}
+        let px=dx*best,py=dy*best;if(py>base){const t=base/dy;px=dx*t;py=base}
+        out.push({x:x+px,y:y+py})}
+      return out}
+    function along(pts,u){u=clamp01(u);const f=u*(pts.length-1),i=Math.floor(f),fr=f-i;const A=pts[i],B=pts[Math.min(pts.length-1,i+1)];
+      return {x:A.x+(B.x-A.x)*fr,y:A.y+(B.y-A.y)*fr,ang:Math.atan2(B.y-A.y,B.x-A.x)}}
+
+    // ---------- chalk rendering ----------
+    function rough(pts,amp){if(!amp)return pts;const s=pts[0].x*.37+pts[0].y*.91+pts.length*.13;
+      return pts.map((q,i)=>({x:q.x+(Math.sin(i*.31+s)*.6+Math.sin(i*.09+s*1.7)*.4)*amp,y:q.y+(Math.cos(i*.27+s*1.3)*.6+Math.sin(i*.06+s*.7)*.4)*amp}))}
+    function stroke(pts,o={}){
+      const {color=COL.ink,width=4,prog=1,alpha=1,glow=.12,dash=null,tip=true,amp=1.1,grain=true}=o;
+      const A=alpha*GA;if(prog<=0||A<=0.002||pts.length<2)return null;
+      const rp=rough(pts,amp),total=rp.length-1,f=total*clamp01(prog),n=Math.floor(f),fr=f-n;
+      const path=new Path2D();path.moveTo(rp[0].x,rp[0].y);for(let i=1;i<=n;i++)path.lineTo(rp[i].x,rp[i].y);
+      let end=rp[n];if(n<total&&fr>0){const P=rp[n],Q=rp[n+1];end={x:P.x+(Q.x-P.x)*fr,y:P.y+(Q.y-P.y)*fr};path.lineTo(end.x,end.y)}
+      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle=color;
+      if(dash)ctx.setLineDash(dash);
+      if(glow>0){ctx.globalAlpha=A*glow*.45;ctx.lineWidth=width*3.4;ctx.stroke(path)}
+      ctx.globalAlpha=A*.95;ctx.lineWidth=width;ctx.stroke(path);
+      if(grain&&!dash){ctx.setLineDash([1.4,5]);ctx.globalAlpha=A*.16;ctx.lineWidth=width*.5;ctx.strokeStyle="#ffffff";ctx.stroke(path)}
+      ctx.restore();
+      if(tip&&prog<1){ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(end.x,end.y,width*.95,0,Math.PI*2);ctx.fill();ctx.restore()}
+      return end}
+    function fill(pts,color,alpha,amp=1.1){const A=alpha*GA;if(A<=0.002)return;const rp=rough(pts,amp);
+      ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(rp[0].x,rp[0].y);for(const q of rp)ctx.lineTo(q.x,q.y);ctx.closePath();ctx.fill();ctx.restore()}
+    function shape(pts,o={}){if(o.fill)fill(pts,o.fill,(o.fillA??.1)*(o.alpha??1)*Math.pow(clamp01(o.prog??1),2),o.amp??1.1);return stroke(pts,o)}
+    function arrowHead(pts,prog,o={}){if(prog<0.92)return;const {color=COL.ink,width=4,alpha=1,size=20}=o;
+      const e=along(pts,1),b=along(pts,.96),ang=Math.atan2(e.y-b.y,e.x-b.x),a=alpha*eOut((prog-.92)/.08);
+      stroke(poly([{x:e.x-Math.cos(ang-.45)*size,y:e.y-Math.sin(ang-.45)*size},e,{x:e.x-Math.cos(ang+.45)*size,y:e.y-Math.sin(ang+.45)*size}]),{color,width,alpha:a,glow:.1,tip:false,amp:.4})}
+    function dot(x,y,r,color,alpha=1){const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore()}
+    function text(str,x,y,o={}){const {size=32,color=COL.ink,weight=500,align="center",alpha=1,rise=14,spacing=0}=o;
+      const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${FONT}`;
+      ctx.textAlign=align;ctx.textBaseline="middle";if(spacing)ctx.letterSpacing=spacing+"px";ctx.fillText(str,x,y+(1-clamp01(alpha))*rise);ctx.restore()}
+    function measure(str,size,weight=500){ctx.save();ctx.font=`${weight} ${size}px ${FONT}`;const w=ctx.measureText(str).width;ctx.restore();return w}
+    function pill(str,x,y,o={}){const {size=26,color=COL.ink,tone=COL.blue,alpha=1,weight=600,padX=22}=o;
+      const A=alpha*GA;if(A<=0.002)return;const w=measure(str,size,weight)+padX*2,h=size*1.75,yy=y+(1-clamp01(alpha))*10;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(x-w/2,yy-h/2,w,h,h/2);ctx.fillStyle=tone;ctx.globalAlpha=A*.14;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+      text(str,x,yy,{size,color,weight,alpha:Math.min(1,alpha),rise:0})}
+
+    // ---------- background ----------
+    const bgCanvas=document.createElement("canvas");bgCanvas.width=W;bgCanvas.height=H;
+    (function paintBg(){const b=bgCanvas.getContext("2d");
+      const g=b.createRadialGradient(W/2,H*.4,200,W/2,H*.45,H*.8);g.addColorStop(0,"#ffffff");g.addColorStop(1,"#f6f6f3");
+      b.fillStyle=g;b.fillRect(0,0,W,H);let s=7;const r=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
+      for(let i=0;i<1400;i++){b.fillStyle=`rgba(40,40,30,${0.008+r()*0.016})`;const x=r()*W,y=r()*H,z=r()*2+.4;b.fillRect(x,y,z,z)}})();
+
+    // ---------- icons ----------
+    const GPU=COL.green, NET=COL.blue, MOD="#8b3fd9", SCH="#0f9aa0", SAVE=COL.warm, ERR=COL.red;
+    const MONO='"JetBrains Mono","Noto Sans Mono","Noto Sans CJK SC",monospace';
+    function hash(n){const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+    function mono(str,x,y,o={}){const {size=24,color=COL.ink,alpha=1,align="left",weight=500}=o;const A=alpha*GA;if(A<=.002)return;
+      ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${MONO}`;ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(str,x,y);ctx.restore()}
+    function panel(x,y,w,h,p,tone=COL.ink){
+      fill(rrectPts(x,y,w,h,18),"#f6f8fb",clamp01(p*2),0);
+      stroke(rrectPts(x,y,w,h,18),{color:tone,width:3,prog:p,alpha:.4,glow:0,tip:false,amp:.3})}
+    function cross(x,y,r,col=ERR,p=1){stroke(poly([{x:x-r,y:y-r},{x:x+r,y:y+r}]),{color:col,width:5,prog:clamp01(p*2),glow:0,tip:false,amp:0});stroke(poly([{x:x+r,y:y-r},{x:x-r,y:y+r}]),{color:col,width:5,prog:clamp01(p*2-1),glow:0,tip:false,amp:0})}
+    function check(x,y,r,col,p=1){stroke(poly([{x:x-r,y},{x:x-r*.3,y:y+r*.7},{x:x+r,y:y-r*.7}]),{color:col,width:5.5,prog:p,glow:0,tip:false,amp:0})}
+    function arrowLine(pts,p,col=COL.mute,w=3.5,size=16){stroke(pts,{color:col,width:w,prog:p,glow:0,tip:false,amp:0});arrowHead(pts,p,{color:col,width:w,size})}
+    function iconClock(x,y,s,col,spin=0){shape(circlePts(x,y,34*s),{color:col,width:3.5,fill:col,fillA:.1,tip:false,amp:.3,glow:0});
+      stroke(poly([{x:x-8*s,y:y-44*s},{x:x+8*s,y:y-44*s}]),{color:col,width:4,glow:0,tip:false,amp:0});
+      const a=-Math.PI/2+spin;stroke(poly([{x,y},{x:x+Math.cos(a)*24*s,y:y+Math.sin(a)*24*s}]),{color:col,width:3.5,glow:0,tip:false,amp:0})}
+    function phoneBody(x,y,w,h,p){
+      shape(rrectPts(x-w/2,y-h/2,w,h,Math.min(44,w*.15)),{color:COL.ink,width:4,prog:p,alpha:.85,fill:"#ffffff",fillA:1,glow:0});
+      stroke(poly([{x:x-w*.11,y:y-h/2+20},{x:x+w*.11,y:y-h/2+20}]),{color:COL.ink,width:4,prog:clamp01(p*2-1),alpha:.4,glow:0,tip:false,amp:0,grain:false})}
+    function bubble(str,x,y,o={}){
+      const {size=28,tone=NET,align="left",maxW=300,alpha=1,shown=null}=o;
+      const A=alpha*GA;if(A<=.002)return null;
+      let lines=wrapLines(str,size,maxW);
+      if(lines.length===2){let best=-1,bd=1e9;
+        for(let i=1;i<str.length-1;i++){if(!"，。？！；：、".includes(str[i]))continue;const a=measure(str.slice(0,i+1),size,500),b=measure(str.slice(i+1).trim(),size,500);
+          if(a<=maxW&&b<=maxW&&Math.abs(a-b)<bd){bd=Math.abs(a-b);best=i}}
+        if(best>=0)lines=[str.slice(0,best+1),str.slice(best+1).trim()]}
+      const tw=Math.max(...lines.map(l=>measure(l,size,500))),pad=20,lh=size*1.42,h=lines.length*lh+pad*1.2,w=tw+pad*2;
+      const bx=align==="right"?x-w:align==="center"?x-w/2:x;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(bx,y,w,h,20);ctx.fillStyle=tone;ctx.globalAlpha=A*.13;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
+      let left=shown==null?1e9:shown;
+      lines.forEach((ln,i)=>{const ch=[...ln],k=Math.max(0,Math.min(ch.length,left));left-=ch.length;
+        if(k>0)text(ch.slice(0,k).join(""),bx+pad,y+pad*.6+lh/2+i*lh,{size,align:"left",alpha,rise:0})});
+      return {w,h,bx}}
+    function gpuCard(x,y,s,o={}){const {col=GPU,p=1,bad=0,act=0,fix=0}=o;const w=150*s,h=86*s,c=bad>0&&fix<1?ERR:col;
+      shape(rrectPts(x-w/2,y-h/2,w,h,10*s),{color:c,width:Math.max(2.5,3.5*s),prog:p,fill:c,fillA:.08+.14*act,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);if(q<=0)return;
+      withA(q,()=>{shape(rrectPts(x-w*.4,y-h*.28,w*.28,h*.56,4*s),{color:c,width:2.2,fill:c,fillA:.3,glow:0,tip:false,amp:0});
+        [.1,.33].forEach(f=>{const fx=x+w*f,r=h*.27;stroke(circlePts(fx,y,r),{color:c,width:2.2,glow:0,tip:false,amp:0,grain:false});
+          if(s>.5){const a0=act?T*.012:0;for(let k=0;k<3;k++){const a=a0+k*2.094;stroke(poly([{x:fx,y},{x:fx+Math.cos(a)*r*.8,y:y+Math.sin(a)*r*.8}]),{color:c,width:2,glow:0,tip:false,amp:0,grain:false,alpha:.6})}}})});
+      if(bad>0&&fix<1)cross(x,y,h*.3,ERR,bad)}
+    function rack(x,y,w,h,o={}){const {p=1,col=COL.ink,led=GPU,act=0}=o;
+      shape(rrectPts(x-w/2,y-h/2,w,h,6),{color:col,width:3,prog:p,alpha:.75,fill:col,fillA:.04,glow:0,tip:false,amp:.2});
+      const q=clamp01(p*2-1);if(q<=0)return;const n=Math.max(3,Math.round(h/30));
+      for(let i=0;i<n;i++){const yy=y-h/2+h*(i+.5)/n;
+        if(i<n-1)stroke(poly([{x:x-w/2+6,y:yy+h/n/2},{x:x+w/2-6,y:yy+h/n/2}]),{color:col,width:1.5,alpha:.3*q,glow:0,tip:false,amp:0,grain:false});
+        const on=act?(Math.sin(T*.012+i*1.7+x*.031)>-.2?1:.25):.7;dot(x+w/2-Math.max(8,w*.12),yy,Math.max(2.5,w*.035),led,q*on);
+        stroke(poly([{x:x-w/2+8,y:yy},{x:x+w*.15,y:yy}]),{color:col,width:2,alpha:.35*q,glow:0,tip:false,amp:0,grain:false})}}
+    function chefHat(x,y,s,col=COL.ink,p=1){const P=Math.PI;
+      const pts=join(arcPts(x-38*s,y-40*s,30*s,P*.72,P*1.62),arcPts(x,y-64*s,36*s,P*1.18,P*1.82),arcPts(x+38*s,y-40*s,30*s,P*1.38,P*2.28),
+        poly([{x:x+44*s,y:y-16*s},{x:x+44*s,y:y+22*s},{x:x-44*s,y:y+22*s},{x:x-44*s,y:y-16*s},{x:x-60*s,y:y-21*s}]));
+      shape(pts,{color:col,width:4,prog:p,fill:"#ffffff",fillA:1,glow:0,amp:.4});
+      stroke(poly([{x:x-44*s,y:y-2*s},{x:x+44*s,y:y-2*s}]),{color:col,width:3,alpha:.45,prog:p,glow:0,tip:false,amp:0})}
+    function stove(x,y,s,o={}){const {p=1,flame=0,col=COL.ink}=o;const w=150*s,h=90*s;
+      shape(rrectPts(x-w/2,y,w,h,8*s),{color:col,width:3.5,prog:p,fill:col,fillA:.05,glow:0,tip:false,amp:.3});
+      dot(x-w*.25,y+h*.62,7*s,col,.35*p);dot(x,y+h*.62,7*s,col,.35*p);dot(x+w*.25,y+h*.62,7*s,col,.35*p);
+      shape(join(poly([{x:x-w*.36,y:y-6*s},{x:x+w*.36,y:y-6*s}]),arcPts(x,y-6*s,w*.36,0,Math.PI)),{color:COL.ink,width:3.5,prog:p,fill:"#b9c0c9",fillA:.35,glow:0,tip:false,amp:.3});
+      if(flame>0)for(let k=-2;k<=2;k++){const fx=x+k*w*.11,fh=(16+6*Math.sin(T*.02+k*1.3))*s*flame;
+        shape(poly([{x:fx-6*s,y:y+2*s},{x:fx,y:y+2*s-fh},{x:fx+6*s,y:y+2*s}],true),{color:SAVE,width:2,fill:SAVE,fillA:.6,glow:0,tip:false,amp:0})}}
+    function kitchen(x,y,s,o={}){[-1,0,1].forEach(k=>stove(x+k*165*s,y,s,{...o,p:clamp01((o.p??1)*1.6-(k+1)*.3)}))}
+    function wok(x,y,s,o={}){const {col=COL.ink,heat=0,p=1}=o;
+      if(heat>0)for(let k=-2;k<=2;k++){const fx=x+k*16*s,fh=(18+8*Math.sin(T*.025+k))*s*heat;shape(poly([{x:fx-7*s,y:y+46*s},{x:fx,y:y+46*s-fh},{x:fx+7*s,y:y+46*s}],true),{color:SAVE,width:2,fill:SAVE,fillA:.65,glow:0,tip:false,amp:0})}
+      shape(join(poly([{x:x-70*s,y},{x:x+70*s,y}]),arcPts(x,y,70*s,0,Math.PI)),{color:col,width:4,prog:p,fill:"#9aa3ad",fillA:.35,glow:0,tip:false,amp:.3});
+      stroke(poly([{x:x+70*s,y:y+4*s},{x:x+130*s,y:y-14*s}]),{color:col,width:7,prog:p,glow:0,tip:false,amp:0})}
+    function hub(x,y,s,o={}){const {p=1,act=0}=o;
+      shape(circlePts(x,y,46*s),{color:SCH,width:4,prog:p,fill:SCH,fillA:.1+.1*act,glow:0,tip:false,amp:.3});
+      const a0=T*.004*act;for(let k=0;k<3;k++){const a=a0+k*2.094;const pts=arcPts(x,y,28*s,a,a+1.4);arrowLine(pts,p,SCH,3.5,10)}}
+    function gate(x,y,s,o={}){const {p=1}=o;
+      stroke(join(poly([{x:x-40*s,y:y+50*s},{x:x-40*s,y:y-10*s}]),arcPts(x,y-10*s,40*s,Math.PI,Math.PI*2),poly([{x:x+40*s,y:y-10*s},{x:x+40*s,y:y+50*s}])),{color:NET,width:4.5,prog:p,glow:0,tip:false,amp:.3})}
+    function saveIcon(x,y,s,col=SAVE,a=1){withA(a,()=>{const w=40*s;
+      shape(poly([{x:x-w/2,y:y-w/2},{x:x+w*.3,y:y-w/2},{x:x+w/2,y:y-w*.3},{x:x+w/2,y:y+w/2},{x:x-w/2,y:y+w/2}],true),{color:col,width:3,fill:col,fillA:.18,glow:0,tip:false,amp:0});
+      shape(rrectPts(x-w*.28,y-w/2,w*.5,w*.32,2),{color:col,width:2.5,fill:col,fillA:.5,glow:0,tip:false,amp:0});
+      stroke(rrectPts(x-w*.3,y+w*.08,w*.6,w*.36,3),{color:col,width:2.5,glow:0,tip:false,amp:0})})}
+    function bolt(x,y,s,col=SAVE,p=1){shape(poly([{x:x+8*s,y:y-40*s},{x:x-20*s,y:y+6*s},{x:x,y:y+6*s},{x:x-8*s,y:y+40*s},{x:x+20*s,y:y-6*s},{x:x,y:y-6*s}],true),{color:col,width:3.5,prog:p,fill:col,fillA:.35,glow:0,tip:false,amp:0})}
+    function thermo(x,y,s,col=ERR,lv=.6){stroke(join(arcPts(x,y+26*s,16*s,-Math.PI*.3,Math.PI*1.3),poly([{x:x-9*s,y:y+12*s},{x:x-9*s,y:y-34*s}]),arcPts(x,y-34*s,9*s,Math.PI,Math.PI*2),poly([{x:x+9*s,y:y-34*s},{x:x+9*s,y:y+12*s}])),{color:COL.ink,width:3,glow:0,tip:false,amp:0});
+      dot(x,y+26*s,11*s,col,1);fill(rrectPts(x-4*s,y+20*s-lv*52*s,8*s,lv*52*s,3*s),col,1,0)}
+    function fan(x,y,s,col=NET,spin=0){stroke(circlePts(x,y,34*s),{color:col,width:3.5,glow:0,tip:false,amp:0});
+      for(let k=0;k<3;k++){const a=spin+k*2.094;shape(ellipsePts(x+Math.cos(a)*16*s,y+Math.sin(a)*16*s,13*s,7*s).map(q=>({x:x+(q.x-x)*Math.cos(0)-0,y:q.y})),{color:col,width:2.5,fill:col,fillA:.3,glow:0,tip:false,amp:0})}
+      dot(x,y,5*s,col,1)}
+    function person(x,y,s,col=COL.ink,a=1){withA(a,()=>{shape(circlePts(x,y-22*s,12*s),{color:col,width:3,fill:col,fillA:.15,glow:0,tip:false,amp:0});
+      stroke(join(arcPts(x,y+18*s,22*s,Math.PI,Math.PI*2)),{color:col,width:3,glow:0,tip:false,amp:0})})}
+    function paramBlock(x,y,w,h,o={}){const {p=1,label="",col=MOD,a=1,sub=""}=o;withA(a,()=>{
+      shape(rrectPts(x-w/2,y-h/2,w,h,12),{color:col,width:4,prog:p,fill:col,fillA:.12,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);const cols=Math.max(2,Math.floor(w/26)),rows=Math.max(2,Math.floor(h/26));
+      for(let i=0;i<cols;i++)for(let j=0;j<rows;j++)dot(x-w/2+(i+.5)*w/cols,y-h/2+(j+.5)*h/rows,2.6,col,q*.45);
+      if(label){const lw=measure(label,30,700)+30;ctx.save();ctx.globalAlpha=GA*q;ctx.fillStyle="#fff";ctx.beginPath();ctx.roundRect(x-lw/2,y-(sub?40:22),lw,sub?80:44,14);ctx.fill();ctx.restore();
+        text(label,x,y-(sub?14:0),{size:30,weight:800,color:col,alpha:q,rise:0});if(sub)text(sub,x,y+20,{size:22,color:COL.mute,alpha:q,rise:0})}})}
+    function priceTag(x,y,s,str,col=SAVE,a=1){withA(a,()=>{const w=measure(str,30*s,800)+70*s,h=64*s;
+      shape(poly([{x:x-w/2,y},{x:x-w/2+28*s,y:y-h/2},{x:x+w/2,y:y-h/2},{x:x+w/2,y:y+h/2},{x:x-w/2+28*s,y:y+h/2}],true),{color:col,width:3.5,fill:col,fillA:.14,glow:0,tip:false,amp:0});
+      stroke(circlePts(x-w/2+26*s,y,6*s),{color:col,width:3,glow:0,tip:false,amp:0});
+      text(str,x+12*s,y,{size:30*s,weight:800,color:col,rise:0})})}
+    function iceberg(cx,wy,o={}){const {p=1,alpha=1,tipLabel=1}=o;
+      withA(alpha,()=>{
+        fill(rrectPts(70,wy,940,560,26),"#e6f1fb",clamp01(p*2),0);
+        const wave=[];for(let i=0;i<=60;i++){const u=i/60;wave.push({x:70+u*940,y:wy+Math.sin(u*Math.PI*10+T*.002)*4})}
+        stroke(wave,{color:NET,width:3,prog:p,alpha:.6,glow:0,tip:false,amp:0});
+        const B=[[-120,0],[-290,110],[-370,290],[-320,450],[-120,520],[150,510],[340,420],[380,230],[260,90],[120,0]];
+        shape(poly(B.map(([dx,dy])=>({x:cx+dx,y:wy+dy})),true),{color:NET,width:4,prog:p,fill:"#c9def4",fillA:.85,glow:0,amp:.6,alpha:.9});
+        const tip=[[-120,0],[-60,-100],[-20,-80],[40,-138],[120,0]];
+        shape(poly(tip.map(([dx,dy])=>({x:cx+dx,y:wy+dy}))),{color:NET,width:4,prog:p,fill:"#ffffff",fillA:1,glow:0,amp:.5});
+        if(tipLabel)pill("模型",cx+210,wy-70,{tone:MOD,size:32,alpha:clamp01(p*2-1)*tipLabel,padX:26})})}
+    function frog(x,y,s,wave=false){
+      shape(ellipsePts(x,y,72*s,54*s),{color:COL.green,width:4.5,fill:COL.green,fillA:.14,tip:false});
+      [-1,1].forEach(k=>{const ex=x+k*34*s,ey=y-50*s;dot(ex,ey,23*s,"#ffffff",1);shape(circlePts(ex,ey,23*s),{color:COL.green,width:4,tip:false});dot(ex+k*3*s,ey+3*s,8.5*s,COL.ink,1)});
+      stroke(arcPts(x,y-8*s,30*s,.22*Math.PI,.78*Math.PI),{color:COL.ink,width:4,glow:0,tip:false});
+      dot(x-48*s,y+6*s,9*s,COL.red,.3);dot(x+48*s,y+6*s,9*s,COL.red,.3);
+      if(wave){const a=-1.15+Math.sin(T*.012)*.45,hx=x+66*s+Math.cos(a)*54*s,hy=y-4*s+Math.sin(a)*54*s;
+        stroke(poly([{x:x+62*s,y:y+2*s},{x:hx,y:hy}]),{color:COL.green,width:5.5,tip:false,amp:.3});dot(hx,hy,9*s,COL.green,1)}
+      text("呱基",x,y+86*s,{size:Math.round(26*Math.max(.8,s)),color:COL.green,weight:700,rise:0})}
+
+    // ---------- frame chrome ----------
+    function header(sc){const a=eOut(T/520);
+      text(`${sc.num}  ·  ${sc.tag}`,W/2,292,{size:26,color:"#6b7684",weight:600,alpha:a,spacing:4});
+      text(sc.headline,W/2,368,{size:54,color:COL.ink,weight:700,alpha:a,rise:18})}
+    function wrapLines(str,size,maxW){ctx.save();ctx.font=`500 ${size}px ${FONT}`;const lines=[];let cur="";
+      for(const ch of str.match(/[A-Za-z0-9.%+\/–-]+|[\s\S]/g)||[]){const t=cur+ch;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur.trimEnd());cur=ch.trim()?ch:""}else cur=t}
+      if(cur)lines.push(cur);ctx.restore();
+      const noStart="，。、；：？！）」』…—,.;:?!";
+      for(let i=1;i<lines.length;i++){while(lines[i]&&noStart.includes(lines[i][0])){lines[i-1]+=lines[i][0];lines[i]=lines[i].slice(1)}}
+      const out=lines.filter(Boolean);
+      if(out.length>=2&&[...out[out.length-1]].length<=2){out[out.length-2]+=out.pop()}
+      return out}
+    function subtitle(sc){
+      const g=ctx.createLinearGradient(0,1470,0,H-SAFE_BOTTOM);g.addColorStop(0,"rgba(255,255,255,0)");g.addColorStop(.35,"rgba(255,255,255,.9)");g.addColorStop(1,"rgba(255,255,255,.96)");
+      ctx.fillStyle=g;ctx.fillRect(0,1470,W,H-SAFE_BOTTOM-1470);
+      let cur=null;for(const b of sc.beats){if(T>=b.at-60)cur=b}if(!cur)cur=sc.beats[0];
+      const a=eOut((T-(cur.at-60))/180);
+      let lines=wrapLines(cur.text,42,920);
+      for(let w=900;lines.length>1&&w>=500;w-=20){const t=wrapLines(cur.text,42,w);if(t.length!==lines.length)break;lines=t}
+      if(lines.length===2||lines.length===3){const s=cur.text;let best=-1,bd=1e9;
+        for(let i=1;i<s.length-1;i++){if(!"，。？！；：、".includes(s[i]))continue;const a=measure(s.slice(0,i+1),42),b=measure(s.slice(i+1).trim(),42);
+          if(a<=960&&b<=960&&Math.abs(a-b)<bd){bd=Math.abs(a-b);best=i}}
+        if(best>=0)lines=[s.slice(0,best+1),s.slice(best+1).trim()];
+        else{const P=[];for(let i=1;i<s.length-1;i++)if("，。？！；：、".includes(s[i]))P.push(i);let bm=1e9,bl=null;
+          for(const i of P)for(const j of P){if(j<=i)continue;const seg=[s.slice(0,i+1),s.slice(i+1,j+1).trim(),s.slice(j+1).trim()],m=Math.max(...seg.map(x=>measure(x,42)));
+            if(m<=960&&m<bm){bm=m;bl=seg}}
+          if(bl)lines=bl}}
+      const lh=42*1.45,y0=SUB_Y-(lines.length-1)*lh/2;
+      lines.forEach((ln,i)=>text(ln,W/2,y0+i*lh,{size:42,color:COL.ink,weight:500,alpha:.35+.65*a,rise:6}))}
+
+    // ---------- scenes ----------
+    const DRAW={};
+    var SCD=0;
+    function span(k){const i=beatIdx(k);if(i<0)return 1000;const nb=BEATS[i+1];return (nb?nb.at:SCD)-BEATS[i].at}
+    const fmt=n=>Math.round(n).toLocaleString("en-US");
+    const LAYERS=[["调度 · 推理服务",SCH],["存储 · 数据",SAVE],["高速网络",NET],["GPU 算力",GPU],["机房 · 电力 · 散热",COL.ink]];
+
+    DRAW.hook=function(){
+      withA(ap("intro",450)*(1-ap("h1",400)),()=>frog(540,900,1.25,true));
+      const WY=830;
+      const pa=ap("h1",450)*(1-ap("h5",450));
+      const mv=pr("h3",1000);
+      if(pa>0)withA(pa,()=>{
+        const s=lerp(1,.34,mv),px=540,py=lerp(900,WY-235,mv);
+        ctx.save();ctx.translate(px,py);ctx.scale(s,s);ctx.translate(-px,-py);
+        phoneBody(px,py,400,700,pr("h1",700));
+        bubble("帮我排一个周末出游计划",px+170,py-250,{tone:NET,size:30,align:"right",maxW:280,shown:Math.floor((since("h1")-800)/75)});
+        if(since("h2")>0)bubble("好的！周六上午去植物园，中午吃本帮菜，下午沿江骑车……",px-170,py-110,{tone:GPU,size:30,align:"left",maxW:300,shown:Math.floor((since("h2")-300)/85)});
+        ctx.restore()});
+      const ia=ap("h3",500,700)*(1-ap("h5",450));
+      if(ia>0){iceberg(540,WY,{p:pr("h3",1000,700),alpha:ia});
+        LAYERS.forEach(([l,c],i)=>pill(l,540,WY+90+i*88,{tone:c,size:28,alpha:ia*ap("h3",400,2000+i*450),padX:24}));
+        const a4=ap("h4",450)*ia;
+        if(a4>0){text("模型 Infra",250,WY-150,{size:52,weight:800,color:SCH,alpha:a4});
+          text("infrastructure",250,WY-92,{size:26,color:COL.mute,alpha:ap("h4",400,1800)*ia});
+          text("基础设施",250,WY-50,{size:30,weight:700,alpha:ap("h4",400,2800)*ia});
+          stroke(join(poly([{x:178,y:WY+60},{x:150,y:WY+60},{x:150,y:WY+500},{x:178,y:WY+500}])),{color:SCH,width:4,prog:pr("h4",600,1200),alpha:ia,glow:0,tip:false,amp:0})}}
+      const a5=ap("h5",500,300);
+      if(a5>0)withA(a5,()=>{
+        chefHat(290,720,1.5,MOD,pr("h5",700,300));
+        text("模型 = 大厨",290,860,{size:40,weight:800,color:MOD,alpha:ap("h5",400,1200)});
+        kitchen(770,690,.82,{p:pr("h5",900,2600),flame:ap("h5",500,3600)});
+        text("Infra = 整个后厨",770,860,{size:40,weight:800,color:SCH,alpha:ap("h5",400,3400)});
+        const n=Math.floor(clamp01((since("h5")-4400)/2600)*48);
+        for(let i=0;i<n;i++){const cx=170+(i%12)*67,cy=1000+Math.floor(i/12)*62;
+          stroke(join(poly([{x:cx-22,y:cy}, {x:cx+22,y:cy}]),arcPts(cx,cy,22,0,Math.PI)),{color:SAVE,width:3,glow:0,tip:false,amp:0,alpha:.85})}
+        text("同时给几亿人做饭",W/2,1290,{size:36,weight:700,alpha:ap("h5",400,6200)})});
+    };
+
+    DRAW.hw=function(){
+      const rowA=emph("d1",.55);
+      withA(rowA,()=>{
+        const a=ap("d1",400);if(a<=0)return;
+        gpuCard(200,610,1,{p:pr("d1",700),act:1});text("GPU 显卡",200,705,{size:28,weight:600,alpha:a,rise:0});
+        arrowLine(poly([{x:300,y:610},{x:380,y:610}]),pr("d1",400,1600));
+        rack(470,610,96,190,{p:pr("d1",700,1900),act:1});text("机柜",470,740,{size:28,weight:600,alpha:ap("d1",400,2200),rise:0});
+        arrowLine(poly([{x:545,y:610},{x:625,y:610}]),pr("d1",400,3400));
+        const ha=ap("d1",400,3700);
+        if(ha>0)withA(ha,()=>{stroke(rrectPts(650,520,330,190,10),{color:COL.ink,width:3,alpha:.5,glow:0,tip:false,amp:.3});
+          for(let r=0;r<3;r++)for(let c=0;c<7;c++)rack(680+c*45,560+r*58,30,44,{act:1,p:clamp01((since("d1")-3800-(r*7+c)*60)/300)});
+          text("机房",815,740,{size:28,weight:600,rise:0})})});
+      const a2=ap("d2",400);
+      if(a2>0){const n=clamp01((since("d2")-600)/3600);
+        withA(emph("d3",.85),()=>{for(let r=0;r<10;r++)for(let c=0;c<30;c++){const k=r*30+c;const on=k/300<n;
+          ctx.save();ctx.globalAlpha=GA*a2*(on?.9:.18);ctx.fillStyle=on?GPU:COL.ink;ctx.fillRect(150+c*26.5,800+r*21,20,14);ctx.restore()}});
+        withA(emph("d2",.4),()=>{pill(`${fmt(16384*eOut(clamp01((since("d2")-3600)/1600)))} 张卡`,330,1060,{tone:GPU,size:32,alpha:ap("d2",400,3600),padX:28});
+          pill("连续算 54 天",760,1060,{tone:GPU,size:32,alpha:ap("d2",400,5600),padX:28})})}
+      const a3=ap("d3",400);
+      if(a3>0){ctx.save();ctx.globalAlpha=GA*a3;ctx.strokeStyle=NET;ctx.lineWidth=2;ctx.globalAlpha=GA*a3*.35;ctx.beginPath();
+        for(let r=0;r<=10;r+=2){ctx.moveTo(150,800+r*21-3.5);ctx.lineTo(945,800+r*21-3.5)}for(let c=0;c<=30;c+=5){ctx.moveTo(150+c*26.5-3,797);ctx.lineTo(150+c*26.5-3,1007)}ctx.stroke();ctx.restore();
+        for(let i=0;i<14;i++){const ph=((since("d3")*.0006+hash(i*3.3))%1),hz=i%2===0;
+          const x=hz?150+ph*795:150+(Math.floor(hash(i*7.1)*7)*5)*26.5-3,y=hz?800+(Math.floor(hash(i*5.7)*6)*2)*21-3.5:797+ph*210;dot(x,y,6,NET,a3)}
+        pill("卡间高速网络：比家用宽带快几百倍",W/2,1145,{tone:NET,size:30,alpha:ap("d3",400,1500)*emph("d3",.5),padX:26})}
+      const a4=ap("d4",400);
+      if(a4>0)withA(a4,()=>{bolt(220,1250,1.1,SAVE,pr("d4",500));text("一万多千瓦",370,1250,{size:36,weight:800,color:SAVE,rise:0});
+        const b=ap("d4",400,2600);withA(b,()=>{thermo(640,1250,1,ERR,.55+.1*Math.sin(T*.004));fan(730,1250,1,NET,T*.01);text("供电 · 散热",880,1250,{size:34,weight:700,rise:0})})});
+    };
+
+    const CX=i=>170+i*105;
+    DRAW.train=function(){
+      const a1=ap("t1",400)*(1-ap("t2",400,600));
+      if(a1>0)withA(a1,()=>{
+        const drop=pr("t1",700,3200),bounce=Math.sin(clamp01((since("t1")-3900)/700)*Math.PI)*-40;
+        paramBlock(540,620+drop*90+(since("t1")>3900?bounce:0),560,170,{p:pr("t1",700),label:"模型参数 810 GB",sub:"4000 亿个参数"});
+        gpuCard(540,960,1.5,{p:pr("t1",600,1400)});text("一张卡：80 GB",540,1060,{size:32,weight:700,color:GPU,alpha:ap("t1",400,1800)});
+        if(since("t1")>4300)text("装不下",820,900,{size:44,weight:800,color:ERR,alpha:ap("t1",400,4300)})});
+      const gridA=1-ap("t5",450);
+      const a2=ap("t2",400);
+      if(a2>0&&gridA>0)withA(gridA,()=>{
+        const fl=pr("t2",1100,300);
+        for(let i=0;i<8;i++){const sx=540-280+35+i*70,sy=620,tx=CX(i),ty=880;
+          const x=lerp(sx,tx,fl),y=lerp(sy,ty,fl);gpuCard(tx,ty,.6,{p:ap("t2",400),act:since("t2")>1500?1:0});
+          if(fl<1)paramBlock(x,y,lerp(66,60,fl),lerp(170,36,fl),{a:a2});
+          else{fill(rrectPts(tx-38,ty-38-24,76,18,6),MOD,.6*a2,0)}}
+        text("模型切成 8 段，一张卡放一段",W/2,770,{size:30,color:MOD,weight:600,alpha:ap("t2",400,1300)*(1-ap("t3",400))})});
+      const a3=ap("t3",400);
+      if(a3>0&&gridA>0)withA(gridA,()=>{
+        [990,1100].forEach((ry,r)=>{const ra=ap("t3",400,300+r*300);for(let i=0;i<8;i++){const bad=badAt(r+1,i);
+          gpuCard(CX(i),ry,.6,{p:ra,act:1,bad:bad.b,fix:bad.f});fill(rrectPts(CX(i)-38,ry-62,76,18,6),MOD,.6*ra,0)}});
+        for(let r=0;r<3;r++){const ry=880+r*110,d=ap("t3",400,1500+r*400);
+          withA(d,()=>{shape(poly([{x:40,y:ry-22},{x:68,y:ry-22},{x:78,y:ry-12},{x:78,y:ry+22},{x:40,y:ry+22}],true),{color:SAVE,width:3,fill:SAVE,fillA:.25,glow:0,tip:false,amp:0});
+            text(`数据 ${r+1}`,59,ry+42,{size:18,color:SAVE,weight:700,rise:0})})}
+        const sy=ap("t3",400,3600);
+        if(sy>0)withA(sy*emph("t3",.5),()=>{for(let r=0;r<2;r++){const y0=880+r*110+30,y1=y0+50;
+          arrowLine(poly([{x:1000,y:y0},{x:1000,y:y1}]),1,SCH,3,10);arrowLine(poly([{x:1000,y:y1},{x:1000,y:y0}]),1,SCH,3,10)}
+          text("对答案 · 合成一份进度",W/2,1185,{size:30,color:SCH,weight:700})})});
+      for(let i=0;i<8;i++)if(a3<=0&&a2>0&&gridA>0){}
+      if(a3>0&&gridA>0){withA(gridA,()=>{for(let i=0;i<8;i++){const bad=badAt(0,i);if(bad.b>0&&bad.f<1)cross(CX(i),880,15,ERR,bad.b)}})}
+      const a4=ap("t4",400);
+      if(a4>0&&gridA>0)withA(gridA,()=>{pill("54 天中断 466 次 ≈ 每 3 小时一次",W/2,1265,{tone:ERR,size:32,alpha:ap("t4",400,4200),padX:28})});
+      const a5=ap("t5",450,300);
+      if(a5>0)withA(a5,()=>{
+        const y=880,x0=110,x1=970,e=since("t5");
+        const saves=[300,500,700];
+        const p1=clamp01((e-300)/2600);
+        const fx=620,ff=e>2900;
+        stroke(poly([{x:x0,y},{x:lerp(x0,fx,p1),y}]),{color:GPU,width:6,glow:0,tip:false,amp:0});
+        saves.forEach((sx,i)=>{if(lerp(x0,fx,p1)>=sx){saveIcon(sx,y-50,1,SAVE,1);text("存档",sx,y-100,{size:22,color:SAVE,weight:700,rise:0})}});
+        if(ff){stroke(poly([{x:500,y},{x:fx,y}]),{color:ERR,width:7,glow:0,tip:false,amp:0,alpha:.55*clamp01((e-3100)/400)});cross(fx,y,16,ERR,clamp01((e-2900)/400));gpuCard(fx,y-170,.6,{bad:1,fix:clamp01((e-4200)/300),act:1});
+          if(e>4200)text("换一张",fx+80,y-170,{size:24,color:GPU,weight:700,align:"left",rise:0})}
+        if(e>3400){const back=quadPts(fx,y+20,560,y+110,500,y+24);arrowLine(back,clamp01((e-3400)/800),SAVE,4,16);
+          text("回到最近的存档",560,y+150,{size:28,color:SAVE,weight:700,alpha:ap("t5",400,3800),rise:0})}
+        if(e>4600){const p2=clamp01((e-4600)/2400);stroke(poly([{x:500,y},{x:lerp(500,x1,p2),y}]),{color:GPU,width:7,glow:0,tip:false,amp:0})}
+        pill("不用从头再来",W/2,1120,{tone:GPU,size:34,alpha:ap("t5",400,6200),padX:30})});
+    };
+    function badAt(r,i){const list=[[0,2,0],[1,5,1],[2,1,2],[1,7,3],[0,6,4]],e=since("t4");
+      for(const [rr,ii,k] of list)if(rr===r&&ii===i){const t0=1200+k*650;return {b:clamp01((e-t0)/300),f:clamp01((e-t0-1100)/300)}}return {b:0,f:0}}
+
+    DRAW.serve=function(){
+      pill("推理服务 = 模型上线给你用",W/2,505,{tone:SCH,size:32,alpha:ap("v1",400,1200),padX:28});
+      const Y=740,a1=ap("v1",400);
+      withA(a1*emph("v3",.85),()=>{
+        phoneBody(140,Y,150,260,pr("v1",700));text("你",140,Y+170,{size:28,weight:700,rise:0});
+        const a2=ap("v2",400);
+        withA(a2,()=>{gate(380,Y,1.1,{p:pr("v2",600)});text("入口排队",380,Y+170,{size:28,weight:700,color:NET,rise:0});
+          hub(620,Y,1,{p:pr("v2",600,2200),act:since("v2")>2200?1:0});text("调度",620,Y+170,{size:28,weight:700,color:SCH,alpha:ap("v2",400,2300),rise:0});
+          const sv=[640,720,800,880];sv.forEach((sy,i)=>{const free=i===2,lit=free&&since("v2")>4200;
+            rack(900,sy-60+40,150,56,{p:ap("v2",400,2600+i*150),act:1,led:lit?GPU:COL.mute});
+            if(lit){stroke(rrectPts(820,sy-54,160,68,10),{color:GPU,width:4,glow:0,tip:false,amp:0,prog:pr("v2",400,4200)});check(1000,sy-20,12,GPU,pr("v2",300,4500))}});
+          text("装着模型的机器",900,Y+170,{size:28,weight:700,color:GPU,alpha:ap("v2",400,2800),rise:0});
+          for(let q=0;q<5;q++){const qx=300-q*0+(-q*18),qy=Y+30;dot(330-q*20,Y+30,7,NET,.5*ap("v2",300,600+q*150))}
+          const path=join(poly([{x:220,y:Y-20},{x:340,y:Y-20}]),poly([{x:420,y:Y-20},{x:575,y:Y-20}]),poly([{x:665,y:Y-20},{x:820,y:Y-20}]));
+          [[poly([{x:220,y:Y-20},{x:335,y:Y-20}]),1200],[poly([{x:425,y:Y-20},{x:570,y:Y-20}]),2000],[quadPts(668,Y-10,740,Y+20,815,Y+42),4600]].forEach(([pp,d])=>arrowLine(pp,pr("v2",500,d),COL.mute,3,12));
+          const dt=since("v2");if(dt>900&&dt<5600){const u=clamp01((dt-900)/4400),pts=[{x:220,y:Y-20},{x:380,y:Y-20},{x:620,y:Y-20},{x:820,y:Y+42}];
+            const seg=u*3,si=Math.min(2,Math.floor(seg)),f=seg-si,A=pts[si],B=pts[si+1];dot(lerp(A.x,B.x,f),lerp(A.y,B.y,f),10,NET,1)}})});
+      const a3=ap("v3",400);
+      if(a3>0)withA(a3*emph("v3",.85),()=>{
+        const back=quadPts(820,Y+110,520,Y+250,215,Y+110);
+        stroke(back,{color:GPU,width:3,alpha:.35,glow:0,tip:false,amp:0,dash:[8,10]});
+        const toks=[..."周六上午去植物园"];toks.forEach((ch,i)=>{const t=(since("v3")-400-i*520)/900;if(t<0)return;
+          if(t<1){const p=along(back,eInOut(t));pill(ch,p.x,p.y,{tone:GPU,size:26,padX:12})}});
+        const landed=Math.max(0,Math.min(toks.length,Math.floor((since("v3")-400-900)/520)+1));
+        if(landed>0)text(toks.slice(0,landed).join(""),140,Y-60,{size:15,weight:700,color:GPU,rise:0});
+        text("算出一个字，推回一个字",W/2,Y+300,{size:30,weight:700,color:GPU,alpha:ap("v3",400,1600)*(1-ap("v4",400))})});
+      const a4=ap("v4",400);
+      if(a4>0)withA(a4,()=>{
+        const X0=140,X1=960,Y0=1310,Hc=200;const f=u=>.25+.55*Math.exp(-Math.pow((u-.5)/.12,2))+.75*Math.exp(-Math.pow((u-.83)/.08,2))-.18*Math.exp(-Math.pow((u-.12)/.1,2));
+        stroke(poly([{x:X0,y:Y0},{x:X1,y:Y0}]),{color:COL.ink,width:3,alpha:.5,glow:0,tip:false,amp:0});
+        const p=pr("v4",1600,300),pts=[];for(let i=0;i<=80;i++){const u=i/80;pts.push({x:lerp(X0,X1,u),y:Y0-f(u)*Hc})}
+        for(let i=0;i<16;i++){const u=(i+.5)/16;if(u>p)break;const need=Math.ceil(f(u)*5.5);for(let k=0;k<need;k++){ctx.save();ctx.globalAlpha=GA*.75;ctx.fillStyle=GPU;ctx.fillRect(lerp(X0,X1,u)-16,Y0-14-k*20,32,14);ctx.restore()}}
+        stroke(pts,{color:NET,width:4,prog:p,glow:0,amp:0});
+        ["0 点","12 点","24 点"].forEach((s,i)=>text(s,lerp(X0,X1,i/2),Y0+28,{size:20,color:COL.mute,rise:0}));
+        text("高峰：自动加机器",780,Y0-Hc-30,{size:28,weight:700,color:GPU,alpha:ap("v4",400,2600)});
+        text("半夜：撤下省钱",300,Y0-Hc+40,{size:28,weight:700,color:COL.mute,alpha:ap("v4",400,4200)})});
+    };
+
+    DRAW.tricks=function(){
+      pill("同样的卡 → 服务更多人",W/2,505,{tone:SCH,size:32,alpha:ap("k0",400,800),padX:28});
+      const r1=ap("k1",400);
+      if(r1>0)withA(r1*emph("k2",.45),()=>{const y=700;
+        paramBlock(200,y,190,130,{p:pr("k1",600),label:"全部参数",col:MOD});
+        arrowLine(poly([{x:305,y},{x:395,y}]),pr("k1",400,1500),MOD);text("读一遍",350,y-30,{size:22,color:MOD,weight:700,alpha:ap("k1",400,1600),rise:0});
+        wok(510,y-10,.85,{heat:ap("k1",400,2600)});text("热一次锅",510,y+90,{size:24,color:SAVE,weight:700,alpha:ap("k1",400,3200),rise:0});
+        const many=pr("k2",900,500);
+        const n=Math.max(1,Math.round(lerp(1,24,many)));
+        for(let i=0;i<n;i++){const c=i%6,r=Math.floor(i/6),px=n===1?800:700+c*56,py=n===1?y:y-90+r*60;
+          person(px,py,.8,i===0?COL.ink:NET,i===0?ap("k1",400,4200):1);
+          if(i===0&&since("k1")>4400||i>0)pill("字",px+18,py-28,{tone:GPU,size:16,padX:6,alpha:i===0?ap("k1",300,4600):clamp01((since("k2")-1200-i*60)/300)})}
+        arrowLine(poly([{x:610,y},{x:660,y}]),pr("k1",400,3800),SAVE);
+        if(since("k2")>0)withA(ap("k2",400,3200),()=>{pill("读一遍参数 → 几十人各得一字",540,y+150,{tone:GPU,size:28,padX:24})})});
+      const r2=ap("k3",400);
+      if(r2>0)withA(r2*emph("k3",.45),()=>{const y=1010;
+        panel(110,y-90,470,190,1);
+        ["你：帮我排个出游计划","AI：周六上午去植物园……","你：中午吃什么？","AI：本帮菜，推荐……"].forEach((s,i)=>text(s,140,y-58+i*36,{size:22,align:"left",color:i%2?GPU:COL.ink,alpha:.85,rise:0}));
+        const ca=ap("k3",400,2400);
+        if(ca>0)withA(ca,()=>{stroke(rrectPts(124,y-80,442,148,10),{color:SAVE,width:3.5,dash:[8,8],glow:0,tip:false,amp:0});pill("已算过 · 存起来",470,y-96,{tone:SAVE,size:22,padX:14})});
+        const na=ap("k3",400,4200);if(na>0)withA(na,()=>{text("你：下午呢？",140,y+86,{size:22,align:"left",color:NET,weight:700,rise:0});text("← 只算这一句",330,y+86,{size:22,align:"left",color:NET,rise:0})});
+        priceTag(800,y-10,1,"缓存部分 1–5 折",SAVE,ap("k3",400,7200))});
+      const r3=ap("k4",400);
+      if(r3>0)withA(r3,()=>{const y=1265,sh=pr("k4",900,1200);
+        paramBlock(260,y,lerp(220,220,0),110,{label:"16 位",col:MOD});
+        arrowLine(poly([{x:390,y},{x:500,y}]),pr("k4",400,800),MOD);
+        paramBlock(lerp(260,600,sh),y,lerp(220,110,sh),lerp(110,70,sh),{label:sh>.6?"4 位":"",col:MOD,a:sh>0?1:0});
+        text("装得下 · 跑得快",850,y,{size:32,weight:800,color:GPU,alpha:ap("k4",400,2400)})});
+    };
+
+    DRAW.you=function(){
+      const rows=[640,900,1160];
+      const head=(i,t,s,c,k)=>{text(t,720,rows[i]-30,{size:44,weight:800,color:c,alpha:ap(k,400),rise:0});text(s,720,rows[i]+26,{size:28,color:COL.mute,alpha:ap(k,400,600),rise:0})};
+      withA(ap("y0",400),()=>rows.forEach(y=>stroke(rrectPts(110,y-100,360,200,16),{color:COL.faint,width:3,glow:0,tip:false,amp:0,dash:[8,10]})));
+      const a1=ap("y1",400);
+      if(a1>0)withA(a1*emph("y1",.4),()=>{const y=rows[0];iconClock(170,y,1.1,NET,since("y1")*.006);
+        bubble("好的！周六上午去植物园……",230,y-30,{tone:GPU,size:24,maxW:230,shown:Math.floor((since("y1")-300)/60)});
+        head(0,"快不快","首字多久出来 · 字蹦得多快",NET,"y1")});
+      const a2=ap("y2",400);
+      if(a2>0)withA(a2*emph("y2",.4),()=>{const y=rows[1];
+        ctx.save();ctx.globalAlpha=GA;ctx.fillStyle="#fff";ctx.shadowColor="rgba(0,0,0,.12)";ctx.shadowBlur=14;ctx.beginPath();ctx.roundRect(130,y-40,320,80,14);ctx.fill();ctx.restore();
+        stroke(rrectPts(130,y-40,320,80,14),{color:ERR,width:3,glow:0,tip:false,amp:0});dot(165,y,13,ERR,.9);text("!",165,y+1,{size:20,weight:800,color:"#fff",rise:0});
+        text("服务繁忙，请稍后再试",310,y,{size:24,weight:700,color:ERR,rise:0});
+        head(1,"稳不稳","高峰期扛不扛得住",ERR,"y2")});
+      const a3=ap("y3",400);
+      if(a3>0)withA(a3,()=>{const y=rows[2];
+        [[150,"第 1 年"],[50,"第 2 年"],[16,"第 3 年"]].forEach(([h,l],i)=>{const hh=h*pr("y3",500,600+i*900);const x=180+i*110;
+          if(hh>1)shape(rrectPts(x-30,y+70-hh,60,hh,6),{color:SAVE,width:3,fill:SAVE,fillA:.35,glow:0,tip:false,amp:0});text(l,x,y+92,{size:20,color:COL.mute,alpha:ap("y3",400,600+i*900),rise:0})});
+        text("÷10",290,y-60,{size:30,weight:800,color:SAVE,alpha:ap("y3",400,2400),rise:0});
+        head(2,"贵不贵","同水平模型 · 每年约降到 1/10",SAVE,"y3");
+        pill("不少是 Infra 的功劳",720,y+90,{tone:SCH,size:26,alpha:ap("y3",400,6000),padX:22})});
+    };
+
+    DRAW.end=function(){
+      const top=emph("e1",.5);
+      withA(ap("e1",400)*top,()=>{chefHat(300,610,1.1,MOD,pr("e1",600));text("模型 = 大厨",300,700,{size:36,weight:800,color:MOD,rise:0});
+        kitchen(780,585,.6,{p:pr("e1",800,1400),flame:ap("e1",400,2000)});text("Infra = 后厨",780,700,{size:36,weight:800,color:SCH,alpha:ap("e1",400,2000),rise:0})});
+      const MAP=[["灶台","GPU 算力",GPU],["传菜","高速网络",NET],["排单","调度系统",SCH],["拼锅","批量推理",GPU],["备菜","缓存",SAVE],["存档 · 换人","断点续训 · 容错",ERR]];
+      const D=Math.max(600,(span("e2")-800)/6);
+      withA(emph("e2",.55),()=>MAP.forEach(([a,b,c],i)=>{const al=ap("e2",400,200+i*D);if(al<=0)return;const y=790+i*66;
+        text(a,470,y,{size:32,weight:600,align:"right",alpha:al,rise:0});text("→",540,y,{size:30,color:COL.mute,alpha:al,rise:0});text(b,610,y,{size:32,weight:800,color:c,align:"left",alpha:al,rise:0})}));
+      const a3=ap("e3",400);
+      if(a3>0){text("别忘了水面下的那一大块",W/2,1235,{size:40,weight:800,alpha:a3});
+        const wave=[];for(let i=0;i<=50;i++){const u=i/50;wave.push({x:270+u*540,y:1290+Math.sin(u*Math.PI*6)*7})}stroke(wave,{color:NET,width:5,prog:pr("e3",700,600),glow:0,amp:0})}
+      withA(ap("bye",500),()=>frog(540,1355,.55,true));
+    };
+
+    // ---------- cover ----------
+    function richLine(parts,cx,y,size,weight=800){
+      const total=parts.reduce((s,[str,,sz])=>s+measure(str,sz||size,weight),0);let x=cx-total/2;
+      for(const [str,color,sz,hl] of parts){const s=sz||size,w=measure(str,s,weight);
+        if(hl){ctx.save();ctx.globalAlpha=.16;ctx.fillStyle=hl;ctx.beginPath();ctx.roundRect(x-6,y+s*.05,w+12,s*.42,8);ctx.fill();ctx.restore()}
+        text(str,x,y,{size:s,color,weight,align:"left",rise:0});x+=w}}
+    function drawCover(){
+      BEATS=[];T=577;GA=1;SCD=0;
+      ctx.drawImage(bgCanvas,0,0);
+      pill("呱基讲 AI  ·  第 9 期",W/2,330,{tone:COL.green,size:30,padX:30});
+      richLine([["什么是",COL.ink],["模型 Infra",SCH,null,SCH],["？",COL.ink]],W/2,470,96);
+      text("AI 背后的那座「后厨」",W/2,575,{size:46,weight:700,color:COL.mute,rise:0});
+      const WY=905;iceberg(540,WY,{tipLabel:0});
+      phoneBody(540,WY-218,90,150,1);
+      pill("模型",760,WY-80,{tone:MOD,size:34,padX:28});
+      LAYERS.forEach(([l,c],i)=>pill(l,540,WY+90+i*88,{tone:c,size:28,padX:24}));
+      text("你看到的，只是冰山一角",W/2,1550,{size:48,weight:800,rise:0});
+      stroke(quadPts(290,1602,540,1618,790,1600),{color:SAVE,width:6,glow:0,tip:false});
+      frog(540,1730,.7,true);
+    }
+
+    // ---------- render ----------
+    function drawScene(index,localT){
+      const sc=SCENES[index];BEATS=sc.beats;T=localT;GA=1;SCD=sc.duration;
+      ctx.drawImage(bgCanvas,0,0);
+      header(sc);
+      (DRAW[sc.id]||(()=>{}))();
+      subtitle(sc);
+      const fade=clamp01(localT/260);if(fade<1){ctx.fillStyle=`rgba(255,255,255,${1-fade})`;ctx.fillRect(0,0,W,H)}
+    }
+
+    // ---------- player ----------
+    let playing=false,muted=false,sceneIndex=0,sceneStart=0,raf=0;
+    function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
+    function speak(s){if(muted||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang="zh-CN";u.rate=1.06;u.pitch=1.15;const v=pickVoice();if(v)u.voice=v;speechSynthesis.speak(u)}
+    function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
+    function totalDuration(){return SCENES.reduce((s,sc)=>s+sc.duration,0)}
+    const offsets=[];{let a=0;SCENES.forEach(sc=>{offsets.push(a);a+=sc.duration})}
+    function setScene(i,rv=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.tag}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
+      if(rv&&playing)speak(sc.voice);updateProgress(0);
+    }
+    function updateProgress(localT){bar.style.width=Math.min(100,((offsets[sceneIndex]+localT)/totalDuration())*100)+"%"}
+    function tick(now){
+      if(!playing)return;const sc=SCENES[sceneIndex],localT=now-sceneStart;
+      drawScene(sceneIndex,localT);updateProgress(localT);
+      if(localT>=sc.duration){if(sceneIndex<SCENES.length-1)setScene(sceneIndex+1,true);else{playing=false;btnPlay.textContent="再看一遍";stopSpeak();drawScene(sceneIndex,sc.duration);updateProgress(sc.duration);return}}
+      raf=requestAnimationFrame(tick);
+    }
+    function play(){playing=true;btnPlay.textContent="暂停";setScene(sceneIndex,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    function pause(){playing=false;btnPlay.textContent="继续";stopSpeak();cancelAnimationFrame(raf)}
+    function restart(){stopSpeak();sceneIndex=0;playing=true;btnPlay.textContent="暂停";setScene(0,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    SCENES.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`${i+1}. ${sc.tag}`;
+      b.addEventListener("click",()=>{const was=playing;stopSpeak();setScene(i,was);drawScene(i,0);if(was){cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}});sceneList.appendChild(b)});
+    btnPlay.addEventListener("click",()=>{if(playing)pause();else{if(btnPlay.textContent==="再看一遍")restart();else play()}});
+    btnRestart.addEventListener("click",restart);
+    btnMute.addEventListener("click",()=>{muted=!muted;btnMute.textContent=muted?"配音：关":"配音：开";if(muted)stopSpeak();else if(playing)speak(SCENES[sceneIndex].voice)});
+    window.__GUAJI__={
+      SCENES,totalDuration,get playing(){return playing},setMuted(v){muted=v},
+      drawAt(ms){
+        let remain=ms,idx=0;
+        while(idx<SCENES.length-1&&remain>=SCENES[idx].duration){remain-=SCENES[idx].duration;idx++}
+        sceneIndex=idx;
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${SCENES[idx].tag}`;
+        [...sceneList.children].forEach((b,j)=>b.classList.toggle("active",j===idx));
+        drawScene(idx,remain);
+        bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
+      },
+      jump(i,localT){this.drawAt(offsets[i]+localT)},
+      drawCover
+    };
+    if(new URLSearchParams(location.search).has("cover"))drawCover();
+    else if(SCENES.length){setScene(0,false);drawScene(0,6000)}
+  </script>
+</body>
+</html>

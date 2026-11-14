@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>呱基讲 AI · 为什么问同一个问题 AI 每次回复都不一样</title>
+  <style>
+    :root {
+      --bg:#071018; --ink:#f4f7fb; --mute:#a8b8cc; --accent:#9ad7ff;
+      --frog:#8dff9c; --panel:#0f1a24; --line:rgba(244,247,251,0.16); --warn:#ffd59a;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:radial-gradient(700px 480px at 50% 0%,#132033 0%,transparent 55%),var(--bg);color:var(--ink);font-family:"PingFang SC","Noto Sans SC",sans-serif}
+    body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 12px 28px}
+    .brand{width:min(420px,100%);text-align:center}
+    .brand .host{color:var(--frog);font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+    .brand h1{font-family:"Songti SC","Noto Serif SC",Georgia,serif;font-size:clamp(22px,5.5vw,28px);line-height:1.25}
+    .brand p{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.55}
+    .stage-wrap{width:min(420px,100%);position:relative;border:1px solid var(--line);background:#071018;overflow:hidden;aspect-ratio:9/16}
+    canvas{display:block;width:100%;height:100%;background:#071018}
+    .progress{width:min(420px,100%);height:3px;background:rgba(255,255,255,.08);overflow:hidden}
+    .progress>i{display:block;height:100%;width:0%;background:var(--accent)}
+    .controls{width:min(420px,100%);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;font-size:13px;cursor:pointer}
+    button:hover{border-color:rgba(154,215,255,.45);background:#152433}
+    button.primary{background:#1a3348;border-color:rgba(154,215,255,.55)}
+    .meta{color:var(--mute);font-size:12px;margin-left:auto}
+    .scene-list{width:min(420px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .scene-list button{text-align:left;padding:8px 10px;font-size:11px;color:var(--mute);line-height:1.35}
+    .scene-list button.active{color:var(--ink);border-color:rgba(154,215,255,.5);background:#152433}
+    .hint{width:min(420px,100%);color:var(--mute);font-size:11px;line-height:1.5}
+    .nav{width:min(420px,100%);font-size:12px}.nav a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <div class="host">呱基 · AI 概念课 · 第 4 期</div>
+    <h1>为什么问同一个问题<br>AI 每次回复都不一样？</h1>
+    <p>按概率生成 · 温度值 · 想稳/想创意怎么调</p>
+  </header>
+  <p class="nav">
+    <a href="./index.html">第1期</a> ·
+    <a href="./edge-vs-cloud.html">第2期</a> ·
+    <a href="./modalities.html">第3期</a> ·
+    <span>第4期</span> ·
+    <a href="./device-edge-cloud.html">第5期</a> ·
+    <a href="./on-device-pipeline.html">第6期</a> ·
+    <a href="./cv-vs-vlm.html">第7期</a> ·
+    <a href="./code-vs-imagegen.html">第8期</a> ·
+    <a href="./model-infra.html">第9期</a>
+  </p>
+  <div class="stage-wrap"><canvas id="stage" width="1080" height="1920"></canvas></div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnRestart">重来</button>
+    <button id="btnMute">配音：开</button>
+    <div class="meta" id="meta">场景 1 / 7</div>
+  </div>
+  <div class="scene-list" id="sceneList"></div>
+  <p class="hint">竖屏 9:16 · 说到哪画到哪 · 粉笔风 · 底部字幕 · 安全边距</p>
+
+  <script>
+    const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
+    const bar=document.getElementById("bar"), meta=document.getElementById("meta");
+    const btnPlay=document.getElementById("btnPlay"), btnRestart=document.getElementById("btnRestart");
+    const btnMute=document.getElementById("btnMute"), sceneList=document.getElementById("sceneList");
+    const W=canvas.width, H=canvas.height;
+    const SAFE_TOP=240, SAFE_BOTTOM=150, SUB_H=290, CONTENT_BOTTOM=H-SAFE_BOTTOM-SUB_H;
+
+    const SCENES=[
+      {id:"hook",title:"引出",tag:"常见疑问",
+        zh:"嗨，我是呱基。你有没有发现：同一个问题问两遍，AI 的回答常常不一样？这不是它坏了。",
+        voice:"嗨，我是呱基。你有没有发现：同一个问题问两遍，AI 的回答常常不一样？这不是它坏了。",
+        duration:8788,
+        beats:[
+          {key:"intro",at:0,text:"嗨，我是呱基。"},
+          {key:"q",at:1627,text:"你有没有发现：同一个问题问两遍，AI 的回答常常不一样？"},
+          {key:"ok",at:7486,text:"这不是它坏了。"},
+        ]},
+      {id:"book",title:"不是翻书",tag:"核心原理",
+        zh:"很多人以为模型像翻答案书，问一次就该永远同一页。其实它更像在很多可能的下一句话里，按概率挑一个。",
+        voice:"很多人以为模型像翻答案书，问一次就该永远同一页。其实它更像在很多可能的下一句话里，按概率挑一个。",
+        duration:10252,
+        beats:[
+          {key:"book",at:0,text:"很多人以为模型像翻答案书，问一次就该永远同一页。"},
+          {key:"prob",at:5126,text:"其实它更像在很多可能的下一句话里，按概率挑一个。"},
+        ]},
+      {id:"draw",title:"抽签类比",tag:"好懂类比",
+        zh:"打个比方：说到「小明喜欢吃的水果是」，后面可能接「苹果」「香蕉」「西瓜」，只是概率有高有低。每次抽签，结果就可能不同。",
+        voice:"打个比方：说到小明喜欢吃的水果是，后面可能接苹果、香蕉、西瓜，只是概率有高有低。每次抽签，结果就可能不同。",
+        duration:11188,
+        beats:[
+          {key:"ex",at:0,text:"打个比方：说到小明喜欢吃的水果是，"},
+          {key:"opts",at:3390,text:"后面可能接苹果、香蕉、西瓜，只是概率有高有低。"},
+          {key:"draw",at:8475,text:"每次抽签，结果就可能不同。"},
+        ]},
+      {id:"temp",title:"温度值",tag:"关键旋钮",
+        zh:"还有一个常见旋钮叫温度值。温度值开到 1.2，更爱试冷门说法，花样多；温度值开到 0.2，更爱选常见说法，更稳。",
+        voice:"还有一个常见旋钮叫温度值。温度值开到 1.2，更爱试冷门说法，花样多；温度值开到 0.2，更爱选常见说法，更稳。",
+        duration:11500,
+        beats:[
+          {key:"knob",at:0,text:"还有一个常见旋钮叫温度值。"},
+          {key:"hi",at:2236,text:"温度值开到 1.2，更爱试冷门说法，花样多；"},
+          {key:"lo",at:7028,text:"温度值开到 0.2，更爱选常见说法，更稳。"},
+        ]},
+      {id:"else",title:"其他因素",tag:"别忘了",
+        zh:"就算温度值差不多，对话上下文不同、模型版本更新、不同 App 的默认设置不一样，也会让同问不同答。",
+        voice:"就算温度值差不多，对话上下文不同、模型版本更新、不同 App 的默认设置不一样，也会让同问不同答。",
+        duration:9292,
+        beats:[
+          {key:"even",at:0,text:"就算温度值差不多，"},
+          {key:"ctx",at:1549,text:"对话上下文不同、"},
+          {key:"ver",at:3098,text:"模型版本更新、"},
+          {key:"app",at:4337,text:"不同 App 的默认设置不一样，也会让同问不同答。"},
+        ]},
+      {id:"tips",title:"实操干货",tag:"怎么用",
+        zh:"想更稳定：把温度值调低到 0.2，要求固定格式，重要结论多问一轮交叉核对。想要创意：温度值调高到 1.0，并明确说「给我三个不同方案」。",
+        voice:"想更稳定：把温度值调低到 0.2，要求固定格式，重要结论多问一轮交叉核对。想要创意：温度值调高到 1.0，并明确说给我三个不同方案。",
+        duration:13564,
+        beats:[
+          {key:"stable",at:0,text:"想更稳定：把温度值调低到 0.2，要求固定格式，重要结论多问一轮交叉核对。"},
+          {key:"creative",at:7609,text:"想要创意：温度值调高到 1.0，并明确说给我三个不同方案。"},
+        ]},
+      {id:"end",title:"收尾",tag:"记住一句",
+        zh:"一句话：AI 不是背标准答案，是按概率生成。同问不同答，多半是机制，不是故障。我是呱基，我们下期见。",
+        voice:"一句话：AI 不是背标准答案，是按概率生成。同问不同答，多半是机制，不是故障。我是呱基，我们下期见。",
+        duration:10492,
+        beats:[
+          {key:"sum",at:0,text:"一句话：AI 不是背标准答案，是按概率生成。"},
+          {key:"mech",at:4769,text:"同问不同答，多半是机制，不是故障。"},
+          {key:"bye",at:8266,text:"我是呱基，我们下期见。"},
+        ]},
+    ];
+
+    let playing=false,muted=false,sceneIndex=0,sceneStart=0,raf=0,seed=1,activeBeats=null;
+
+    function rand(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}
+    function wobble(a=2.8){return (rand()-0.5)*a}
+    function easeOut(t){return 1-Math.pow(1-Math.min(1,Math.max(0,t)),3)}
+    function clamp01(t){return Math.min(1,Math.max(0,t))}
+    function beatAt(key){const b=(activeBeats||[]).find(x=>x.key===key);return b?b.at:Infinity}
+    function show(localT,key,dur=420){return easeOut((localT-beatAt(key))/dur)}
+    function listShow(localT,key,i,count,span){
+      const start=beatAt(key);
+      return easeOut((localT-(start+i*(span/Math.max(1,count))))/380);
+    }
+
+    function clear(){
+      ctx.fillStyle="#071018";ctx.fillRect(0,0,W,H);
+      seed=11;ctx.fillStyle="rgba(255,255,255,0.035)";
+      for(let i=0;i<220;i++) ctx.fillRect(rand()*W,rand()*H,1.8,1.8);
+    }
+    function chalkStroke(points,opts={}){
+      const {color="rgba(244,247,251,0.94)",width=3.2,alpha=1}=opts;
+      if(points.length<2) return;
+      const drawOnce=(amp,wMul,aMul)=>{
+        ctx.save();ctx.globalAlpha=alpha*aMul;ctx.strokeStyle=color;ctx.lineWidth=width*wMul;ctx.lineCap="round";ctx.lineJoin="round";
+        ctx.beginPath();ctx.moveTo(points[0].x+wobble(amp),points[0].y+wobble(amp));
+        for(let i=1;i<points.length;i++){
+          const p=points[i],prev=points[i-1];
+          ctx.quadraticCurveTo(prev.x+wobble(amp*.9),prev.y+wobble(amp*.9),(prev.x+p.x)/2+wobble(amp),(prev.y+p.y)/2+wobble(amp));
+        }
+        const last=points[points.length-1];ctx.lineTo(last.x+wobble(amp*.4),last.y+wobble(amp*.4));ctx.stroke();ctx.restore();
+      };
+      drawOnce(2.4,1,1);drawOnce(3.6,1.7,.2);drawOnce(1.4,.7,.35);
+    }
+    function line(x1,y1,x2,y2,o){chalkStroke([{x:x1,y:y1},{x:x2,y:y2}],o)}
+    function circle(cx,cy,r,o={}){const pts=[];for(let i=0;i<=28;i++){const t=(i/28)*Math.PI*2;pts.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r})}chalkStroke(pts,o)}
+    function roundRect(x,y,w,h,o){chalkStroke([{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h},{x,y}],o)}
+    function text(str,x,y,size=40,color="rgba(244,247,251,0.96)",align="center"){
+      ctx.save();ctx.fillStyle=color;ctx.font=`700 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
+      ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(str,x+wobble(.4),y+wobble(.4));ctx.restore();
+    }
+    function wrapText(str,x,y,maxWidth,size=34,color="rgba(244,247,251,0.95)",lineH=1.35){
+      ctx.save();ctx.fillStyle=color;ctx.font=`600 ${size}px "PingFang SC","Noto Sans SC",sans-serif`;
+      ctx.textAlign="center";ctx.textBaseline="middle";
+      const chars=[...str];let cur="";const lines=[];
+      for(const ch of chars){const test=cur+ch;if(ctx.measureText(test).width>maxWidth&&cur){lines.push(cur);cur=ch}else cur=test}
+      if(cur) lines.push(cur);
+      const totalH=(lines.length-1)*size*lineH;
+      lines.forEach((ln,i)=>ctx.fillText(ln,x,y-totalH/2+i*size*lineH));ctx.restore();return lines.length;
+    }
+    function ground(y=CONTENT_BOTTOM+10){
+      const pts=[];for(let x=70;x<W-70;x+=34) pts.push({x,y:y+Math.sin(x*.016)*9});
+      chalkStroke(pts,{width:2.8,alpha:.8});
+    }
+    function stars(t,n=50){
+      seed=77;for(let i=0;i<n;i++){
+        const x=rand()*W,y=SAFE_TOP+rand()*(CONTENT_BOTTOM-SAFE_TOP)*.5;
+        const a=.2+.55*(.5+.5*Math.sin(t*.004+i*1.7));
+        ctx.fillStyle=`rgba(244,247,251,${a})`;ctx.fillRect(x,y,2.2,2.2);
+      }
+    }
+    function drawFrog(x,y,scale=1,mood="idle",t=0){
+      const s=scale,cy=y+Math.sin(t*.006)*4*s;
+      circle(x,cy,46*s,{width:3.4,color:"rgba(141,255,156,0.95)"});
+      circle(x-20*s,cy-30*s,15*s,{width:2.8});circle(x+20*s,cy-30*s,15*s,{width:2.8});
+      ctx.save();ctx.fillStyle="#071018";const look=mood==="think"?2:0;
+      ctx.beginPath();ctx.arc(x-20*s,cy-30*s+look,5*s,0,Math.PI*2);ctx.arc(x+20*s,cy-30*s+look,5*s,0,Math.PI*2);ctx.fill();ctx.restore();
+      if(mood==="talk"){const open=5+Math.abs(Math.sin(t*.025))*7;chalkStroke([{x:x-14*s,y:cy+10*s},{x:x,y:cy+10*s+open},{x:x+14*s,y:cy+10*s}],{width:2.6})}
+      else chalkStroke([{x:x-14*s,y:cy+12*s},{x:x,y:cy+20*s},{x:x+14*s,y:cy+12*s}],{width:2.6});
+      chalkStroke([{x:x-22*s,y:cy+34*s},{x:x-42*s,y:cy+60*s},{x:x-16*s,y:cy+56*s}],{width:3.2,color:"rgba(141,255,156,0.9)"});
+      chalkStroke([{x:x+22*s,y:cy+34*s},{x:x+42*s,y:cy+60*s},{x:x+16*s,y:cy+56*s}],{width:3.2,color:"rgba(141,255,156,0.9)"});
+      text("呱基",x,cy+84*s,26*Math.min(1.15,s),"rgba(141,255,156,0.95)");
+    }
+    function titleBig(str,y=SAFE_TOP+36){text(str,W/2,y,58,"rgba(154,215,255,0.98)")}
+    function drawSubtitle(sc,localT){
+      const bandTop=H-SAFE_BOTTOM-SUB_H;
+      const g=ctx.createLinearGradient(0,bandTop-50,0,H-SAFE_BOTTOM);
+      g.addColorStop(0,"rgba(7,16,24,0)");g.addColorStop(.28,"rgba(7,16,24,0.8)");g.addColorStop(1,"rgba(7,16,24,0.92)");
+      ctx.fillStyle=g;ctx.fillRect(0,bandTop-50,W,H-SAFE_BOTTOM-(bandTop-50));
+      let shown="";
+      for(const b of sc.beats){
+        if(localT<b.at) break;
+        const nextAt=sc.beats.find(x=>x.at>b.at)?.at ?? sc.duration;
+        const frac=clamp01((localT-b.at)/Math.max(1,nextAt-b.at)*.92);
+        shown+=b.text.slice(0,Math.max(1,Math.floor(frac*b.text.length)));
+      }
+      if(!shown) shown=(sc.beats[0]?.text||"").slice(0,1);
+      wrapText(shown,W/2,bandTop+SUB_H*.38,900,40,"rgba(244,247,251,0.98)",1.34);
+      text(sc.tag,W/2,bandTop+SUB_H*.72,24,"rgba(154,215,255,0.88)");
+    }
+
+    function drawScene(index,localT,totalT){
+      clear();seed=900+index*83+Math.floor(localT/70);stars(totalT);ground();
+      const sc=SCENES[index]; activeBeats=sc.beats;
+      switch(sc.id){
+        case"hook":drawHook(localT,totalT);break;
+        case"book":drawBook(localT,totalT);break;
+        case"draw":drawLottery(localT,totalT);break;
+        case"temp":drawTemp(localT,totalT);break;
+        case"else":drawElse(localT,totalT);break;
+        case"tips":drawTips(localT,totalT);break;
+        case"end":drawEnd(localT,totalT);break;
+      }
+      drawSubtitle(sc,localT);
+      const fade=clamp01(localT/280);
+      if(fade<1){ctx.fillStyle=`rgba(7,16,24,${1-fade})`;ctx.fillRect(0,0,W,H)}
+    }
+
+    // —— 场景：说到哪画到哪，概念演出来 ——
+    function drawHook(localT,t){
+      if(show(localT,"intro")>0){
+        titleBig("同问，为何不同答？");
+        drawFrog(W/2,430,1.2,"talk",t);
+      }
+      // 左右两次回答对比
+      const aQ=show(localT,"q",500);
+      if(aQ>0){
+        ctx.save();ctx.globalAlpha=aQ;
+        // 同一问题
+        roundRect(140,620,800,90,{width:2.8,color:"rgba(154,215,255,0.85)"});
+        text("同一问题 × 2",W/2,665,36,"rgba(154,215,255,0.98)");
+        // 答 A / 答 B 不同
+        const aA=listShow(localT,"q",1,3,4200);
+        const aB=listShow(localT,"q",2,3,4200);
+        if(aA>0){
+          ctx.globalAlpha=aA;
+          roundRect(80,760,420,200,{width:3,color:"rgba(141,255,156,0.9)"});
+          text("回答 A",290,820,32,"rgba(141,255,156,0.95)");
+          text("……说法一",290,900,30);
+        }
+        if(aB>0){
+          ctx.globalAlpha=aB;
+          roundRect(580,760,420,200,{width:3,color:"rgba(255,213,154,0.9)"});
+          text("回答 B",790,820,32,"rgba(255,213,154,0.95)");
+          text("……说法二",790,900,30);
+        }
+        ctx.restore();
+      }
+      if(show(localT,"ok")>0){
+        text("这不是它坏了",W/2,1060,40,"rgba(141,255,156,0.98)");
+        // 双圈强调
+        circle(W/2,1060,160,{width:2.2,color:"rgba(141,255,156,0.45)"});
+      }
+    }
+
+    function drawBook(localT,t){
+      titleBig("不是翻答案书");
+      drawFrog(W*.88,SAFE_TOP+110,.55,"idle",t);
+      const aBook=show(localT,"book",500);
+      if(aBook>0){
+        ctx.save();ctx.globalAlpha=aBook;
+        // 书 + 打叉
+        roundRect(160,420,320,360,{width:3.2,color:"rgba(168,184,204,0.9)"});
+        line(320,420,320,780,{width:2.5,color:"rgba(168,184,204,0.7)"});
+        for(let i=0;i<5;i++) line(340,480+i*50,450,480+i*50,{width:2,color:"rgba(244,247,251,0.4)"});
+        text("答案书？",320,820,32,"rgba(168,184,204,0.95)");
+        // X
+        line(180,450,460,750,{width:5,color:"rgba(255,120,120,0.9)"});
+        line(460,450,180,750,{width:5,color:"rgba(255,120,120,0.9)"});
+        ctx.restore();
+      }
+      const aProb=show(localT,"prob",520);
+      if(aProb>0){
+        ctx.save();ctx.globalAlpha=aProb;
+        // 骰子 / 概率池
+        roundRect(560,450,400,320,{width:3.2,color:"rgba(154,215,255,0.95)"});
+        text("按概率挑",760,540,36,"rgba(154,215,255,0.98)");
+        text("下一句",760,620,36,"rgba(244,247,251,0.95)");
+        // 小圆点候选
+        ["A","B","C"].forEach((lab,i)=>{
+          const x=640+i*110, y=720;
+          circle(x,y,28,{width:2.5,color:"rgba(141,255,156,0.85)"});
+          text(lab,x,y,26,"rgba(141,255,156,0.95)");
+        });
+        text("像抽签",760,860,30,"rgba(255,213,154,0.95)");
+        ctx.restore();
+      }
+    }
+
+    function drawLottery(localT,t){
+      titleBig("抽签类比");
+      if(show(localT,"ex")>0){
+        roundRect(90,380,900,120,{width:3,color:"rgba(154,215,255,0.9)"});
+        text("小明喜欢吃的水果是 → ？",W/2,440,40,"rgba(154,215,255,0.98)");
+      }
+      const opts=[
+        {l:"苹果",p:0.55,c:"rgba(255,213,154,0.95)"},
+        {l:"香蕉",p:0.30,c:"rgba(154,215,255,0.95)"},
+        {l:"西瓜",p:0.15,c:"rgba(141,255,156,0.95)"},
+      ];
+      opts.forEach((o,i)=>{
+        const a=listShow(localT,"opts",i,3,4500);
+        if(a<=0) return;
+        ctx.save();ctx.globalAlpha=a;
+        const y=560+i*130;
+        text(o.l,150,y+30,42,o.c,"left");
+        const barW=560*o.p*a;
+        roundRect(320,y,580,60,{width:2.4,color:o.c});
+        for(let x=330;x<320+barW;x+=14) line(x,y+8,x,y+52,{width:2,color:o.c,alpha:.55});
+        text(Math.round(o.p*100)+"%",940,y+30,28,o.c);
+        ctx.restore();
+      });
+      if(show(localT,"draw")>0){
+        const pick=Math.floor((t/700)%3);
+        const y=560+pick*130;
+        circle(190,y+30,52,{width:3,color:"rgba(255,213,154,0.95)"});
+        text("抽！",W/2,1020,40,"rgba(255,213,154,0.98)");
+      }
+    }
+
+    function drawTemp(localT,t){
+      titleBig("温度值");
+      drawFrog(W*.88,SAFE_TOP+110,.55,"idle",t);
+      if(show(localT,"knob")>0){
+        circle(W/2,470,110,{width:3.4,color:"rgba(255,213,154,0.95)"});
+        circle(W/2,470,40,{width:2.8,color:"rgba(255,213,154,0.7)"});
+        const ang=-Math.PI/2+(Math.sin(t*.004)*.8);
+        line(W/2,470,W/2+Math.cos(ang)*80,470+Math.sin(ang)*80,{width:4,color:"rgba(255,213,154,0.95)"});
+        text("温度值",W/2,620,36,"rgba(255,213,154,0.95)");
+        text("temperature",W/2,670,26,"rgba(168,184,204,0.85)");
+      }
+      const aHi=show(localT,"hi",480);
+      if(aHi>0){
+        ctx.save();ctx.globalAlpha=aHi;
+        roundRect(70,720,440,220,{width:3,color:"rgba(255,213,154,0.9)"});
+        text("1.2",290,790,56,"rgba(255,213,154,0.98)");
+        text("花样多",290,870,36);
+        text("更爱试冷门",290,940,28,"rgba(244,247,251,0.85)");
+        ctx.restore();
+      }
+      const aLo=show(localT,"lo",480);
+      if(aLo>0){
+        ctx.save();ctx.globalAlpha=aLo;
+        roundRect(570,720,440,220,{width:3,color:"rgba(141,255,156,0.9)"});
+        text("0.2",790,790,56,"rgba(141,255,156,0.98)");
+        text("更稳",790,870,36);
+        text("更爱常见说法",790,940,28,"rgba(244,247,251,0.85)");
+        ctx.restore();
+      }
+    }
+
+    function drawElse(localT,t){
+      titleBig("还有这些因素");
+      if(show(localT,"even")>0) text("就算温度值差不多…",W/2,SAFE_TOP+110,30,"rgba(168,184,204,0.9)");
+      const cards=[
+        {key:"ctx",n:"上下文不同",d:"前面聊过什么不一样"},
+        {key:"ver",n:"模型版本更新",d:"背后模型悄悄升级"},
+        {key:"app",n:"App 默认设置",d:"各产品默认温度值不同"},
+      ];
+      cards.forEach((c,i)=>{
+        const a=show(localT,c.key,500);
+        if(a<=0) return;
+        const y=420+i*195;
+        ctx.save();ctx.globalAlpha=a;
+        roundRect(90,y,900,160,{width:3,color:i===0?"rgba(141,255,156,0.9)":i===1?"rgba(154,215,255,0.9)":"rgba(255,213,154,0.9)"});
+        text(c.n,280,y+60,40,"rgba(244,247,251,0.98)","left");
+        text(c.d,280,y+115,28,"rgba(168,184,204,0.95)","left");
+        ctx.restore();
+      });
+    }
+
+    function drawTips(localT,t){
+      titleBig("怎么用");
+      drawFrog(W*.88,SAFE_TOP+110,.55,"idle",t);
+      const aS=show(localT,"stable",520);
+      if(aS>0){
+        ctx.save();ctx.globalAlpha=aS;
+        roundRect(80,400,920,280,{width:3.2,color:"rgba(141,255,156,0.95)"});
+        text("想更稳定",W/2,460,40,"rgba(141,255,156,0.98)");
+        const tips=["温度值调到 0.2","要求固定格式","重要结论多问一轮核对"];
+        tips.forEach((tip,i)=>{
+          const a=listShow(localT,"stable",i,3,6500);
+          if(a<=0) return;
+          ctx.globalAlpha=a;
+          text("· "+tip,200,540+i*55,32,"rgba(244,247,251,0.96)","left");
+        });
+        ctx.restore();
+      }
+      const aC=show(localT,"creative",520);
+      if(aC>0){
+        ctx.save();ctx.globalAlpha=aC;
+        roundRect(80,740,920,260,{width:3.2,color:"rgba(255,213,154,0.95)"});
+        text("想要创意",W/2,810,40,"rgba(255,213,154,0.98)");
+        text("温度值调到 1.0",W/2,890,34);
+        text("并明确说：给我三个不同方案",W/2,960,30,"rgba(244,247,251,0.92)");
+        ctx.restore();
+      }
+    }
+
+    function drawEnd(localT,t){
+      if(show(localT,"sum")>0){
+        titleBig("记住这一句");
+        drawFrog(W/2,400,1.15,"talk",t);
+        roundRect(100,560,880,130,{width:3,color:"rgba(154,215,255,0.95)"});
+        text("不是背答案 · 是按概率生成",W/2,625,34,"rgba(154,215,255,0.98)");
+      }
+      if(show(localT,"mech")>0){
+        roundRect(100,740,880,130,{width:3,color:"rgba(141,255,156,0.95)"});
+        text("同问不同答 · 多半是机制",W/2,805,34,"rgba(141,255,156,0.98)");
+        circle(W/2,805,200,{width:2,color:"rgba(141,255,156,0.35)"});
+      }
+      if(show(localT,"bye")>0) text("下期见",W/2,980,40,"rgba(141,255,156,0.95)");
+    }
+
+    function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
+    function speak(s){if(muted||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang="zh-CN";u.rate=1.06;u.pitch=1.15;const v=pickVoice();if(v)u.voice=v;speechSynthesis.speak(u)}
+    function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
+    function totalDuration(){return SCENES.reduce((s,sc)=>s+sc.duration,0)}
+    function sceneOffsets(){const o=[];let a=0;SCENES.forEach(sc=>{o.push(a);a+=sc.duration});return o}
+    const offsets=sceneOffsets();
+    function setScene(i,rv=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];activeBeats=sc.beats;
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.title}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
+      if(rv&&playing) speak(sc.voice); updateProgress(0);
+    }
+    function updateProgress(localT){bar.style.width=Math.min(100,((offsets[sceneIndex]+localT)/totalDuration())*100)+"%"}
+    function tick(now){
+      if(!playing)return;const sc=SCENES[sceneIndex],localT=now-sceneStart;
+      drawScene(sceneIndex,localT,now);updateProgress(localT);
+      if(localT>=sc.duration){if(sceneIndex<SCENES.length-1)setScene(sceneIndex+1,true);else{playing=false;btnPlay.textContent="再看一遍";stopSpeak();drawScene(sceneIndex,sc.duration,now);updateProgress(sc.duration);return}}
+      raf=requestAnimationFrame(tick);
+    }
+    function play(){playing=true;btnPlay.textContent="暂停";setScene(sceneIndex,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    function pause(){playing=false;btnPlay.textContent="继续";stopSpeak();cancelAnimationFrame(raf)}
+    function restart(){stopSpeak();sceneIndex=0;playing=true;btnPlay.textContent="暂停";setScene(0,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    SCENES.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`${i+1}. ${sc.title}`;
+      b.addEventListener("click",()=>{const was=playing;stopSpeak();setScene(i,was);drawScene(i,0,performance.now());if(was){cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}});sceneList.appendChild(b)});
+    btnPlay.addEventListener("click",()=>{if(playing)pause();else{if(btnPlay.textContent==="再看一遍")restart();else play()}});
+    btnRestart.addEventListener("click",restart);
+    btnMute.addEventListener("click",()=>{muted=!muted;btnMute.textContent=muted?"配音：关":"配音：开";if(muted)stopSpeak();else if(playing)speak(SCENES[sceneIndex].voice)});
+    window.__GUAJI__={
+      SCENES,totalDuration,get playing(){return playing},setMuted(v){muted=v},
+      drawAt(ms){
+        let remain=ms,idx=0;
+        while(idx<SCENES.length-1&&remain>=SCENES[idx].duration){remain-=SCENES[idx].duration;idx++}
+        sceneIndex=idx;activeBeats=SCENES[idx].beats;
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${SCENES[idx].title}`;
+        [...sceneList.children].forEach((b,j)=>b.classList.toggle("active",j===idx));
+        drawScene(idx,remain,ms);
+        bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
+      },
+      jump(i,localT){this.drawAt(offsets[i]+localT)}
+    };
+    setScene(0,false);drawScene(0,2500,performance.now());
+  </script>
+</body>
+</html>

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>呱基讲 AI · 手机里的 AI，是怎么跑起来的</title>
+  <style>
+    :root {
+      --bg:#071018; --ink:#f4f7fb; --mute:#a8b8cc; --accent:#9ad7ff;
+      --frog:#8dff9c; --panel:#0f1a24; --line:rgba(244,247,251,0.16);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:radial-gradient(700px 480px at 50% 0%,#132033 0%,transparent 55%),var(--bg);color:var(--ink);font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",sans-serif}
+    body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 12px 28px}
+    .brand{width:min(420px,100%);text-align:center}
+    .brand .host{color:var(--frog);font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+    .brand h1{font-family:"Songti SC","Noto Serif CJK SC","Noto Serif SC",Georgia,serif;font-size:clamp(22px,5.5vw,28px);line-height:1.25}
+    .brand p{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.55}
+    .stage-wrap{width:min(420px,100%);position:relative;border:1px solid var(--line);background:#071018;overflow:hidden;aspect-ratio:9/16}
+    canvas{display:block;width:100%;height:100%;background:#071018}
+    .progress{width:min(420px,100%);height:3px;background:rgba(255,255,255,.08);overflow:hidden}
+    .progress>i{display:block;height:100%;width:0%;background:var(--accent)}
+    .controls{width:min(420px,100%);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;font-size:13px;cursor:pointer}
+    button:hover{border-color:rgba(154,215,255,.45);background:#152433}
+    button.primary{background:#1a3348;border-color:rgba(154,215,255,.55)}
+    .meta{color:var(--mute);font-size:12px;margin-left:auto}
+    .scene-list{width:min(420px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .scene-list button{text-align:left;padding:8px 10px;font-size:11px;color:var(--mute);line-height:1.35}
+    .scene-list button.active{color:var(--ink);border-color:rgba(154,215,255,.5);background:#152433}
+    .hint{width:min(420px,100%);color:var(--mute);font-size:11px;line-height:1.5}
+    .nav{width:min(420px,100%);font-size:12px}.nav a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <div class="host">呱基 · AI 概念课 · 第 6 期</div>
+    <h1>手机里的 AI，<br>是怎么跑起来的？</h1>
+    <p>内存 · NPU · 带宽 · 量化</p>
+  </header>
+  <p class="nav">
+    <a href="./index.html">第1期</a> ·
+    <a href="./edge-vs-cloud.html">第2期</a> ·
+    <a href="./modalities.html">第3期</a> ·
+    <a href="./same-question.html">第4期</a> ·
+    <a href="./device-edge-cloud.html">第5期</a> ·
+    <span>第6期</span> ·
+    <a href="./cv-vs-vlm.html">第7期</a> ·
+    <a href="./code-vs-imagegen.html">第8期</a> ·
+    <a href="./model-infra.html">第9期</a>
+  </p>
+  <div class="stage-wrap"><canvas id="stage" width="1080" height="1920"></canvas></div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnRestart">重来</button>
+    <button id="btnMute">配音：开</button>
+    <div class="meta" id="meta">场景 1 / 7</div>
+  </div>
+  <div class="scene-list" id="sceneList"></div>
+  <p class="hint">竖屏 9:16 · 逐词对齐 · 一屏一个重点</p>
+
+  <script>
+    const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
+    const bar=document.getElementById("bar"), meta=document.getElementById("meta");
+    const btnPlay=document.getElementById("btnPlay"), btnRestart=document.getElementById("btnRestart");
+    const btnMute=document.getElementById("btnMute"), sceneList=document.getElementById("sceneList");
+    const W=canvas.width, H=canvas.height;
+    const SAFE_BOTTOM=150, SUB_Y=1600;
+    const FONT='"Noto Sans CJK SC","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+    const COL={bg:"#0b1520",ink:"#eef3f8",mute:"rgba(238,243,248,0.55)",faint:"rgba(238,243,248,0.16)",
+      blue:"#7fd3ff",warm:"#ffc27a",green:"#93e6ad",red:"#ff9a9a"};
+    const LEAD=120;
+
+    /*@@SCENES*/
+    const SCENES=[
+ {
+  "id": "hook",
+  "num": "01",
+  "tag": "一句话的旅程",
+  "headline": "没网，字是怎么冒出来的",
+  "voice": "嗨，我是呱基。飞机上没网，你让手机帮你写一条请假消息。一秒多后，字就一个接一个冒了出来。这一秒多里，手机内部跑完了一整条流水线。这期就跟着这句话走一遍，看看内存、NPU 和带宽，各管哪一段。",
+  "duration": 19382,
+  "beats": [
+   {
+    "key": "intro",
+    "at": 0,
+    "text": "嗨，我是呱基。"
+   },
+   {
+    "key": "s1",
+    "at": 1852,
+    "text": "飞机上没网，你让手机帮你写一条请假消息。"
+   },
+   {
+    "key": "s2",
+    "at": 5637,
+    "text": "一秒多后，字就一个接一个冒了出来。"
+   },
+   {
+    "key": "s3",
+    "at": 9016,
+    "text": "这一秒多里，手机内部跑完了一整条流水线。"
+   },
+   {
+    "key": "s4",
+    "at": 12894,
+    "text": "这期就跟着这句话走一遍，看看内存、NPU 和带宽，各管哪一段。"
+   }
+  ]
+ },
+ {
+  "id": "mem",
+  "num": "02",
+  "tag": "第一站 · 内存",
+  "headline": "先把模型搬上桌",
+  "voice": "模型平时存在闪存里，就像仓库里一本超厚的书。手机上常见的小模型，有三十亿个参数，也就是三十亿个数字，压缩之后大约一点五 GB。要用它，得先整本搬进内存。内存是手机的工作台：拿取飞快，但地方不大。而且这张桌子，系统、微信、相机都要用，模型常常挤不下。所以 AI 手机爱标 12 GB、16 GB 内存：桌子够大，模型才能一直摆着，不用每次现搬。",
+  "duration": 33062,
+  "beats": [
+   {
+    "key": "book",
+    "at": 0,
+    "text": "模型平时存在闪存里，就像仓库里一本超厚的书。"
+   },
+   {
+    "key": "size",
+    "at": 4699,
+    "text": "手机上常见的小模型，有三十亿个参数，也就是三十亿个数字，压缩之后大约一点五 GB。"
+   },
+   {
+    "key": "desk",
+    "at": 12257,
+    "text": "要用它，得先整本搬进内存。内存是手机的工作台：拿取飞快，但地方不大。"
+   },
+   {
+    "key": "share",
+    "at": 19170,
+    "text": "而且这张桌子，系统、微信、相机都要用，模型常常挤不下。"
+   },
+   {
+    "key": "why",
+    "at": 24653,
+    "text": "所以 AI 手机爱标 12 GB、16 GB 内存：桌子够大，模型才能一直摆着，不用每次现搬。"
+   }
+  ]
+ },
+ {
+  "id": "npu",
+  "num": "03",
+  "tag": "第二站 · NPU",
+  "headline": "一口气读懂你的话",
+  "voice": "你的话会先被切成一小块一小块，叫 token，再变成一串数字。读懂它，说到底是海量的乘法和加法。CPU 像几位全能大厨，什么都会，但人手少，只能一道道来。NPU 像一大排专做乘加的帮厨，成千上万个一起开工，整句话同时算。手机 NPU 常标几十 TOPS，也就是每秒几十万亿次运算。所以读懂你的问题，零点几秒就够；同样的活，它还比 CPU 省电得多。",
+  "duration": 32486,
+  "beats": [
+   {
+    "key": "token",
+    "at": 0,
+    "text": "你的话会先被切成一小块一小块，叫 token，再变成一串数字。"
+   },
+   {
+    "key": "math",
+    "at": 5347,
+    "text": "读懂它，说到底是海量的乘法和加法。"
+   },
+   {
+    "key": "cpu",
+    "at": 8588,
+    "text": "CPU 像几位全能大厨，什么都会，但人手少，只能一道道来。"
+   },
+   {
+    "key": "npu",
+    "at": 14005,
+    "text": "NPU 像一大排专做乘加的帮厨，成千上万个一起开工，整句话同时算。"
+   },
+   {
+    "key": "tops",
+    "at": 20336,
+    "text": "手机 NPU 常标几十 TOPS，也就是每秒几十万亿次运算。"
+   },
+   {
+    "key": "fast",
+    "at": 25347,
+    "text": "所以读懂你的问题，零点几秒就够；同样的活，它还比 CPU 省电得多。"
+   }
+  ]
+ },
+ {
+  "id": "bw",
+  "num": "04",
+  "tag": "第三站 · 带宽",
+  "headline": "每写一个字，翻一遍整本书",
+  "voice": "真正决定字冒得多快的，是往外写的这一段。模型一次只能写一个 token，而每写一个，都要把那一点五 GB 的参数，从内存搬到 NPU 过一遍。内存到 NPU 这条路有多宽，就叫内存带宽。如今的手机，大约每秒六七十 GB。六十 GB 除以一点五 GB，一秒最多写四十来个 token，实际还要打点折扣。所以 NPU 再能干，路不够宽，也只能干等着。",
+  "duration": 30710,
+  "beats": [
+   {
+    "key": "slow",
+    "at": 0,
+    "text": "真正决定字冒得多快的，是往外写的这一段。"
+   },
+   {
+    "key": "each",
+    "at": 3750,
+    "text": "模型一次只能写一个 token，而每写一个，都要把那一点五 GB 的参数，从内存搬到 NPU 过一遍。"
+   },
+   {
+    "key": "pipe",
+    "at": 11609,
+    "text": "内存到 NPU 这条路有多宽，就叫内存带宽。如今的手机，大约每秒六七十 GB。"
+   },
+   {
+    "key": "calc",
+    "at": 18808,
+    "text": "六十 GB 除以一点五 GB，一秒最多写四十来个 token，实际还要打点折扣。"
+   },
+   {
+    "key": "wait",
+    "at": 25810,
+    "text": "所以 NPU 再能干，路不够宽，也只能干等着。"
+   }
+  ]
+ },
+ {
+  "id": "quant",
+  "num": "05",
+  "tag": "一招两得",
+  "headline": "把书印小一点",
+  "voice": "那怎么让字冒得更快？工程师最常用的一招，叫量化。原本每个参数占两个字节，量化后只占半个字节，整本书从六 GB 缩到一点五 GB。桌上省出四分之三的地方，每写一个字要搬的东西，也少了四分之三。同一条路，一秒能写的，从十个左右涨到四十来个。代价是精度会损失一点点，所以要挑合适的压法。",
+  "duration": 27206,
+  "beats": [
+   {
+    "key": "q1",
+    "at": 0,
+    "text": "那怎么让字冒得更快？工程师最常用的一招，叫量化。"
+   },
+   {
+    "key": "q2",
+    "at": 4931,
+    "text": "原本每个参数占两个字节，量化后只占半个字节，整本书从六 GB 缩到一点五 GB。"
+   },
+   {
+    "key": "q3",
+    "at": 12222,
+    "text": "桌上省出四分之三的地方，每写一个字要搬的东西，也少了四分之三。"
+   },
+   {
+    "key": "q4",
+    "at": 17639,
+    "text": "同一条路，一秒能写的，从十个左右涨到四十来个。"
+   },
+   {
+    "key": "q5",
+    "at": 22176,
+    "text": "代价是精度会损失一点点，所以要挑合适的压法。"
+   }
+  ]
+ },
+ {
+  "id": "feel",
+  "num": "06",
+  "tag": "你能感觉到的",
+  "headline": "哪样不够，你就会感觉到",
+  "voice": "这三样平时看不见，但哪一样不够，你都感觉得到。内存不够：模型被挤下桌，每次打开 AI 都要等它重新加载，后台 App 也容易被清掉。算力不够：读长文、看图片要等很久，手机还发烫、掉电快。带宽不够：字一个一个往外挤，像卡住的打字机。三样都够，你得到的就是：断网能用、一点就开、回答流畅，内容也不出手机。",
+  "duration": 29030,
+  "beats": [
+   {
+    "key": "f0",
+    "at": 0,
+    "text": "这三样平时看不见，但哪一样不够，你都感觉得到。"
+   },
+   {
+    "key": "fmem",
+    "at": 4144,
+    "text": "内存不够：模型被挤下桌，每次打开 AI 都要等它重新加载，后台 App 也容易被清掉。"
+   },
+   {
+    "key": "fnpu",
+    "at": 11794,
+    "text": "算力不够：读长文、看图片要等很久，手机还发烫、掉电快。"
+   },
+   {
+    "key": "fbw",
+    "at": 17766,
+    "text": "带宽不够：字一个一个往外挤，像卡住的打字机。"
+   },
+   {
+    "key": "fval",
+    "at": 21782,
+    "text": "三样都够，你得到的就是：断网能用、一点就开、回答流畅，内容也不出手机。"
+   }
+  ]
+ },
+ {
+  "id": "end",
+  "num": "07",
+  "tag": "记住",
+  "headline": "三样东西，各管一段",
+  "voice": "内存，决定装得下多大的模型；NPU，决定读得多快、烫不烫；带宽，决定字冒得多快。下次发布会说 16 GB 内存、几十 TOPS 算力，你就知道它们各管哪一段了。我是呱基，我们下期见。",
+  "duration": 17702,
+  "beats": [
+   {
+    "key": "e1",
+    "at": 0,
+    "text": "内存，决定装得下多大的模型；"
+   },
+   {
+    "key": "e2",
+    "at": 2816,
+    "text": "NPU，决定读得多快、烫不烫；"
+   },
+   {
+    "key": "e3",
+    "at": 5721,
+    "text": "带宽，决定字冒得多快。"
+   },
+   {
+    "key": "e4",
+    "at": 8137,
+    "text": "下次发布会说 16 GB 内存、几十 TOPS 算力，你就知道它们各管哪一段了。"
+   },
+   {
+    "key": "bye",
+    "at": 14803,
+    "text": "我是呱基，我们下期见。"
+   }
+  ]
+ }
+];
+    /*@@END*/
+
+    // ---------- timing ----------
+    let T=0, BEATS=[], GA=1;
+    const clamp01=v=>v<0?0:v>1?1:v;
+    const eOut=t=>1-Math.pow(1-clamp01(t),3);
+    const eInOut=t=>{t=clamp01(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+    const lerp=(a,b,t)=>a+(b-a)*t;
+    function beatIdx(k){return BEATS.findIndex(b=>b.key===k)}
+    function at(k){const b=BEATS.find(b=>b.key===k);return b?Math.max(0,b.at-LEAD):1e9}
+    function since(k){return T-at(k)}
+    function pr(k,dur=800,delay=0){return eInOut((T-at(k)-delay)/dur)}
+    function ap(k,dur=450,delay=0){return eOut((T-at(k)-delay)/dur)}
+    function emph(k,floor=0.32){const i=beatIdx(k),nb=BEATS[i+1];if(!nb)return 1;const t=T-(nb.at-LEAD);return t<=0?1:lerp(1,floor,eOut(t/450))}
+    function withA(a,fn){const old=GA;GA=old*a;if(GA>0.002)fn();GA=old}
+
+    // ---------- geometry ----------
+    function poly(vs,closed=false,step=6){const out=[];const L=closed?[...vs,vs[0]]:vs;
+      for(let k=0;k<L.length-1;k++){const A=L[k],B=L[k+1],d=Math.hypot(B.x-A.x,B.y-A.y),n=Math.max(1,Math.ceil(d/step));
+        for(let i=(k===0?0:1);i<=n;i++)out.push({x:A.x+(B.x-A.x)*i/n,y:A.y+(B.y-A.y)*i/n})}return out}
+    function arcPts(cx,cy,r,a0,a1,step=6){const n=Math.max(2,Math.ceil(Math.abs(a1-a0)*r/step)),out=[];
+      for(let i=0;i<=n;i++){const t=a0+(a1-a0)*i/n;out.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r})}return out}
+    function circlePts(cx,cy,r,start=-Math.PI/2){return arcPts(cx,cy,r,start,start+Math.PI*2)}
+    function ellipsePts(cx,cy,rx,ry){const out=[];for(let i=0;i<=72;i++){const t=-Math.PI/2+i/72*Math.PI*2;out.push({x:cx+Math.cos(t)*rx,y:cy+Math.sin(t)*ry})}return out}
+    function join(...parts){const out=[];for(const p of parts)for(const q of p){const l=out[out.length-1];if(l&&Math.hypot(l.x-q.x,l.y-q.y)<0.5)continue;out.push(q)}return out}
+    function rrectPts(x,y,w,h,r){r=Math.min(r,w/2,h/2);const P=Math.PI;
+      return join(poly([{x:x+r,y},{x:x+w-r,y}]),arcPts(x+w-r,y+r,r,-P/2,0),poly([{x:x+w,y:y+r},{x:x+w,y:y+h-r}]),
+        arcPts(x+w-r,y+h-r,r,0,P/2),poly([{x:x+w-r,y:y+h},{x:x+r,y:y+h}]),arcPts(x+r,y+h-r,r,P/2,P),
+        poly([{x,y:y+h-r},{x,y:y+r}]),arcPts(x+r,y+r,r,P,P*1.5))}
+    function quadPts(x0,y0,cx,cy,x1,y1,step=6){const len=Math.hypot(cx-x0,cy-y0)+Math.hypot(x1-cx,y1-cy),n=Math.max(4,Math.ceil(len/step)),out=[];
+      for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push({x:u*u*x0+2*u*t*cx+t*t*x1,y:u*u*y0+2*u*t*cy+t*t*y1})}return out}
+    function cloudPts(x,y,s){
+      const C=[[-70,15,42],[-15,-22,58],[55,-5,46],[92,20,30],[10,10,50]];
+      const base=50*s,out=[];
+      for(let i=0;i<=150;i++){const th=Math.PI+i/150*Math.PI*2,dx=Math.cos(th),dy=Math.sin(th);let best=0;
+        for(const [cx,cy,r] of C){const ox=cx*s,oy=cy*s,R=r*s,b=dx*ox+dy*oy,c=ox*ox+oy*oy-R*R,disc=b*b-c;if(disc>=0){const t=b+Math.sqrt(disc);if(t>best)best=t}}
+        let px=dx*best,py=dy*best;if(py>base){const t=base/dy;px=dx*t;py=base}
+        out.push({x:x+px,y:y+py})}
+      return out}
+    function along(pts,u){u=clamp01(u);const f=u*(pts.length-1),i=Math.floor(f),fr=f-i;const A=pts[i],B=pts[Math.min(pts.length-1,i+1)];
+      return {x:A.x+(B.x-A.x)*fr,y:A.y+(B.y-A.y)*fr,ang:Math.atan2(B.y-A.y,B.x-A.x)}}
+
+    // ---------- chalk rendering ----------
+    function rough(pts,amp){if(!amp)return pts;const s=pts[0].x*.37+pts[0].y*.91+pts.length*.13;
+      return pts.map((q,i)=>({x:q.x+(Math.sin(i*.31+s)*.6+Math.sin(i*.09+s*1.7)*.4)*amp,y:q.y+(Math.cos(i*.27+s*1.3)*.6+Math.sin(i*.06+s*.7)*.4)*amp}))}
+    function stroke(pts,o={}){
+      const {color=COL.ink,width=4,prog=1,alpha=1,glow=.12,dash=null,tip=true,amp=1.1,grain=true}=o;
+      const A=alpha*GA;if(prog<=0||A<=0.002||pts.length<2)return null;
+      const rp=rough(pts,amp),total=rp.length-1,f=total*clamp01(prog),n=Math.floor(f),fr=f-n;
+      const path=new Path2D();path.moveTo(rp[0].x,rp[0].y);for(let i=1;i<=n;i++)path.lineTo(rp[i].x,rp[i].y);
+      let end=rp[n];if(n<total&&fr>0){const P=rp[n],Q=rp[n+1];end={x:P.x+(Q.x-P.x)*fr,y:P.y+(Q.y-P.y)*fr};path.lineTo(end.x,end.y)}
+      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle=color;
+      if(dash)ctx.setLineDash(dash);
+      if(glow>0){ctx.globalAlpha=A*glow;ctx.lineWidth=width*3.4;ctx.stroke(path)}
+      ctx.globalAlpha=A*.95;ctx.lineWidth=width;ctx.stroke(path);
+      if(grain&&!dash){ctx.setLineDash([1.4,5]);ctx.globalAlpha=A*.28;ctx.lineWidth=width*.5;ctx.strokeStyle="#ffffff";ctx.stroke(path)}
+      ctx.restore();
+      if(tip&&prog<1){ctx.save();ctx.globalAlpha=A;ctx.fillStyle="#ffffff";ctx.beginPath();ctx.arc(end.x,end.y,width*.85,0,Math.PI*2);ctx.fill();ctx.restore()}
+      return end}
+    function fill(pts,color,alpha,amp=1.1){const A=alpha*GA;if(A<=0.002)return;const rp=rough(pts,amp);
+      ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(rp[0].x,rp[0].y);for(const q of rp)ctx.lineTo(q.x,q.y);ctx.closePath();ctx.fill();ctx.restore()}
+    function shape(pts,o={}){if(o.fill)fill(pts,o.fill,(o.fillA??.1)*(o.alpha??1)*Math.pow(clamp01(o.prog??1),2),o.amp??1.1);return stroke(pts,o)}
+    function arrowHead(pts,prog,o={}){if(prog<0.92)return;const {color=COL.ink,width=4,alpha=1,size=20}=o;
+      const e=along(pts,1),b=along(pts,.96),ang=Math.atan2(e.y-b.y,e.x-b.x),a=alpha*eOut((prog-.92)/.08);
+      stroke(poly([{x:e.x-Math.cos(ang-.45)*size,y:e.y-Math.sin(ang-.45)*size},e,{x:e.x-Math.cos(ang+.45)*size,y:e.y-Math.sin(ang+.45)*size}]),{color,width,alpha:a,glow:.1,tip:false,amp:.4})}
+    function dot(x,y,r,color,alpha=1){const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore()}
+    function text(str,x,y,o={}){const {size=32,color=COL.ink,weight=500,align="center",alpha=1,rise=14,spacing=0}=o;
+      const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${FONT}`;
+      ctx.textAlign=align;ctx.textBaseline="middle";if(spacing)ctx.letterSpacing=spacing+"px";ctx.fillText(str,x,y+(1-clamp01(alpha))*rise);ctx.restore()}
+    function measure(str,size,weight=500){ctx.save();ctx.font=`${weight} ${size}px ${FONT}`;const w=ctx.measureText(str).width;ctx.restore();return w}
+    function pill(str,x,y,o={}){const {size=26,color=COL.ink,tone=COL.blue,alpha=1,weight=600,padX=22}=o;
+      const A=alpha*GA;if(A<=0.002)return;const w=measure(str,size,weight)+padX*2,h=size*1.75,yy=y+(1-clamp01(alpha))*10;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(x-w/2,yy-h/2,w,h,h/2);ctx.fillStyle=tone;ctx.globalAlpha=A*.14;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+      text(str,x,yy,{size,color,weight,alpha:Math.min(1,alpha),rise:0})}
+
+    // ---------- background ----------
+    const bgCanvas=document.createElement("canvas");bgCanvas.width=W;bgCanvas.height=H;
+    (function paintBg(){const b=bgCanvas.getContext("2d");
+      const g=b.createRadialGradient(W/2,H*.38,80,W/2,H*.45,H*.75);g.addColorStop(0,"#10202c");g.addColorStop(1,"#070e15");
+      b.fillStyle=g;b.fillRect(0,0,W,H);let s=7;const r=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
+      for(let i=0;i<1400;i++){b.fillStyle=`rgba(255,255,255,${0.01+r()*0.025})`;const x=r()*W,y=r()*H,z=r()*2+.4;b.fillRect(x,y,z,z)}})();
+
+    // ---------- icons ----------
+    const MEM=COL.blue, NPU=COL.green, BW=COL.warm;
+    function iconBook(x,y,s,p,col=COL.ink,thick=1){
+      const w=86*s,h=116*s,d=(8+thick*22)*s,x0=x-w/2-d/2,y0=y-h/2+d/2,x1=x0+w,y1=y0+h;
+      shape(rrectPts(x0,y0,w,h,8*s),{color:col,width:4,prog:p,fill:col,fillA:.14,amp:.6});
+      const q=clamp01(p*1.6-.6);
+      stroke(poly([{x:x0+6*s,y:y0},{x:x0+6*s+d,y:y0-d},{x:x1+d,y:y0-d},{x:x1+d,y:y1-d},{x:x1,y:y1}]),{color:col,width:3.5,prog:q,glow:.08,tip:false,amp:.4});
+      stroke(poly([{x:x1,y:y0},{x:x1+d,y:y0-d}]),{color:col,width:3,prog:q,glow:0,tip:false,amp:.3});
+      const n=Math.max(1,Math.round(thick*4));
+      for(let i=1;i<=n;i++){const f=i/(n+1);stroke(poly([{x:x1+d*f,y:y0-d*f+6*s},{x:x1+d*f,y:y1-d*f-4*s}]),{color:col,width:1.8,prog:q,alpha:.45,glow:0,tip:false,amp:0,grain:false})}
+      stroke(poly([{x:x0+16*s,y:y0+30*s},{x:x1-16*s,y:y0+30*s}]),{color:col,width:3,prog:q,alpha:.6,glow:0,tip:false,amp:0});
+      stroke(poly([{x:x0+16*s,y:y0+48*s},{x:x1-30*s,y:y0+48*s}]),{color:col,width:3,prog:q,alpha:.4,glow:0,tip:false,amp:0})}
+    function iconShelf(x,y,s,p){
+      const w=210*s,h=260*s,x0=x-w/2,y0=y-h/2;
+      shape(rrectPts(x0,y0,w,h,12*s),{color:COL.ink,width:4,prog:p,alpha:.7,fill:COL.ink,fillA:.03});
+      stroke(poly([{x:x0,y:y0+h*.52},{x:x0+w,y:y0+h*.52}]),{color:COL.ink,width:3.5,prog:clamp01(p*1.5-.5),alpha:.55,glow:0,tip:false});
+      const sp=clamp01(p*2-1);
+      [[.14,.3],[.26,.36],[.38,.24],[.52,.32],[.66,.28],[.8,.34]].forEach(([fx,fh])=>{const bx=x0+w*fx,b=y0+h-10*s;
+        stroke(poly([{x:bx,y:b},{x:bx,y:b-h*fh}]),{color:COL.ink,width:14*s,prog:sp,alpha:.22,glow:0,tip:false,amp:0,grain:false})})}
+    function iconRAM(x,y,s,p,col=MEM,lit=0){
+      const w=260*s,h=96*s,x0=x-w/2,y0=y-h/2,q=clamp01(p*1.6-.6);
+      shape(rrectPts(x0,y0,w,h,10*s),{color:col,width:4,prog:p,fill:col,fillA:.1+.1*lit});
+      for(let i=0;i<4;i++){const cx=x0+w*(.15+i*.233);
+        ctx.save();ctx.globalAlpha=GA*q*(.3+.45*lit);ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(cx-22*s,y0+16*s,44*s,44*s,5*s);ctx.fill();ctx.restore()}
+      for(let i=0;i<14;i++){const px=x0+18*s+i*(w-36*s)/13;stroke(poly([{x:px,y:y0+h},{x:px,y:y0+h+12*s}]),{color:col,width:3,prog:q,alpha:.55,glow:0,tip:false,amp:0,grain:false})}}
+    function iconChip(x,y,s,p,col=NPU,lit=0){
+      const w=150*s,x0=x-w/2,y0=y-w/2,q=clamp01(p*1.5-.5);
+      for(let i=0;i<4;i++){const f=(i+1)/5;
+        [[x0+w*f,y0,0,-1],[x0+w*f,y0+w,0,1],[x0,y0+w*f,-1,0],[x0+w,y0+w*f,1,0]].forEach(([px,py,dx,dy])=>
+          stroke(poly([{x:px,y:py},{x:px+dx*14*s,y:py+dy*14*s}]),{color:col,width:3,prog:q,alpha:.55,glow:0,tip:false,amp:0,grain:false}))}
+      shape(rrectPts(x0,y0,w,w,14*s),{color:col,width:4,prog:p,fill:col,fillA:.1});
+      const n=4,c=(w-36*s)/n;
+      for(let i=0;i<n;i++)for(let j=0;j<n;j++){const on=lit>0?(.5+.5*Math.sin(T*.012+i*1.3+j*.7))*lit:0;
+        ctx.save();ctx.globalAlpha=GA*clamp01(p*2-1)*(.16+.72*on);ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x0+18*s+i*c+3*s,y0+18*s+j*c+3*s,c-6*s,c-6*s,3*s);ctx.fill();ctx.restore()}}
+    function phoneBody(x,y,w,h,p){
+      shape(rrectPts(x-w/2,y-h/2,w,h,Math.min(50,w*.15)),{color:COL.ink,width:4.5,prog:p,alpha:.9,fill:COL.ink,fillA:.035});
+      stroke(poly([{x:x-w*.11,y:y-h/2+Math.min(26,h*.05)},{x:x+w*.11,y:y-h/2+Math.min(26,h*.05)}]),{color:COL.ink,width:Math.max(3,w*.016),prog:clamp01(p*2-1),alpha:.4,glow:0,tip:false,amp:0,grain:false})}
+    function iconPlane(x,y,s,col){ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/4);
+      const o={color:col,width:4*s,tip:false,amp:0,glow:0,grain:false};
+      stroke(poly([{x:0,y:-22*s},{x:0,y:20*s}]),o);
+      stroke(poly([{x:-19*s,y:4*s},{x:0,y:-7*s},{x:19*s,y:4*s}]),o);
+      stroke(poly([{x:-8*s,y:20*s},{x:0,y:15*s},{x:8*s,y:20*s}]),o);ctx.restore()}
+    function bubble(str,x,y,o={}){
+      const {size=28,tone=COL.blue,align="left",maxW=300,alpha=1,shown=null}=o;
+      const A=alpha*GA;if(A<=.002)return null;
+      const lines=wrapLines(str,size,maxW);
+      const tw=Math.max(...lines.map(l=>measure(l,size,500))),pad=20,lh=size*1.42,h=lines.length*lh+pad*1.2,w=tw+pad*2;
+      const bx=align==="right"?x-w:x;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(bx,y,w,h,20);ctx.fillStyle=tone;ctx.globalAlpha=A*.15;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
+      let left=shown==null?1e9:shown;
+      lines.forEach((ln,i)=>{const ch=[...ln],k=Math.max(0,Math.min(ch.length,left));left-=ch.length;
+        if(k>0)text(ch.slice(0,k).join(""),bx+pad,y+pad*.6+lh/2+i*lh,{size,align:"left",alpha,rise:0})});
+      return {w,h,bx}}
+    function spinner(x,y,r,col){const a=T*.008;stroke(arcPts(x,y,r,a,a+Math.PI*1.4),{color:col,width:6,glow:.15,tip:false,amp:0,grain:false});
+      stroke(circlePts(x,y,r),{color:col,width:2,alpha:.2,glow:0,tip:false,amp:0,grain:false})}
+    function iconThermo(x,y,s,level,col){
+      shape(rrectPts(x-14*s,y-66*s,28*s,96*s,14*s),{color:COL.ink,width:3.5,alpha:.8,tip:false,amp:.3});
+      shape(circlePts(x,y+44*s,22*s),{color:col,width:3.5,fill:col,fillA:.55,tip:false,amp:.3});
+      const top=y+30*s-clamp01(level)*88*s;ctx.save();ctx.globalAlpha=GA*.85;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x-6*s,top,12*s,y+36*s-top,6*s);ctx.fill();ctx.restore()}
+    function iconBattery(x,y,s,level,col){
+      shape(rrectPts(x-42*s,y-22*s,84*s,44*s,8*s),{color:COL.ink,width:3.5,alpha:.8,tip:false,amp:.3});
+      ctx.save();ctx.globalAlpha=GA*.75;ctx.fillStyle=COL.ink;ctx.fillRect(x+42*s,y-9*s,7*s,18*s);
+      ctx.globalAlpha=GA*.85;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x-36*s,y-16*s,Math.max(2,72*s*clamp01(level)),32*s,4*s);ctx.fill();ctx.restore()}
+    function pipe(x0,x1,y,gap,p,col=BW,alpha=1){withA(alpha,()=>{
+      stroke(poly([{x:x0,y:y-gap/2},{x:x1,y:y-gap/2}]),{color:col,width:4,prog:p,glow:.14,tip:false,amp:.4});
+      stroke(poly([{x:x0,y:y+gap/2},{x:x1,y:y+gap/2}]),{color:col,width:4,prog:p,glow:.14,tip:false,amp:.4})})}
+    function blockAt(x,y,w,h,col,alpha){if(alpha<=0)return;ctx.save();ctx.globalAlpha=GA*alpha;ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(x-w/2,y-h/2,w,h,4);ctx.fill();ctx.restore()}
+    function stream(x0,x1,y,gap,n,phase,col,alpha=1){if(alpha<=0)return;
+      ctx.save();ctx.beginPath();ctx.rect(x0,y-gap/2,x1-x0,gap);ctx.clip();
+      for(let i=0;i<n;i++){const u=((phase+i/n)%1+1)%1;blockAt(x0+(x1-x0)*u,y,22,Math.min(gap-16,20),col,alpha*.85)}ctx.restore()}
+    function frog(x,y,s,wave=false){
+      shape(ellipsePts(x,y,72*s,54*s),{color:COL.green,width:4.5,fill:COL.green,fillA:.16,tip:false});
+      [-1,1].forEach(k=>{const ex=x+k*34*s,ey=y-50*s;dot(ex,ey,23*s,COL.bg,1);shape(circlePts(ex,ey,23*s),{color:COL.green,width:4,tip:false});dot(ex+k*3*s,ey+3*s,8.5*s,COL.ink,1)});
+      stroke(arcPts(x,y-8*s,30*s,.22*Math.PI,.78*Math.PI),{color:COL.ink,width:4,glow:0,tip:false});
+      dot(x-48*s,y+6*s,9*s,COL.red,.35);dot(x+48*s,y+6*s,9*s,COL.red,.35);
+      if(wave){const a=-1.15+Math.sin(T*.012)*.45,hx=x+66*s+Math.cos(a)*54*s,hy=y-4*s+Math.sin(a)*54*s;
+        stroke(poly([{x:x+62*s,y:y+2*s},{x:hx,y:hy}]),{color:COL.green,width:5.5,tip:false,amp:.3});dot(hx,hy,9*s,COL.green,1)}
+      text("呱基",x,y+86*s,{size:Math.round(26*Math.max(.8,s)),color:COL.green,weight:700,rise:0})}
+
+    // ---------- frame chrome ----------
+    function header(sc){const a=eOut(T/520);
+      text(`${sc.num}  ·  ${sc.tag}`,W/2,292,{size:26,color:COL.blue,weight:600,alpha:a,spacing:4});
+      text(sc.headline,W/2,368,{size:54,color:COL.ink,weight:700,alpha:a,rise:18})}
+    function wrapLines(str,size,maxW){ctx.save();ctx.font=`500 ${size}px ${FONT}`;const lines=[];let cur="";
+      for(const ch of str.match(/[A-Za-z0-9.%+\/–-]+|[\s\S]/g)||[]){const t=cur+ch;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur.trimEnd());cur=ch.trim()?ch:""}else cur=t}
+      if(cur)lines.push(cur);ctx.restore();
+      const noStart="，。、；：？！）」』…—,.;:?!";
+      for(let i=1;i<lines.length;i++){while(lines[i]&&noStart.includes(lines[i][0])){lines[i-1]+=lines[i][0];lines[i]=lines[i].slice(1)}}
+      const out=lines.filter(Boolean);
+      if(out.length>=2&&[...out[out.length-1]].length<=2){out[out.length-2]+=out.pop()}
+      return out}
+    function subtitle(sc){
+      const g=ctx.createLinearGradient(0,1470,0,H-SAFE_BOTTOM);g.addColorStop(0,"rgba(7,14,21,0)");g.addColorStop(.35,"rgba(7,14,21,.82)");g.addColorStop(1,"rgba(7,14,21,.9)");
+      ctx.fillStyle=g;ctx.fillRect(0,1470,W,H-SAFE_BOTTOM-1470);
+      let cur=null;for(const b of sc.beats){if(T>=b.at-60)cur=b}if(!cur)cur=sc.beats[0];
+      const a=eOut((T-(cur.at-60))/180);
+      let lines=wrapLines(cur.text,42,920);
+      for(let w=900;lines.length>1&&w>=500;w-=20){const t=wrapLines(cur.text,42,w);if(t.length!==lines.length)break;lines=t}
+      if(lines.length===2){const s=cur.text;let best=-1,bd=1e9;
+        for(let i=1;i<s.length-1;i++){if(!"，。？！；：、".includes(s[i]))continue;const a=measure(s.slice(0,i+1),42),b=measure(s.slice(i+1).trim(),42);
+          if(a<=920&&b<=920&&Math.abs(a-b)<bd){bd=Math.abs(a-b);best=i}}
+        if(best>=0)lines=[s.slice(0,best+1),s.slice(best+1).trim()]}
+      const lh=42*1.45,y0=SUB_Y-(lines.length-1)*lh/2;
+      lines.forEach((ln,i)=>text(ln,W/2,y0+i*lh,{size:42,color:COL.ink,weight:500,alpha:.35+.65*a,rise:6}))}
+
+    // ---------- scenes ----------
+    const DRAW={};
+    const REPLY="王老师您好，我明天身体不适，想请假一天，谢谢！";
+
+    DRAW.hook=function(){
+      withA(ap("intro",450)*(1-ap("s1",400)),()=>frog(540,900,1.3,true));
+      const m=pr("s3",1100);
+      const px=lerp(540,935,m),py=lerp(900,900,m),pw=lerp(420,150,m),ph=lerp(740,270,m);
+      const phP=pr("s1",800);
+      if(phP>0){
+        withA(1-.5*ap("s4",500),()=>phoneBody(px,py,pw,ph,phP));
+        const keep=1-ap("s3",350);
+        if(keep>0){const sx=px-pw/2+28,ex=px+pw/2-28,top=py-ph/2;
+          withA(ap("s1",400,500)*keep,()=>{iconPlane(sx+14,top+70,.62,COL.warm);
+            text("飞行模式",sx+40,top+70,{size:22,color:COL.warm,align:"left",rise:0});
+            text("无网络",ex,top+70,{size:22,color:COL.mute,align:"right",rise:0})});
+          bubble("帮我写条请假消息",ex,top+122,{tone:COL.warm,align:"right",alpha:ap("s1",400,800)*keep,size:28});
+          const t=since("s2")-250;
+          if(t>0)bubble(REPLY,sx,top+222,{tone:MEM,alpha:ap("s2",300)*keep,size:28,maxW:300,shown:Math.floor(t/85)})}
+        if(m>.6)withA(clamp01((m-.6)/.4)*(1-.5*ap("s4",500)),()=>{const sx=px-pw/2+26;
+          for(let i=0;i<3;i++)stroke(poly([{x:sx,y:py-40+i*38},{x:sx+(i===2?56:98),y:py-40+i*38}]),{color:MEM,width:5,glow:.1,tip:false,amp:0})})}
+      if(since("s3")>0){
+        const k4=ap("s4",500);
+        withA(1-.5*k4,()=>iconShelf(150,900,.55,pr("s3",700,300)));
+        iconRAM(410,900,.62,pr("s3",700,550),MEM,k4);
+        iconChip(680,900,.8,pr("s3",700,800),NPU,k4);
+        [[214,322],[497,612],[748,852]].forEach(([a,b],i)=>{const pts=poly([{x:a,y:900},{x:b,y:900}]),pp=pr("s3",500,700+i*250),fade=i===1?1-k4:1-.5*k4;
+          withA(fade,()=>{stroke(pts,{color:COL.ink,width:3.5,prog:pp,alpha:.55,glow:0,tip:false,amp:0});arrowHead(pts,pp,{alpha:.55,width:3.5,size:16})})});
+        if(k4>0){pipe(497,612,900,40,pr("s4",500),BW,k4);stream(497,612,900,40,3,T*.0006,BW,k4)}
+        const labs=[[150,"闪存",null],[410,"内存",MEM],[680,"NPU",NPU],[935,"屏幕",null]];
+        labs.forEach(([x,l,c],i)=>{const a=ap("s3",400,900+i*250);
+          if(c){text(l,x,1040,{size:28,color:COL.mute,alpha:a*(1-k4),rise:0});text(l,x,1040,{size:40,weight:700,color:c,alpha:k4,rise:0})}
+          else text(l,x,1040,{size:28,color:COL.mute,alpha:a*(1-.5*k4),rise:0})});
+        text("带宽",554,830,{size:40,weight:700,color:BW,alpha:ap("s4",450,300),rise:0});
+        if(k4<1&&since("s3")>1600){const u=((since("s3")-1600)*.00035)%1;dot(lerp(214,852,u),900,7,COL.warm,.85*(1-k4))}
+      }
+    };
+
+    DRAW.mem=function(){
+      const g1=emph("size",.38);
+      withA(g1,()=>{iconShelf(210,640,1,pr("book",800));
+        text("闪存 · 仓库",210,805,{size:26,color:COL.mute,alpha:ap("book",400,600)})});
+      const fly=pr("desk",1000,300);
+      const bx0=210,by0=574,bx1=109,by1=1180;
+      if(fly<1){const bx=lerp(bx0,bx1,fly),by=lerp(by0,by1,fly)-Math.sin(fly*Math.PI)*140,bs=lerp(.8,.5,fly);
+        withA(ap("book",400,500),()=>{
+          if(fly===0&&since("book")>900){const g=ctx.createRadialGradient(bx0,by0,10,bx0,by0,120);g.addColorStop(0,`rgba(127,211,255,${.22*GA})`);g.addColorStop(1,"rgba(127,211,255,0)");ctx.fillStyle=g;ctx.fillRect(bx0-120,by0-120,240,240)}
+          iconBook(bx,by,bs,pr("book",700,500),MEM,1)})}
+      withA(g1,()=>{
+        text("30 亿个参数",690,590,{size:52,weight:700,alpha:ap("size",400)});
+        text("= 30 亿个数字",690,656,{size:28,color:COL.mute,alpha:ap("size",400,700)});
+        text("压缩后 ≈ 1.5 GB",690,738,{size:42,weight:700,color:COL.warm,alpha:ap("size",400,2600)})});
+      const ba=ap("desk",450);
+      if(ba<=0)return;
+      const X0=60,PX=60,Y=1180,HH=92,cap=lerp(8,16,pr("why",1300,600)),k=pr("share",1100),wcap=cap*PX;
+      withA(ba,()=>{
+        text("内存 · 工作台",X0,1085,{size:32,weight:700,color:MEM,align:"left"});
+        shape(rrectPts(X0,Y-HH/2,wcap,HH,14),{color:MEM,width:4,fill:MEM,fillA:.05,amp:.5,tip:false});
+        text(`共 ${Math.round(cap)} GB`,X0+wcap,Y+HH/2+36,{size:26,color:COL.mute,align:"right",rise:0});
+        let x=X0+5;
+        [["系统",3.5,COL.ink],["微信",1.5,COL.green],["相机",1.5,COL.warm],["其他",1,COL.ink]].forEach(([lab,gb,c])=>{const w=gb*PX*k;if(w<3)return;
+          ctx.save();ctx.globalAlpha=GA*.2;ctx.fillStyle=c;ctx.beginPath();ctx.roundRect(x,Y-HH/2+7,w-5,HH-14,8);ctx.fill();ctx.globalAlpha=GA*.55;ctx.strokeStyle=c;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+          if(k>.75)text(lab,x+w/2-2,Y,{size:lab==="其他"?20:24,alpha:(k-.75)/.25,rise:0});
+          x+=w});
+        if(fly>=1){const mw=1.5*PX,over=x+mw>X0+wcap+2,c=over?COL.red:MEM;
+          ctx.save();ctx.globalAlpha=GA*.32;ctx.fillStyle=c;ctx.beginPath();ctx.roundRect(x,Y-HH/2+7,mw-5,HH-14,8);ctx.fill();
+          ctx.globalAlpha=GA;ctx.strokeStyle=c;ctx.lineWidth=3;if(over)ctx.setLineDash([8,6]);ctx.stroke();ctx.restore();
+          text("模型",x+mw/2-2,Y,{size:26,weight:700,rise:0});
+          if(over)pill("挤不下",x+mw/2,Y-HH/2-44,{tone:COL.red,size:24,alpha:clamp01((k-.85)/.15)});
+          else if(since("why")>0)pill("常驻 · 不用现搬",x+mw/2+60,Y-HH/2-44,{tone:MEM,size:24,alpha:ap("why",400,1800)})}
+      });
+    };
+
+    DRAW.npu=function(){
+      const chips=["帮我","写","条","请假","消息"],ids=["1873","552","1201","8930","6044"],sp=pr("token",800,900);
+      withA(emph("token",.45),()=>{const size=46,gap=lerp(0,28,sp),padX=lerp(0,16,sp);
+        const ws=chips.map(c=>measure(c,size,700)+padX*2),total=ws.reduce((a,b)=>a+b,0)+gap*(chips.length-1);let x=W/2-total/2;
+        chips.forEach((c,i)=>{const w=ws[i],cx=x+w/2;
+          if(sp>0){ctx.save();ctx.beginPath();ctx.roundRect(x,524,w,72,14);ctx.fillStyle=COL.warm;ctx.globalAlpha=GA*sp*.12;ctx.fill();ctx.globalAlpha=GA*sp*.75;ctx.strokeStyle=COL.warm;ctx.lineWidth=2.5;ctx.stroke();ctx.restore()}
+          text(c,cx,560,{size,weight:700,alpha:ap("token",400),rise:0});
+          text(ids[i],cx,640,{size:26,color:COL.mute,alpha:ap("token",400,2600+i*120)});
+          x+=w+gap})});
+      withA(emph("math",.5),()=>text("乘法 + 加法，一遍又一遍",W/2,730,{size:34,weight:600,color:COL.warm,alpha:ap("math",400)}));
+      const cmp=1-.45*ap("tops",500),ca=ap("cpu",450),na=ap("npu",450);
+      if(ca>0)withA(ca*cmp,()=>{const cx=280,cy=1000,sz=96,g=16,cur=Math.floor(Math.max(0,since("cpu")-300)/420)%4;
+        for(let i=0;i<4;i++){const x=cx-sz-g/2+(i%2)*(sz+g),y=cy-sz-g/2+Math.floor(i/2)*(sz+g),on=i===cur&&since("cpu")>300;
+          ctx.save();ctx.globalAlpha=GA*(on?.55:.1);ctx.fillStyle=COL.ink;ctx.beginPath();ctx.roundRect(x,y,sz,sz,14);ctx.fill();ctx.globalAlpha=GA*.65;ctx.strokeStyle=COL.ink;ctx.lineWidth=3;ctx.stroke();ctx.restore()}
+        text("CPU",cx,cy+150,{size:36,weight:700});
+        text("几位全能大厨 · 一道道来",cx,cy+198,{size:24,color:COL.mute})});
+      if(na>0)withA(na*cmp,()=>{const cols=9,rows=7,c=26,cx=790,cy=1000,x0=cx-cols*c/2,y0=cy-rows*c/2,on0=clamp01((since("npu")-300)/600);
+        shape(rrectPts(x0-14,y0-14,cols*c+28,rows*c+28,16),{color:NPU,width:3.5,prog:pr("npu",700),fill:NPU,fillA:.04,tip:false});
+        for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){const on=.5+.5*Math.sin(T*.011-(i+j)*.28);
+          ctx.save();ctx.globalAlpha=GA*(.14+.66*on*on0);ctx.fillStyle=NPU;ctx.beginPath();ctx.roundRect(x0+i*c+3,y0+j*c+3,c-6,c-6,3);ctx.fill();ctx.restore()}
+        text("NPU",cx,cy+150,{size:36,weight:700,color:NPU});
+        text("成千上万个帮厨 · 同时开工",cx,cy+198,{size:24,color:COL.mute});
+        text("vs",535,1000,{size:30,color:COL.mute,alpha:na})});
+      const ta=ap("tops",450)*(1-ap("fast",400));
+      if(ta>0){text("几十 TOPS",W/2,1290,{size:60,weight:700,color:NPU,alpha:ta});text("每秒几十万亿次运算",W/2,1356,{size:28,color:COL.mute,alpha:ta})}
+      const fa=ap("fast",450);
+      if(fa>0){pill("读懂问题：零点几秒",310,1310,{tone:MEM,size:28,alpha:fa});pill("同样的活：更省电",770,1310,{tone:NPU,size:28,alpha:ap("fast",450,1900)})}
+    };
+
+    DRAW.bw=function(){
+      const OUT=[..."王老师您好，我明天身体不适，想请假一天，手头的工作已经交接给小李，有急事可以随时电话联系我，谢谢！"],P=1100,t0=at("each")+700,tt=T-t0,n=tt>0?Math.floor(tt/P):0,ph=tt>0?(tt%P)/P:0,Y=900;
+      withA(ap("slow",400),()=>{
+        shape(rrectPts(110,520,860,84,20),{color:MEM,width:2.5,fill:MEM,fillA:.06,prog:pr("slow",600),glow:0,tip:false,amp:.3});
+        const m=Math.min(n,OUT.length),s=OUT.slice(Math.max(0,m-21),m).join(""),cw=measure(s,36,500);
+        if(tt>0)text("慢放演示",970,488,{size:22,color:COL.mute,align:"right",alpha:ap("each",400,700),rise:0});
+        text(s,140,562,{size:36,align:"left",rise:0});
+        if(Math.floor(T/450)%2===0)stroke(poly([{x:146+cw,y:540},{x:146+cw,y:584}]),{color:COL.ink,width:3,glow:0,tip:false,amp:0,grain:false})});
+      if(tt>0)withA(ap("each",400,700)*(1-.5*ap("calc",400)),()=>text(`第 ${Math.min(n+1,99)} 个 token：把 1.5 GB 搬一遍`,W/2,680,{size:30,weight:600,color:BW,rise:0}));
+      iconRAM(200,Y,.75,pr("slow",700,300),MEM,.4);
+      text("内存",200,Y+82,{size:30,weight:700,color:MEM,alpha:ap("slow",400,600)});
+      text("1.5 GB 参数",200,Y+124,{size:24,color:COL.mute,alpha:ap("each",400)});
+      const lit=tt>0&&ph>.6&&ph<.92?1-Math.abs(ph-.76)/.16:0;
+      iconChip(880,Y,.9,pr("slow",700,500),NPU,.12+.88*lit);
+      text("NPU",880,Y+100,{size:30,weight:700,color:NPU,alpha:ap("slow",400,800)});
+      pipe(305,800,Y,56,pr("slow",800,700));
+      const pa=ap("pipe",450);
+      if(pa>0)pipe(305,800,Y,56,1,BW,pa*(.25+.25*Math.sin(T*.008)));
+      if(tt>0){ctx.save();ctx.beginPath();ctx.rect(305,Y-26,495,52);ctx.clip();
+        for(let k=0;k<9;k++){const u=ph*1.7-k*.08;if(u>0&&u<1)blockAt(lerp(305,800,u),Y,26,24,BW,.85)}ctx.restore()}
+      if(pa>0){text("内存带宽",552,Y-80,{size:32,weight:700,color:BW,alpha:pa});
+        text("≈ 60–70 GB/s",552,Y+82,{size:34,weight:700,color:BW,alpha:ap("pipe",400,2200)})}
+      const ka=ap("calc",450);
+      if(ka>0){text("60 GB/s ÷ 1.5 GB",W/2,1160,{size:40,weight:600,alpha:ka});
+        text("≈ 40 个 token / 秒",W/2,1245,{size:60,weight:700,color:BW,alpha:ap("calc",450,1900)});
+        text("这是上限，实际还要打点折扣",W/2,1315,{size:26,color:COL.mute,alpha:ap("calc",450,3300)})}
+      const wa=ap("wait",450);
+      if(wa>0)pill("大多时候在等数据",880,1062,{tone:NPU,size:24,alpha:wa});
+    };
+
+    DRAW.quant=function(){
+      const sp=pr("q2",900),lx=lerp(540,290,sp),bd=1-.4*ap("q4",500);
+      withA(bd,()=>{
+        iconBook(lx,660,1.25,pr("q1",800,300),COL.red,1);
+        text("原版",lx,822,{size:28,color:COL.mute,alpha:ap("q1",400,800)*(1-sp)});
+        if(sp>0){
+          iconBook(790,660,1.25,pr("q2",700,600),MEM,.2);
+          const ar=poly([{x:420,y:660},{x:650,y:660}]),arP=pr("q2",600,400);
+          stroke(ar,{color:BW,width:4,prog:arP,glow:.12,tip:false,amp:0});arrowHead(ar,arP,{color:BW,width:4});
+          text("量化",535,615,{size:34,weight:700,color:BW,alpha:ap("q2",400,500)});
+          text("每个参数 2 字节",290,822,{size:26,color:COL.mute,alpha:ap("q2",400,700)});
+          text("6 GB",290,880,{size:48,weight:700,color:COL.red,alpha:ap("q2",400,900)});
+          text("只占半个字节",790,822,{size:26,color:COL.mute,alpha:ap("q2",400,2400)});
+          text("1.5 GB",790,880,{size:48,weight:700,color:MEM,alpha:ap("q2",400,2700)})}});
+      withA(1-.35*ap("q4",500),()=>{
+        pill("桌上省 ¾ 地方",310,975,{tone:MEM,size:28,alpha:ap("q3",450)});
+        pill("每个字少搬 ¾",770,975,{tone:BW,size:28,alpha:ap("q3",450,1900)})});
+      const ra=ap("q4",450);
+      if(ra>0){const str=[..."老师您好，我明天想请假一天"],L=str.length,t=since("q4")-600;
+        [["不压缩",4,COL.red,"≈ 10 个/秒"],["量化后",16,MEM,"≈ 40 个/秒"]].forEach(([lab,rate,c,val],i)=>{const y=1100+i*92,n=t>0?Math.min(L,Math.floor(t/1000*rate)):0;
+          withA(ra,()=>{text(lab,100,y,{size:28,color:c,weight:700,align:"left",rise:0});
+            const s=str.slice(0,n).join("");text(s,230,y,{size:32,align:"left",rise:0});
+            if(n<L&&Math.floor(T/400)%2===0){const cw=measure(s,32);stroke(poly([{x:234+cw,y:y-18},{x:234+cw,y:y+18}]),{color:COL.ink,width:3,glow:0,tip:false,amp:0,grain:false})}
+            text(val,990,y,{size:28,weight:700,color:c,align:"right",alpha:ap("q4",400,1400),rise:0})})})}
+      const ca=ap("q5",450);
+      if(ca>0)pill("代价：精度略降 · 要挑合适的压法",W/2,1330,{tone:COL.warm,size:28,alpha:ca});
+    };
+
+    DRAW.feel=function(){
+      const PX=360,PY=920,PW=380,PH=700,sx=PX-PW/2+26,ex=PX+PW/2-26,top=PY-PH/2;
+      const keys=["f0","fmem","fnpu","fbw","fval"],st=k=>{const i=keys.indexOf(k),a=ap(k,350),nx=keys[i+1];return nx?a*(1-ap(nx,300)):a};
+      phoneBody(PX,PY,PW,PH,pr("f0",800));
+      const normal=Math.max(st("f0"),st("fval"));
+      if(normal>0){bubble("帮我写条请假消息",ex,top+110,{tone:COL.warm,align:"right",alpha:normal,size:26});
+        bubble(REPLY,sx,top+200,{tone:MEM,alpha:normal,size:26,maxW:270})}
+      const a1=st("fmem");if(a1>0)withA(a1,()=>{spinner(PX,PY-30,48,MEM);text("正在加载模型…",PX,PY+70,{size:28,color:COL.mute,rise:0})});
+      const a2=st("fnpu");if(a2>0)withA(a2,()=>{const lv=clamp01(since("fnpu")/3200);
+        iconThermo(PX-70,PY-20,1.1,.3+.65*lv,COL.red);iconBattery(PX+72,PY-30,1,1-.7*lv,lv>.55?COL.red:COL.green);
+        text("读长文中…",PX,PY+110,{size:28,color:COL.mute,rise:0})});
+      const a3=st("fbw");if(a3>0){const t=since("fbw");const n=[200,900,1100,2300,2500,2600,3900,4100,4200,5400].filter(v=>t>v).length;
+        bubble("帮我写条请假消息",ex,top+110,{tone:COL.warm,align:"right",alpha:a3,size:26});
+        bubble("老师您好，我明天想请假一天",sx,top+200,{tone:MEM,alpha:a3,size:26,maxW:270,shown:n});
+        withA(a3,()=>text("…",PX,top+340,{size:40,color:COL.mute,alpha:.5+.5*Math.sin(T*.01)}))}
+      const CX=830,vf=ap("fval",450);
+      const items=[
+        {k:"fmem",y:690,ly:770,lab:"内存",bad:"内存不够",c:MEM,d:(c,l)=>iconRAM(CX,690,.6,pr("f0",600,400),c,l)},
+        {k:"fnpu",y:930,ly:1022,lab:"NPU",bad:"算力不够",c:NPU,d:(c,l)=>iconChip(CX,930,.72,pr("f0",600,600),c,l)},
+        {k:"fbw",y:1160,ly:1222,lab:"带宽",bad:"带宽不够",c:BW,d:(c,l)=>{pipe(CX-100,CX+100,1160,40,pr("f0",600,800),c);stream(CX-100,CX+100,1160,40,3,T*.0004*(c===COL.red?.25:1),c,.8)}}];
+      items.forEach(it=>{const act=st(it.k),other=Math.max(...items.filter(o=>o!==it).map(o=>st(o.k))),base=(1-.6*other)*(1-vf);
+        if(base<=0)return;withA(base,()=>{
+          withA(1-act,()=>{it.d(it.c,.3);text(it.lab,CX,it.ly,{size:28,weight:700,color:it.c,alpha:ap("f0",400,900),rise:0})});
+          if(act>0)withA(act,()=>{it.d(COL.red,.8);text(it.bad,CX,it.ly,{size:30,weight:700,color:COL.red,rise:0})})})});
+      if(vf>0)[["断网能用",COL.green],["一点就开",MEM],["回答流畅",BW],["内容不出手机",MEM]].forEach(([w,c],i)=>
+        pill(w,CX,700+i*150,{tone:c,size:32,alpha:ap("fval",400,900+i*650),padX:26}));
+    };
+
+    DRAW.end=function(){
+      const rows=[
+        {k:"e1",y:600,lab:"内存",sub:"装得下多大的模型",c:MEM,ic:p=>iconRAM(320,600,.62,p,MEM,.4)},
+        {k:"e2",y:830,lab:"NPU",sub:"读得多快 · 烫不烫",c:NPU,ic:p=>iconChip(320,830,.8,p,NPU,.6)},
+        {k:"e3",y:1060,lab:"带宽",sub:"字冒得多快",c:BW,ic:p=>{pipe(240,400,1060,44,p);stream(240,400,1060,44,3,T*.0005,BW,clamp01(p*2-1))}}];
+      const dim=1-.45*ap("e4",500);
+      rows.forEach(r=>{const a=ap(r.k,450);if(a<=0)return;withA(dim,()=>{r.ic(pr(r.k,700));
+        text(r.lab,480,r.y-30,{size:46,weight:700,color:r.c,align:"left",alpha:a});
+        text(r.sub,480,r.y+32,{size:34,align:"left",alpha:ap(r.k,450,350)})})});
+      const pa=ap("e4",450);
+      if(pa>0){pill("16 GB 内存",340,1235,{tone:MEM,size:32,alpha:pa,padX:26});pill("几十 TOPS",740,1235,{tone:NPU,size:32,alpha:ap("e4",450,900),padX:26})}
+      withA(ap("bye",500),()=>frog(540,1370,.7,true));
+    };
+
+    // ---------- cover ----------
+    function richLine(parts,cx,y,size,weight=700){
+      const total=parts.reduce((s,[str,,sz])=>s+measure(str,sz||size,weight),0);let x=cx-total/2;
+      for(const [str,color,sz,glow] of parts){const s=sz||size,w=measure(str,s,weight);
+        if(glow){ctx.save();ctx.shadowColor=glow;ctx.shadowBlur=42;text(str,x,y,{size:s,color,weight,align:"left",rise:0});ctx.restore()}
+        text(str,x,y,{size:s,color,weight,align:"left",rise:0});x+=w}}
+    function drawCover(){
+      BEATS=[];T=577;GA=1;
+      ctx.drawImage(bgCanvas,0,0);
+      const halo=ctx.createRadialGradient(540,960,40,540,960,440);halo.addColorStop(0,"rgba(255,194,122,0.10)");halo.addColorStop(1,"rgba(255,194,122,0)");
+      ctx.fillStyle=halo;ctx.fillRect(0,520,W,880);
+      pill("呱基讲 AI  ·  第 6 期",W/2,330,{tone:COL.green,size:30,padX:30});
+      text("手机 AI 每写一个字",W/2,490,{size:76,weight:700,rise:0});
+      richLine([["要搬 ",COL.ink],["1.5 GB",COL.warm,150,"rgba(255,194,122,0.8)"],["？",COL.ink]],W/2,660,120);
+      const Y=960;
+      iconRAM(195,Y,.8,1,MEM,.5);
+      iconChip(880,Y,1,1,NPU,.7);
+      pipe(310,792,Y,60,1);
+      ctx.save();ctx.beginPath();ctx.rect(310,Y-28,482,56);ctx.clip();
+      for(let k=0;k<9;k++)blockAt(lerp(330,770,k/8),Y,26,24,BW,.35+.6*(k/8));ctx.restore();
+      text("内存",195,Y+120,{size:36,weight:700,color:MEM,rise:0});
+      text("带宽",551,Y+120,{size:36,weight:700,color:BW,rise:0});
+      text("NPU",880,Y+120,{size:36,weight:700,color:NPU,rise:0});
+      text("内存 · NPU · 带宽，各管哪一段？",W/2,1270,{size:48,weight:700,rise:0});
+      stroke(quadPts(250,1322,540,1338,830,1320),{color:COL.warm,width:5,glow:.2,tip:false});
+      text("从闪存到屏幕  ·  一句话的旅程",W/2,1400,{size:30,color:COL.mute,rise:0,spacing:2});
+      frog(520,1560,.95,true);
+    }
+
+    // ---------- render ----------
+    function drawScene(index,localT){
+      const sc=SCENES[index];BEATS=sc.beats;T=localT;GA=1;
+      ctx.drawImage(bgCanvas,0,0);
+      header(sc);
+      (DRAW[sc.id]||(()=>{}))();
+      subtitle(sc);
+      const fade=clamp01(localT/260);if(fade<1){ctx.fillStyle=`rgba(7,14,21,${1-fade})`;ctx.fillRect(0,0,W,H)}
+    }
+
+    // ---------- player ----------
+    let playing=false,muted=false,sceneIndex=0,sceneStart=0,raf=0;
+    function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
+    function speak(s){if(muted||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang="zh-CN";u.rate=1.06;u.pitch=1.15;const v=pickVoice();if(v)u.voice=v;speechSynthesis.speak(u)}
+    function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
+    function totalDuration(){return SCENES.reduce((s,sc)=>s+sc.duration,0)}
+    const offsets=[];{let a=0;SCENES.forEach(sc=>{offsets.push(a);a+=sc.duration})}
+    function setScene(i,rv=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.tag}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
+      if(rv&&playing)speak(sc.voice);updateProgress(0);
+    }
+    function updateProgress(localT){bar.style.width=Math.min(100,((offsets[sceneIndex]+localT)/totalDuration())*100)+"%"}
+    function tick(now){
+      if(!playing)return;const sc=SCENES[sceneIndex],localT=now-sceneStart;
+      drawScene(sceneIndex,localT);updateProgress(localT);
+      if(localT>=sc.duration){if(sceneIndex<SCENES.length-1)setScene(sceneIndex+1,true);else{playing=false;btnPlay.textContent="再看一遍";stopSpeak();drawScene(sceneIndex,sc.duration);updateProgress(sc.duration);return}}
+      raf=requestAnimationFrame(tick);
+    }
+    function play(){playing=true;btnPlay.textContent="暂停";setScene(sceneIndex,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    function pause(){playing=false;btnPlay.textContent="继续";stopSpeak();cancelAnimationFrame(raf)}
+    function restart(){stopSpeak();sceneIndex=0;playing=true;btnPlay.textContent="暂停";setScene(0,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    SCENES.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`${i+1}. ${sc.tag}`;
+      b.addEventListener("click",()=>{const was=playing;stopSpeak();setScene(i,was);drawScene(i,0);if(was){cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}});sceneList.appendChild(b)});
+    btnPlay.addEventListener("click",()=>{if(playing)pause();else{if(btnPlay.textContent==="再看一遍")restart();else play()}});
+    btnRestart.addEventListener("click",restart);
+    btnMute.addEventListener("click",()=>{muted=!muted;btnMute.textContent=muted?"配音：关":"配音：开";if(muted)stopSpeak();else if(playing)speak(SCENES[sceneIndex].voice)});
+    window.__GUAJI__={
+      SCENES,totalDuration,get playing(){return playing},setMuted(v){muted=v},
+      drawAt(ms){
+        let remain=ms,idx=0;
+        while(idx<SCENES.length-1&&remain>=SCENES[idx].duration){remain-=SCENES[idx].duration;idx++}
+        sceneIndex=idx;
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${SCENES[idx].tag}`;
+        [...sceneList.children].forEach((b,j)=>b.classList.toggle("active",j===idx));
+        drawScene(idx,remain);
+        bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
+      },
+      jump(i,localT){this.drawAt(offsets[i]+localT)},
+      drawCover
+    };
+    if(new URLSearchParams(location.search).has("cover"))drawCover();
+    else if(SCENES.length){setScene(0,false);drawScene(0,6000)}
+  </script>
+</body>
+</html>
