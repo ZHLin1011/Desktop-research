@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>呱基讲 AI · 模型的推理服务</title>
+  <style>
+    :root {
+      --bg:#f3f4f6; --ink:#1d232b; --mute:#5f6b7a; --accent:#1f6fd1;
+      --frog:#1f9d55; --panel:#ffffff; --line:rgba(29,35,43,0.14);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",sans-serif}
+    body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 12px 28px}
+    .brand{width:min(420px,100%);text-align:center}
+    .brand .host{color:var(--frog);font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+    .brand h1{font-family:"Songti SC","Noto Serif CJK SC","Noto Serif SC",Georgia,serif;font-size:clamp(22px,5.5vw,28px);line-height:1.25}
+    .brand p{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.55}
+    .stage-wrap{width:min(420px,100%);position:relative;border:1px solid var(--line);background:#fff;overflow:hidden;aspect-ratio:9/16;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+    canvas{display:block;width:100%;height:100%;background:#fff}
+    .progress{width:min(420px,100%);height:3px;background:rgba(0,0,0,.08);overflow:hidden}
+    .progress>i{display:block;height:100%;width:0%;background:var(--accent)}
+    .controls{width:min(420px,100%);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;font-size:13px;cursor:pointer}
+    button:hover{border-color:rgba(31,111,209,.45);background:#eef4fc}
+    button.primary{background:#1f6fd1;color:#fff;border-color:#1f6fd1}
+    .meta{color:var(--mute);font-size:12px;margin-left:auto}
+    .scene-list{width:min(420px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .scene-list button{text-align:left;padding:8px 10px;font-size:11px;color:var(--mute);line-height:1.35}
+    .scene-list button.active{color:var(--ink);border-color:rgba(31,111,209,.5);background:#eef4fc}
+    .hint{width:min(420px,100%);color:var(--mute);font-size:11px;line-height:1.5}
+    .nav{width:min(420px,100%);font-size:12px}.nav a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <div class="host">呱基 · AI 概念课 · 第 10 期</div>
+    <h1>模型的推理服务</h1>
+    <p>按下发送之后 · 入口调度 · 读题写答案 · 小本本 · 拼车 · 快与省</p>
+  </header>
+  <p class="nav">
+    <a href="./index.html">第1期</a> ·
+    <a href="./edge-vs-cloud.html">第2期</a> ·
+    <a href="./modalities.html">第3期</a> ·
+    <a href="./same-question.html">第4期</a> ·
+    <a href="./device-edge-cloud.html">第5期</a> ·
+    <a href="./on-device-pipeline.html">第6期</a> ·
+    <a href="./cv-vs-vlm.html">第7期</a> ·
+    <a href="./code-vs-imagegen.html">第8期</a> ·
+    <a href="./model-infra.html">第9期</a> ·
+    <span>第10期</span>
+  </p>
+  <div class="stage-wrap"><canvas id="stage" width="1080" height="1920"></canvas></div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnRestart">重来</button>
+    <button id="btnMute">配音：开</button>
+    <div class="meta" id="meta">场景 1 / 7</div>
+  </div>
+  <div class="scene-list" id="sceneList"></div>
+  <p class="hint">竖屏 9:16 · 逐词对齐 · 一屏一个重点</p>
+
+  <script>
+    const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
+    const bar=document.getElementById("bar"), meta=document.getElementById("meta");
+    const btnPlay=document.getElementById("btnPlay"), btnRestart=document.getElementById("btnRestart");
+    const btnMute=document.getElementById("btnMute"), sceneList=document.getElementById("sceneList");
+    const W=canvas.width, H=canvas.height;
+    const SAFE_BOTTOM=150, SUB_Y=1600;
+    const FONT='"Noto Sans CJK SC","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+    const COL={bg:"#ffffff",ink:"#1d232b",mute:"rgba(29,35,43,0.56)",faint:"rgba(29,35,43,0.16)",
+      blue:"#1f6fd1",warm:"#e8890c",green:"#1f9d55",red:"#e0393e"};
+    const LEAD=120;
+
+    /*@@SCENES*/
+    const SCENES=[
+ {
+  "id": "hook",
+  "num": "01",
+  "tag": "推理服务",
+  "headline": "按下发送之后",
+  "voice": "嗨，我是呱基。上一期说，模型 Infra 是 AI 背后的后厨。这一期，看后厨里最忙的一条线：推理服务。模型训练好，就像学完了课。接下来，它每天的活，就是回答你。这件事，就叫推理。训练是一次性的投入；推理却每一秒都在发生，所以很多公司的账单里，推理才是长期的大头。你按下发送，到第一个字蹦出来，往往只要一两秒。这一两秒里，要走五站：入口，调度，读题，写答案，送回来。",
+  "duration": 36854,
+  "beats": [
+   {
+    "key": "intro",
+    "at": 0,
+    "text": "嗨，我是呱基。"
+   },
+   {
+    "key": "h1",
+    "at": 1852,
+    "text": "上一期说，模型 Infra 是 AI 背后的后厨。这一期，看后厨里最忙的一条线：推理服务。"
+   },
+   {
+    "key": "h2",
+    "at": 10093,
+    "text": "模型训练好，就像学完了课。接下来，它每天的活，就是回答你。这件事，就叫推理。"
+   },
+   {
+    "key": "h3",
+    "at": 18082,
+    "text": "训练是一次性的投入；推理却每一秒都在发生，所以很多公司的账单里，推理才是长期的大头。"
+   },
+   {
+    "key": "h4",
+    "at": 26065,
+    "text": "你按下发送，到第一个字蹦出来，往往只要一两秒。这一两秒里，要走五站：入口，调度，读题，写答案，送回来。"
+   }
+  ]
+ },
+ {
+  "id": "gate",
+  "num": "02",
+  "tag": "第一站、第二站",
+  "headline": "入口和调度",
+  "voice": "第一站是入口。先查你是谁、还有没有额度，再看人多不多，人多，就请你排队。第二站是调度。从成千上万台机器里，挑一台：模型已经装好、手上的活又不太满的。高峰来了，入口会限流，把你排到后面。这就是你偶尔看到“服务繁忙”的原因。",
+  "duration": 21710,
+  "beats": [
+   {
+    "key": "g1",
+    "at": 0,
+    "text": "第一站是入口。先查你是谁、还有没有额度，再看人多不多，人多，就请你排队。"
+   },
+   {
+    "key": "g2",
+    "at": 7072,
+    "text": "第二站是调度。从成千上万台机器里，挑一台：模型已经装好、手上的活又不太满的。"
+   },
+   {
+    "key": "g3",
+    "at": 14653,
+    "text": "高峰来了，入口会限流，把你排到后面。这就是你偶尔看到“服务繁忙”的原因。"
+   }
+  ]
+ },
+ {
+  "id": "phase",
+  "num": "03",
+  "tag": "第三站、第四站",
+  "headline": "先读题，再写答案",
+  "voice": "机器拿到问题，要做两件不同的事：先读题，再写答案。读题，叫预填充。整段问题可以一次并排读完，像一眼扫完一页题目，很快。写答案，叫解码。只能一个字接一个字，因为下一个字，要看上一个字写了什么。所以第一个字快不快，看排队和读题；后面的字蹦得快不快，看写答案的速度。好在是边写边送，写出一个字，就推给你一个字。它每秒能写几十个字，比你读得还快。",
+  "duration": 34238,
+  "beats": [
+   {
+    "key": "p1",
+    "at": 0,
+    "text": "机器拿到问题，要做两件不同的事：先读题，再写答案。"
+   },
+   {
+    "key": "p2",
+    "at": 5162,
+    "text": "读题，叫预填充。整段问题可以一次并排读完，像一眼扫完一页题目，很快。"
+   },
+   {
+    "key": "p3",
+    "at": 12396,
+    "text": "写答案，叫解码。只能一个字接一个字，因为下一个字，要看上一个字写了什么。"
+   },
+   {
+    "key": "p4",
+    "at": 19240,
+    "text": "所以第一个字快不快，看排队和读题；后面的字蹦得快不快，看写答案的速度。"
+   },
+   {
+    "key": "p5",
+    "at": 26080,
+    "text": "好在是边写边送，写出一个字，就推给你一个字。它每秒能写几十个字，比你读得还快。"
+   }
+  ]
+ },
+ {
+  "id": "kv",
+  "num": "04",
+  "tag": "写答案的秘密",
+  "headline": "小本本：KV 缓存",
+  "voice": "写第一百个字时，模型要回头看前面九十九个字。每次都重新读，就会越写越慢。所以它把读过的内容，做成笔记，记在小本本上，下一个字直接翻本本。这个小本本，叫 KV 缓存。可本本要占显存：一段八千字左右的长对话，大约占两三个 GB。对话越长，本本越厚，同时能服务的人就越少。过去是给每个人预留一整本，六到八成的页数用不上。现在是一页一页地发，用到哪页发哪页，同样的卡，能多服务两到四倍的人。",
+  "duration": 38150,
+  "beats": [
+   {
+    "key": "c1",
+    "at": 0,
+    "text": "写第一百个字时，模型要回头看前面九十九个字。每次都重新读，就会越写越慢。"
+   },
+   {
+    "key": "c2",
+    "at": 7732,
+    "text": "所以它把读过的内容，做成笔记，记在小本本上，下一个字直接翻本本。这个小本本，叫 KV 缓存。"
+   },
+   {
+    "key": "c3",
+    "at": 16956,
+    "text": "可本本要占显存：一段八千字左右的长对话，大约占两三个 GB。对话越长，本本越厚，同时能服务的人就越少。"
+   },
+   {
+    "key": "c4",
+    "at": 26944,
+    "text": "过去是给每个人预留一整本，六到八成的页数用不上。"
+   },
+   {
+    "key": "c5",
+    "at": 31288,
+    "text": "现在是一页一页地发，用到哪页发哪页，同样的卡，能多服务两到四倍的人。"
+   }
+  ]
+ },
+ {
+  "id": "batch",
+  "num": "05",
+  "tag": "拼车",
+  "headline": "公交车式拼车",
+  "voice": "再看一个省钱的办法：拼车。一次只服务一个人，就像一辆公交车只拉一位乘客，太浪费。早期像包车：等一批人到齐一起发车，还要等最慢的写完才能一起下车，写得短的人，只能干等。现在像公交车：谁写完谁下车，座位一空，马上上来新人，车上始终是满的。这叫连续批处理。车上人越多，每个人分摊的成本越低；可车太挤，每个人也会等得久一点。",
+  "duration": 31310,
+  "beats": [
+   {
+    "key": "b1",
+    "at": 0,
+    "text": "再看一个省钱的办法：拼车。一次只服务一个人，就像一辆公交车只拉一位乘客，太浪费。"
+   },
+   {
+    "key": "b2",
+    "at": 7870,
+    "text": "早期像包车：等一批人到齐一起发车，还要等最慢的写完才能一起下车，写得短的人，只能干等。"
+   },
+   {
+    "key": "b3",
+    "at": 15995,
+    "text": "现在像公交车：谁写完谁下车，座位一空，马上上来新人，车上始终是满的。这叫连续批处理。"
+   },
+   {
+    "key": "b4",
+    "at": 24317,
+    "text": "车上人越多，每个人分摊的成本越低；可车太挤，每个人也会等得久一点。"
+   }
+  ]
+ },
+ {
+  "id": "trade",
+  "num": "06",
+  "tag": "取舍",
+  "headline": "快、多、省，选不全",
+  "voice": "所以推理服务一直在取舍：人少，每个人都快，但成本高；人多，成本低，但每个人慢一点。厂商就把它做成档位：要马上回答的，走实时通道；不着急的，走批量通道，一般一天内给结果，常见的是只收一半的钱。还有，加机器不是一秒的事，装模型就要几分钟，所以要看着曲线，提前加。",
+  "duration": 26078,
+  "beats": [
+   {
+    "key": "t1",
+    "at": 0,
+    "text": "所以推理服务一直在取舍：人少，每个人都快，但成本高；人多，成本低，但每个人慢一点。"
+   },
+   {
+    "key": "t2",
+    "at": 8472,
+    "text": "厂商就把它做成档位：要马上回答的，走实时通道；"
+   },
+   {
+    "key": "t2b",
+    "at": 12755,
+    "text": "不着急的，走批量通道，一般一天内给结果，常见的是只收一半的钱。"
+   },
+   {
+    "key": "t3",
+    "at": 18938,
+    "text": "还有，加机器不是一秒的事，装模型就要几分钟，所以要看着曲线，提前加。"
+   }
+  ]
+ },
+ {
+  "id": "you",
+  "num": "07",
+  "tag": "和你有关",
+  "headline": "怎么用得更快更省",
+  "voice": "知道了这些，你就能用得更聪明。给你四个小办法。第一，问题说清楚，别塞无关内容。读题和小本本都按字数算，越长越慢，也越贵。第二，换了话题，就开新对话。旧话题留在本本里，既占地方，还可能干扰答案。第三，固定要用的长说明，放在最前面。开头一模一样的部分，能命中缓存，又快又便宜。第四，不着急的活选批量。比如一次处理几百份文件，往往只要半价。",
+  "duration": 34382,
+  "beats": [
+   {
+    "key": "y0",
+    "at": 0,
+    "text": "知道了这些，你就能用得更聪明。给你四个小办法。"
+   },
+   {
+    "key": "y1",
+    "at": 4468,
+    "text": "第一，问题说清楚，别塞无关内容。读题和小本本都按字数算，越长越慢，也越贵。"
+   },
+   {
+    "key": "y2",
+    "at": 12222,
+    "text": "第二，换了话题，就开新对话。旧话题留在本本里，既占地方，还可能干扰答案。"
+   },
+   {
+    "key": "y3",
+    "at": 19468,
+    "text": "第三，固定要用的长说明，放在最前面。开头一模一样的部分，能命中缓存，又快又便宜。"
+   },
+   {
+    "key": "y4",
+    "at": 27454,
+    "text": "第四，不着急的活选批量。比如一次处理几百份文件，往往只要半价。"
+   }
+  ]
+ },
+ {
+  "id": "end",
+  "num": "08",
+  "tag": "记住",
+  "headline": "一次提问，走五站",
+  "voice": "回头看，一次提问，走了五站：入口，调度，读题，写答案，送回你的屏幕。中间靠小本本不重读，靠公交式拼车省成本，靠档位在快和省之间选。下次 AI 一秒就开了口，别忘了，这一秒里，它已经走完了一整趟旅程。我是呱基，我们下期见。",
+  "duration": 22982,
+  "beats": [
+   {
+    "key": "e1",
+    "at": 0,
+    "text": "回头看，一次提问，走了五站：入口，调度，读题，写答案，送回你的屏幕。"
+   },
+   {
+    "key": "e2",
+    "at": 7338,
+    "text": "中间靠小本本不重读，靠公交式拼车省成本，靠档位在快和省之间选。"
+   },
+   {
+    "key": "e3",
+    "at": 13727,
+    "text": "下次 AI 一秒就开了口，别忘了，这一秒里，它已经走完了一整趟旅程。"
+   },
+   {
+    "key": "bye",
+    "at": 20069,
+    "text": "我是呱基，我们下期见。"
+   }
+  ]
+ }
+];
+    /*@@END*/
+
+    // ---------- timing ----------
+    let T=0, BEATS=[], GA=1;
+    const clamp01=v=>v<0?0:v>1?1:v;
+    const eOut=t=>1-Math.pow(1-clamp01(t),3);
+    const eInOut=t=>{t=clamp01(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+    const lerp=(a,b,t)=>a+(b-a)*t;
+    function beatIdx(k){return BEATS.findIndex(b=>b.key===k)}
+    function at(k){const b=BEATS.find(b=>b.key===k);return b?Math.max(0,b.at-LEAD):1e9}
+    function since(k){return T-at(k)}
+    function pr(k,dur=800,delay=0){return eInOut((T-at(k)-delay)/dur)}
+    function ap(k,dur=450,delay=0){return eOut((T-at(k)-delay)/dur)}
+    function emph(k,floor=0.32){const i=beatIdx(k),nb=BEATS[i+1];if(!nb)return 1;const t=T-(nb.at-LEAD);return t<=0?1:lerp(1,floor,eOut(t/450))}
+    function withA(a,fn){const old=GA;GA=old*a;if(GA>0.002)fn();GA=old}
+
+    // ---------- geometry ----------
+    function poly(vs,closed=false,step=6){const out=[];const L=closed?[...vs,vs[0]]:vs;
+      for(let k=0;k<L.length-1;k++){const A=L[k],B=L[k+1],d=Math.hypot(B.x-A.x,B.y-A.y),n=Math.max(1,Math.ceil(d/step));
+        for(let i=(k===0?0:1);i<=n;i++)out.push({x:A.x+(B.x-A.x)*i/n,y:A.y+(B.y-A.y)*i/n})}return out}
+    function arcPts(cx,cy,r,a0,a1,step=6){const n=Math.max(2,Math.ceil(Math.abs(a1-a0)*r/step)),out=[];
+      for(let i=0;i<=n;i++){const t=a0+(a1-a0)*i/n;out.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r})}return out}
+    function circlePts(cx,cy,r,start=-Math.PI/2){return arcPts(cx,cy,r,start,start+Math.PI*2)}
+    function ellipsePts(cx,cy,rx,ry){const out=[];for(let i=0;i<=72;i++){const t=-Math.PI/2+i/72*Math.PI*2;out.push({x:cx+Math.cos(t)*rx,y:cy+Math.sin(t)*ry})}return out}
+    function join(...parts){const out=[];for(const p of parts)for(const q of p){const l=out[out.length-1];if(l&&Math.hypot(l.x-q.x,l.y-q.y)<0.5)continue;out.push(q)}return out}
+    function rrectPts(x,y,w,h,r){r=Math.min(r,w/2,h/2);const P=Math.PI;
+      return join(poly([{x:x+r,y},{x:x+w-r,y}]),arcPts(x+w-r,y+r,r,-P/2,0),poly([{x:x+w,y:y+r},{x:x+w,y:y+h-r}]),
+        arcPts(x+w-r,y+h-r,r,0,P/2),poly([{x:x+w-r,y:y+h},{x:x+r,y:y+h}]),arcPts(x+r,y+h-r,r,P/2,P),
+        poly([{x,y:y+h-r},{x,y:y+r}]),arcPts(x+r,y+r,r,P,P*1.5))}
+    function quadPts(x0,y0,cx,cy,x1,y1,step=6){const len=Math.hypot(cx-x0,cy-y0)+Math.hypot(x1-cx,y1-cy),n=Math.max(4,Math.ceil(len/step)),out=[];
+      for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push({x:u*u*x0+2*u*t*cx+t*t*x1,y:u*u*y0+2*u*t*cy+t*t*y1})}return out}
+    function cloudPts(x,y,s){
+      const C=[[-70,15,42],[-15,-22,58],[55,-5,46],[92,20,30],[10,10,50]];
+      const base=50*s,out=[];
+      for(let i=0;i<=150;i++){const th=Math.PI+i/150*Math.PI*2,dx=Math.cos(th),dy=Math.sin(th);let best=0;
+        for(const [cx,cy,r] of C){const ox=cx*s,oy=cy*s,R=r*s,b=dx*ox+dy*oy,c=ox*ox+oy*oy-R*R,disc=b*b-c;if(disc>=0){const t=b+Math.sqrt(disc);if(t>best)best=t}}
+        let px=dx*best,py=dy*best;if(py>base){const t=base/dy;px=dx*t;py=base}
+        out.push({x:x+px,y:y+py})}
+      return out}
+    function along(pts,u){u=clamp01(u);const f=u*(pts.length-1),i=Math.floor(f),fr=f-i;const A=pts[i],B=pts[Math.min(pts.length-1,i+1)];
+      return {x:A.x+(B.x-A.x)*fr,y:A.y+(B.y-A.y)*fr,ang:Math.atan2(B.y-A.y,B.x-A.x)}}
+
+    // ---------- chalk rendering ----------
+    function rough(pts,amp){if(!amp)return pts;const s=pts[0].x*.37+pts[0].y*.91+pts.length*.13;
+      return pts.map((q,i)=>({x:q.x+(Math.sin(i*.31+s)*.6+Math.sin(i*.09+s*1.7)*.4)*amp,y:q.y+(Math.cos(i*.27+s*1.3)*.6+Math.sin(i*.06+s*.7)*.4)*amp}))}
+    function stroke(pts,o={}){
+      const {color=COL.ink,width=4,prog=1,alpha=1,glow=.12,dash=null,tip=true,amp=1.1,grain=true}=o;
+      const A=alpha*GA;if(prog<=0||A<=0.002||pts.length<2)return null;
+      const rp=rough(pts,amp),total=rp.length-1,f=total*clamp01(prog),n=Math.floor(f),fr=f-n;
+      const path=new Path2D();path.moveTo(rp[0].x,rp[0].y);for(let i=1;i<=n;i++)path.lineTo(rp[i].x,rp[i].y);
+      let end=rp[n];if(n<total&&fr>0){const P=rp[n],Q=rp[n+1];end={x:P.x+(Q.x-P.x)*fr,y:P.y+(Q.y-P.y)*fr};path.lineTo(end.x,end.y)}
+      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle=color;
+      if(dash)ctx.setLineDash(dash);
+      if(glow>0){ctx.globalAlpha=A*glow*.45;ctx.lineWidth=width*3.4;ctx.stroke(path)}
+      ctx.globalAlpha=A*.95;ctx.lineWidth=width;ctx.stroke(path);
+      if(grain&&!dash){ctx.setLineDash([1.4,5]);ctx.globalAlpha=A*.16;ctx.lineWidth=width*.5;ctx.strokeStyle="#ffffff";ctx.stroke(path)}
+      ctx.restore();
+      if(tip&&prog<1){ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(end.x,end.y,width*.95,0,Math.PI*2);ctx.fill();ctx.restore()}
+      return end}
+    function fill(pts,color,alpha,amp=1.1){const A=alpha*GA;if(A<=0.002)return;const rp=rough(pts,amp);
+      ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(rp[0].x,rp[0].y);for(const q of rp)ctx.lineTo(q.x,q.y);ctx.closePath();ctx.fill();ctx.restore()}
+    function shape(pts,o={}){if(o.fill)fill(pts,o.fill,(o.fillA??.1)*(o.alpha??1)*Math.pow(clamp01(o.prog??1),2),o.amp??1.1);return stroke(pts,o)}
+    function arrowHead(pts,prog,o={}){if(prog<0.92)return;const {color=COL.ink,width=4,alpha=1,size=20}=o;
+      const e=along(pts,1),b=along(pts,.96),ang=Math.atan2(e.y-b.y,e.x-b.x),a=alpha*eOut((prog-.92)/.08);
+      stroke(poly([{x:e.x-Math.cos(ang-.45)*size,y:e.y-Math.sin(ang-.45)*size},e,{x:e.x-Math.cos(ang+.45)*size,y:e.y-Math.sin(ang+.45)*size}]),{color,width,alpha:a,glow:.1,tip:false,amp:.4})}
+    function dot(x,y,r,color,alpha=1){const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore()}
+    function text(str,x,y,o={}){const {size=32,color=COL.ink,weight=500,align="center",alpha=1,rise=14,spacing=0}=o;
+      const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${FONT}`;
+      ctx.textAlign=align;ctx.textBaseline="middle";if(spacing)ctx.letterSpacing=spacing+"px";ctx.fillText(str,x,y+(1-clamp01(alpha))*rise);ctx.restore()}
+    function measure(str,size,weight=500){ctx.save();ctx.font=`${weight} ${size}px ${FONT}`;const w=ctx.measureText(str).width;ctx.restore();return w}
+    function pill(str,x,y,o={}){const {size=26,color=COL.ink,tone=COL.blue,alpha=1,weight=600,padX=22}=o;
+      const A=alpha*GA;if(A<=0.002)return;const w=measure(str,size,weight)+padX*2,h=size*1.75,yy=y+(1-clamp01(alpha))*10;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(x-w/2,yy-h/2,w,h,h/2);ctx.fillStyle=tone;ctx.globalAlpha=A*.14;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+      text(str,x,yy,{size,color,weight,alpha:Math.min(1,alpha),rise:0})}
+
+    // ---------- background ----------
+    const bgCanvas=document.createElement("canvas");bgCanvas.width=W;bgCanvas.height=H;
+    (function paintBg(){const b=bgCanvas.getContext("2d");
+      const g=b.createRadialGradient(W/2,H*.4,200,W/2,H*.45,H*.8);g.addColorStop(0,"#ffffff");g.addColorStop(1,"#f6f6f3");
+      b.fillStyle=g;b.fillRect(0,0,W,H);let s=7;const r=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
+      for(let i=0;i<1400;i++){b.fillStyle=`rgba(40,40,30,${0.008+r()*0.016})`;const x=r()*W,y=r()*H,z=r()*2+.4;b.fillRect(x,y,z,z)}})();
+
+    // ---------- icons ----------
+    const GPU=COL.green, NET=COL.blue, MOD="#8b3fd9", SCH="#0f9aa0", SAVE=COL.warm, ERR=COL.red;
+    const MONO='"JetBrains Mono","Noto Sans Mono","Noto Sans CJK SC",monospace';
+    function hash(n){const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+    function mono(str,x,y,o={}){const {size=24,color=COL.ink,alpha=1,align="left",weight=500}=o;const A=alpha*GA;if(A<=.002)return;
+      ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${MONO}`;ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(str,x,y);ctx.restore()}
+    function panel(x,y,w,h,p,tone=COL.ink){
+      fill(rrectPts(x,y,w,h,18),"#f6f8fb",clamp01(p*2),0);
+      stroke(rrectPts(x,y,w,h,18),{color:tone,width:3,prog:p,alpha:.4,glow:0,tip:false,amp:.3})}
+    function cross(x,y,r,col=ERR,p=1){stroke(poly([{x:x-r,y:y-r},{x:x+r,y:y+r}]),{color:col,width:5,prog:clamp01(p*2),glow:0,tip:false,amp:0});stroke(poly([{x:x+r,y:y-r},{x:x-r,y:y+r}]),{color:col,width:5,prog:clamp01(p*2-1),glow:0,tip:false,amp:0})}
+    function check(x,y,r,col,p=1){stroke(poly([{x:x-r,y},{x:x-r*.3,y:y+r*.7},{x:x+r,y:y-r*.7}]),{color:col,width:5.5,prog:p,glow:0,tip:false,amp:0})}
+    function arrowLine(pts,p,col=COL.mute,w=3.5,size=16){stroke(pts,{color:col,width:w,prog:p,glow:0,tip:false,amp:0});arrowHead(pts,p,{color:col,width:w,size})}
+    function iconClock(x,y,s,col,spin=0){shape(circlePts(x,y,34*s),{color:col,width:3.5,fill:col,fillA:.1,tip:false,amp:.3,glow:0});
+      stroke(poly([{x:x-8*s,y:y-44*s},{x:x+8*s,y:y-44*s}]),{color:col,width:4,glow:0,tip:false,amp:0});
+      const a=-Math.PI/2+spin;stroke(poly([{x,y},{x:x+Math.cos(a)*24*s,y:y+Math.sin(a)*24*s}]),{color:col,width:3.5,glow:0,tip:false,amp:0})}
+    function phoneBody(x,y,w,h,p){
+      shape(rrectPts(x-w/2,y-h/2,w,h,Math.min(44,w*.15)),{color:COL.ink,width:4,prog:p,alpha:.85,fill:"#ffffff",fillA:1,glow:0});
+      stroke(poly([{x:x-w*.11,y:y-h/2+20},{x:x+w*.11,y:y-h/2+20}]),{color:COL.ink,width:4,prog:clamp01(p*2-1),alpha:.4,glow:0,tip:false,amp:0,grain:false})}
+    function bubble(str,x,y,o={}){
+      const {size=28,tone=NET,align="left",maxW=300,alpha=1,shown=null}=o;
+      const A=alpha*GA;if(A<=.002)return null;
+      let lines=wrapLines(str,size,maxW);
+      if(lines.length===2){let best=-1,bd=1e9;
+        for(let i=1;i<str.length-1;i++){if(!"，。？！；：、".includes(str[i]))continue;const a=measure(str.slice(0,i+1),size,500),b=measure(str.slice(i+1).trim(),size,500);
+          if(a<=maxW&&b<=maxW&&Math.abs(a-b)<bd){bd=Math.abs(a-b);best=i}}
+        if(best>=0)lines=[str.slice(0,best+1),str.slice(best+1).trim()]}
+      const tw=Math.max(...lines.map(l=>measure(l,size,500))),pad=20,lh=size*1.42,h=lines.length*lh+pad*1.2,w=tw+pad*2;
+      const bx=align==="right"?x-w:align==="center"?x-w/2:x;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(bx,y,w,h,20);ctx.fillStyle=tone;ctx.globalAlpha=A*.13;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
+      let left=shown==null?1e9:shown;
+      lines.forEach((ln,i)=>{const ch=[...ln],k=Math.max(0,Math.min(ch.length,left));left-=ch.length;
+        if(k>0)text(ch.slice(0,k).join(""),bx+pad,y+pad*.6+lh/2+i*lh,{size,align:"left",alpha,rise:0})});
+      return {w,h,bx}}
+    function gpuCard(x,y,s,o={}){const {col=GPU,p=1,bad=0,act=0,fix=0}=o;const w=150*s,h=86*s,c=bad>0&&fix<1?ERR:col;
+      shape(rrectPts(x-w/2,y-h/2,w,h,10*s),{color:c,width:Math.max(2.5,3.5*s),prog:p,fill:c,fillA:.08+.14*act,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);if(q<=0)return;
+      withA(q,()=>{shape(rrectPts(x-w*.4,y-h*.28,w*.28,h*.56,4*s),{color:c,width:2.2,fill:c,fillA:.3,glow:0,tip:false,amp:0});
+        [.1,.33].forEach(f=>{const fx=x+w*f,r=h*.27;stroke(circlePts(fx,y,r),{color:c,width:2.2,glow:0,tip:false,amp:0,grain:false});
+          if(s>.5){const a0=act?T*.012:0;for(let k=0;k<3;k++){const a=a0+k*2.094;stroke(poly([{x:fx,y},{x:fx+Math.cos(a)*r*.8,y:y+Math.sin(a)*r*.8}]),{color:c,width:2,glow:0,tip:false,amp:0,grain:false,alpha:.6})}}})});
+      if(bad>0&&fix<1)cross(x,y,h*.3,ERR,bad)}
+    function rack(x,y,w,h,o={}){const {p=1,col=COL.ink,led=GPU,act=0}=o;
+      shape(rrectPts(x-w/2,y-h/2,w,h,6),{color:col,width:3,prog:p,alpha:.75,fill:col,fillA:.04,glow:0,tip:false,amp:.2});
+      const q=clamp01(p*2-1);if(q<=0)return;const n=Math.max(3,Math.round(h/30));
+      for(let i=0;i<n;i++){const yy=y-h/2+h*(i+.5)/n;
+        if(i<n-1)stroke(poly([{x:x-w/2+6,y:yy+h/n/2},{x:x+w/2-6,y:yy+h/n/2}]),{color:col,width:1.5,alpha:.3*q,glow:0,tip:false,amp:0,grain:false});
+        const on=act?(Math.sin(T*.012+i*1.7+x*.031)>-.2?1:.25):.7;dot(x+w/2-Math.max(8,w*.12),yy,Math.max(2.5,w*.035),led,q*on);
+        stroke(poly([{x:x-w/2+8,y:yy},{x:x+w*.15,y:yy}]),{color:col,width:2,alpha:.35*q,glow:0,tip:false,amp:0,grain:false})}}
+    function chefHat(x,y,s,col=COL.ink,p=1){const P=Math.PI;
+      const pts=join(arcPts(x-38*s,y-40*s,30*s,P*.72,P*1.62),arcPts(x,y-64*s,36*s,P*1.18,P*1.82),arcPts(x+38*s,y-40*s,30*s,P*1.38,P*2.28),
+        poly([{x:x+44*s,y:y-16*s},{x:x+44*s,y:y+22*s},{x:x-44*s,y:y+22*s},{x:x-44*s,y:y-16*s},{x:x-60*s,y:y-21*s}]));
+      shape(pts,{color:col,width:4,prog:p,fill:"#ffffff",fillA:1,glow:0,amp:.4});
+      stroke(poly([{x:x-44*s,y:y-2*s},{x:x+44*s,y:y-2*s}]),{color:col,width:3,alpha:.45,prog:p,glow:0,tip:false,amp:0})}
+    function stove(x,y,s,o={}){const {p=1,flame=0,col=COL.ink}=o;const w=150*s,h=90*s;
+      shape(rrectPts(x-w/2,y,w,h,8*s),{color:col,width:3.5,prog:p,fill:col,fillA:.05,glow:0,tip:false,amp:.3});
+      dot(x-w*.25,y+h*.62,7*s,col,.35*p);dot(x,y+h*.62,7*s,col,.35*p);dot(x+w*.25,y+h*.62,7*s,col,.35*p);
+      shape(join(poly([{x:x-w*.36,y:y-6*s},{x:x+w*.36,y:y-6*s}]),arcPts(x,y-6*s,w*.36,0,Math.PI)),{color:COL.ink,width:3.5,prog:p,fill:"#b9c0c9",fillA:.35,glow:0,tip:false,amp:.3});
+      if(flame>0)for(let k=-2;k<=2;k++){const fx=x+k*w*.11,fh=(16+6*Math.sin(T*.02+k*1.3))*s*flame;
+        shape(poly([{x:fx-6*s,y:y+2*s},{x:fx,y:y+2*s-fh},{x:fx+6*s,y:y+2*s}],true),{color:SAVE,width:2,fill:SAVE,fillA:.6,glow:0,tip:false,amp:0})}}
+    function kitchen(x,y,s,o={}){[-1,0,1].forEach(k=>stove(x+k*165*s,y,s,{...o,p:clamp01((o.p??1)*1.6-(k+1)*.3)}))}
+    function wok(x,y,s,o={}){const {col=COL.ink,heat=0,p=1}=o;
+      if(heat>0)for(let k=-2;k<=2;k++){const fx=x+k*16*s,fh=(18+8*Math.sin(T*.025+k))*s*heat;shape(poly([{x:fx-7*s,y:y+46*s},{x:fx,y:y+46*s-fh},{x:fx+7*s,y:y+46*s}],true),{color:SAVE,width:2,fill:SAVE,fillA:.65,glow:0,tip:false,amp:0})}
+      shape(join(poly([{x:x-70*s,y},{x:x+70*s,y}]),arcPts(x,y,70*s,0,Math.PI)),{color:col,width:4,prog:p,fill:"#9aa3ad",fillA:.35,glow:0,tip:false,amp:.3});
+      stroke(poly([{x:x+70*s,y:y+4*s},{x:x+130*s,y:y-14*s}]),{color:col,width:7,prog:p,glow:0,tip:false,amp:0})}
+    function hub(x,y,s,o={}){const {p=1,act=0}=o;
+      shape(circlePts(x,y,46*s),{color:SCH,width:4,prog:p,fill:SCH,fillA:.1+.1*act,glow:0,tip:false,amp:.3});
+      const a0=T*.004*act;for(let k=0;k<3;k++){const a=a0+k*2.094;const pts=arcPts(x,y,28*s,a,a+1.4);arrowLine(pts,p,SCH,3.5,10)}}
+    function gate(x,y,s,o={}){const {p=1}=o;
+      stroke(join(poly([{x:x-40*s,y:y+50*s},{x:x-40*s,y:y-10*s}]),arcPts(x,y-10*s,40*s,Math.PI,Math.PI*2),poly([{x:x+40*s,y:y-10*s},{x:x+40*s,y:y+50*s}])),{color:NET,width:4.5,prog:p,glow:0,tip:false,amp:.3})}
+    function saveIcon(x,y,s,col=SAVE,a=1){withA(a,()=>{const w=40*s;
+      shape(poly([{x:x-w/2,y:y-w/2},{x:x+w*.3,y:y-w/2},{x:x+w/2,y:y-w*.3},{x:x+w/2,y:y+w/2},{x:x-w/2,y:y+w/2}],true),{color:col,width:3,fill:col,fillA:.18,glow:0,tip:false,amp:0});
+      shape(rrectPts(x-w*.28,y-w/2,w*.5,w*.32,2),{color:col,width:2.5,fill:col,fillA:.5,glow:0,tip:false,amp:0});
+      stroke(rrectPts(x-w*.3,y+w*.08,w*.6,w*.36,3),{color:col,width:2.5,glow:0,tip:false,amp:0})})}
+    function bolt(x,y,s,col=SAVE,p=1){shape(poly([{x:x+8*s,y:y-40*s},{x:x-20*s,y:y+6*s},{x:x,y:y+6*s},{x:x-8*s,y:y+40*s},{x:x+20*s,y:y-6*s},{x:x,y:y-6*s}],true),{color:col,width:3.5,prog:p,fill:col,fillA:.35,glow:0,tip:false,amp:0})}
+    function thermo(x,y,s,col=ERR,lv=.6){stroke(join(arcPts(x,y+26*s,16*s,-Math.PI*.3,Math.PI*1.3),poly([{x:x-9*s,y:y+12*s},{x:x-9*s,y:y-34*s}]),arcPts(x,y-34*s,9*s,Math.PI,Math.PI*2),poly([{x:x+9*s,y:y-34*s},{x:x+9*s,y:y+12*s}])),{color:COL.ink,width:3,glow:0,tip:false,amp:0});
+      dot(x,y+26*s,11*s,col,1);fill(rrectPts(x-4*s,y+20*s-lv*52*s,8*s,lv*52*s,3*s),col,1,0)}
+    function fan(x,y,s,col=NET,spin=0){stroke(circlePts(x,y,34*s),{color:col,width:3.5,glow:0,tip:false,amp:0});
+      for(let k=0;k<3;k++){const a=spin+k*2.094;shape(ellipsePts(x+Math.cos(a)*16*s,y+Math.sin(a)*16*s,13*s,7*s).map(q=>({x:x+(q.x-x)*Math.cos(0)-0,y:q.y})),{color:col,width:2.5,fill:col,fillA:.3,glow:0,tip:false,amp:0})}
+      dot(x,y,5*s,col,1)}
+    function person(x,y,s,col=COL.ink,a=1){withA(a,()=>{shape(circlePts(x,y-22*s,12*s),{color:col,width:3,fill:col,fillA:.15,glow:0,tip:false,amp:0});
+      stroke(join(arcPts(x,y+18*s,22*s,Math.PI,Math.PI*2)),{color:col,width:3,glow:0,tip:false,amp:0})})}
+    function paramBlock(x,y,w,h,o={}){const {p=1,label="",col=MOD,a=1,sub=""}=o;withA(a,()=>{
+      shape(rrectPts(x-w/2,y-h/2,w,h,12),{color:col,width:4,prog:p,fill:col,fillA:.12,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);const cols=Math.max(2,Math.floor(w/26)),rows=Math.max(2,Math.floor(h/26));
+      for(let i=0;i<cols;i++)for(let j=0;j<rows;j++)dot(x-w/2+(i+.5)*w/cols,y-h/2+(j+.5)*h/rows,2.6,col,q*.45);
+      if(label){const lw=measure(label,30,700)+30;ctx.save();ctx.globalAlpha=GA*q;ctx.fillStyle="#fff";ctx.beginPath();ctx.roundRect(x-lw/2,y-(sub?40:22),lw,sub?80:44,14);ctx.fill();ctx.restore();
+        text(label,x,y-(sub?14:0),{size:30,weight:800,color:col,alpha:q,rise:0});if(sub)text(sub,x,y+20,{size:22,color:COL.mute,alpha:q,rise:0})}})}
+    function priceTag(x,y,s,str,col=SAVE,a=1){withA(a,()=>{const w=measure(str,30*s,800)+70*s,h=64*s;
+      shape(poly([{x:x-w/2,y},{x:x-w/2+28*s,y:y-h/2},{x:x+w/2,y:y-h/2},{x:x+w/2,y:y+h/2},{x:x-w/2+28*s,y:y+h/2}],true),{color:col,width:3.5,fill:col,fillA:.14,glow:0,tip:false,amp:0});
+      stroke(circlePts(x-w/2+26*s,y,6*s),{color:col,width:3,glow:0,tip:false,amp:0});
+      text(str,x+12*s,y,{size:30*s,weight:800,color:col,rise:0})})}
+    function iceberg(cx,wy,o={}){const {p=1,alpha=1,tipLabel=1}=o;
+      withA(alpha,()=>{
+        fill(rrectPts(70,wy,940,560,26),"#e6f1fb",clamp01(p*2),0);
+        const wave=[];for(let i=0;i<=60;i++){const u=i/60;wave.push({x:70+u*940,y:wy+Math.sin(u*Math.PI*10+T*.002)*4})}
+        stroke(wave,{color:NET,width:3,prog:p,alpha:.6,glow:0,tip:false,amp:0});
+        const B=[[-120,0],[-290,110],[-370,290],[-320,450],[-120,520],[150,510],[340,420],[380,230],[260,90],[120,0]];
+        shape(poly(B.map(([dx,dy])=>({x:cx+dx,y:wy+dy})),true),{color:NET,width:4,prog:p,fill:"#c9def4",fillA:.85,glow:0,amp:.6,alpha:.9});
+        const tip=[[-120,0],[-60,-100],[-20,-80],[40,-138],[120,0]];
+        shape(poly(tip.map(([dx,dy])=>({x:cx+dx,y:wy+dy}))),{color:NET,width:4,prog:p,fill:"#ffffff",fillA:1,glow:0,amp:.5});
+        if(tipLabel)pill("模型",cx+210,wy-70,{tone:MOD,size:32,alpha:clamp01(p*2-1)*tipLabel,padX:26})})}
+    function frog(x,y,s,wave=false){
+      shape(ellipsePts(x,y,72*s,54*s),{color:COL.green,width:4.5,fill:COL.green,fillA:.14,tip:false});
+      [-1,1].forEach(k=>{const ex=x+k*34*s,ey=y-50*s;dot(ex,ey,23*s,"#ffffff",1);shape(circlePts(ex,ey,23*s),{color:COL.green,width:4,tip:false});dot(ex+k*3*s,ey+3*s,8.5*s,COL.ink,1)});
+      stroke(arcPts(x,y-8*s,30*s,.22*Math.PI,.78*Math.PI),{color:COL.ink,width:4,glow:0,tip:false});
+      dot(x-48*s,y+6*s,9*s,COL.red,.3);dot(x+48*s,y+6*s,9*s,COL.red,.3);
+      if(wave){const a=-1.15+Math.sin(T*.012)*.45,hx=x+66*s+Math.cos(a)*54*s,hy=y-4*s+Math.sin(a)*54*s;
+        stroke(poly([{x:x+62*s,y:y+2*s},{x:hx,y:hy}]),{color:COL.green,width:5.5,tip:false,amp:.3});dot(hx,hy,9*s,COL.green,1)}
+      text("呱基",x,y+86*s,{size:Math.round(26*Math.max(.8,s)),color:COL.green,weight:700,rise:0})}
+
+    const STN=[["入口",NET],["调度",SCH],["读题",MOD],["写答案",GPU],["送回",SAVE]];
+    const PC=[NET,SAVE,MOD,SCH];
+    function roadmap(y,o={}){const {shown=5,alpha=1,active=-1}=o;
+      STN.forEach(([l,c],i)=>{const x=120+i*210,a=clamp01(shown-i);if(a<=0)return;
+        withA(alpha*a,()=>{
+          shape(circlePts(x,y,50),{color:c,width:4.5,prog:a,fill:c,fillA:i===active?.34:.12,glow:0,tip:false,amp:.3});
+          text(String(i+1),x,y,{size:44,weight:800,color:c,rise:0});
+          text(l,x,y+88,{size:32,weight:700,color:c,rise:0})});
+        if(i<4){const b=clamp01(shown-i-.5);if(b>0)withA(alpha,()=>arrowLine(poly([{x:x+62,y},{x:x+148,y}]),b,COL.mute,3.5,14))}})}
+    function bus(x,y,w,h,o={}){const {p=1,col=COL.ink}=o;
+      shape(rrectPts(x,y,w,h,30),{color:col,width:4,prog:p,fill:"#eef3f9",fillA:1,glow:0,tip:false,amp:.3,alpha:.85});
+      const q=clamp01(p*2-1);if(q<=0)return;
+      [x+110,x+w-110].forEach(wx=>{shape(circlePts(wx,y+h+2,26),{color:col,width:4,fill:"#9aa3ad",fillA:.55,glow:0,tip:false,amp:0});dot(wx,y+h+2,8,col,.5*q)})}
+    function notebook(x,y,w,h,o={}){const {p=1,col=SAVE,n=0,a=1}=o;
+      withA(a,()=>{shape(rrectPts(x-w/2,y-h/2,w,h,10),{color:col,width:4,prog:p,fill:col,fillA:.1,glow:0,tip:false,amp:.3});
+        const q=clamp01(p*2-1);if(q<=0)return;
+        stroke(poly([{x:x-w/2+28,y:y-h/2+8},{x:x-w/2+28,y:y+h/2-8}]),{color:col,width:3,alpha:.6*q,glow:0,tip:false,amp:0});
+        const L=5;for(let i=0;i<L;i++){const f=clamp01(n-i);if(f<=0)break;const yy=y-h/2+h*(i+.75)/(L+.5);
+          stroke(poly([{x:x-w/2+50,y:yy},{x:x-w/2+50+(w-76)*f,y:yy}]),{color:col,width:3.5,alpha:.6*q,glow:0,tip:false,amp:0,grain:false})}})}
+    function chip(ch,x,y,col,o={}){const {s=60,a=1,fillA=.14,sz=30}=o;
+      withA(a,()=>{fill(rrectPts(x-s/2,y-s/2,s,s,s*.2),col,fillA,0);
+        stroke(rrectPts(x-s/2,y-s/2,s,s,s*.2),{color:col,width:3,glow:0,tip:false,amp:0,alpha:.85});
+        if(ch)text(ch,x,y,{size:sz,weight:700,rise:0})})}
+    // ---------- frame chrome ----------
+    function header(sc){const a=eOut(T/520);
+      text(`${sc.num}  ·  ${sc.tag}`,W/2,292,{size:26,color:"#6b7684",weight:600,alpha:a,spacing:4});
+      text(sc.headline,W/2,368,{size:54,color:COL.ink,weight:700,alpha:a,rise:18})}
+    function wrapLines(str,size,maxW){ctx.save();ctx.font=`500 ${size}px ${FONT}`;const lines=[];let cur="";
+      for(const ch of str.match(/[A-Za-z0-9.%+\/–-]+|[\s\S]/g)||[]){const t=cur+ch;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur.trimEnd());cur=ch.trim()?ch:""}else cur=t}
+      if(cur)lines.push(cur);ctx.restore();
+      const noStart="，。、；：？！）」』…—,.;:?!";
+      for(let i=1;i<lines.length;i++){while(lines[i]&&noStart.includes(lines[i][0])){lines[i-1]+=lines[i][0];lines[i]=lines[i].slice(1)}}
+      const out=lines.filter(Boolean);
+      if(out.length>=2&&[...out[out.length-1]].length<=2){out[out.length-2]+=out.pop()}
+      return out}
+    function subtitle(sc){
+      const g=ctx.createLinearGradient(0,1470,0,H-SAFE_BOTTOM);g.addColorStop(0,"rgba(255,255,255,0)");g.addColorStop(.35,"rgba(255,255,255,.9)");g.addColorStop(1,"rgba(255,255,255,.96)");
+      ctx.fillStyle=g;ctx.fillRect(0,1470,W,H-SAFE_BOTTOM-1470);
+      let cur=null;for(const b of sc.beats){if(T>=b.at-60)cur=b}if(!cur)cur=sc.beats[0];
+      const a=eOut((T-(cur.at-60))/180);
+      let lines=wrapLines(cur.text,42,920);
+      for(let w=900;lines.length>1&&w>=500;w-=20){const t=wrapLines(cur.text,42,w);if(t.length!==lines.length)break;lines=t}
+      if(lines.length===2||lines.length===3){const s=cur.text;let best=-1,bd=1e9;
+        for(let i=1;i<s.length-1;i++){if(!"，。？！；：、".includes(s[i]))continue;const a=measure(s.slice(0,i+1),42),b=measure(s.slice(i+1).trim(),42);
+          if(a<=960&&b<=960&&Math.abs(a-b)<bd){bd=Math.abs(a-b);best=i}}
+        if(best>=0)lines=[s.slice(0,best+1),s.slice(best+1).trim()];
+        else{const P=[];for(let i=1;i<s.length-1;i++)if("，。？！；：、".includes(s[i]))P.push(i);let bm=1e9,bl=null;
+          for(const i of P)for(const j of P){if(j<=i)continue;const seg=[s.slice(0,i+1),s.slice(i+1,j+1).trim(),s.slice(j+1).trim()],m=Math.max(...seg.map(x=>measure(x,42)));
+            if(m<=960&&m<bm){bm=m;bl=seg}}
+          if(bl)lines=bl}}
+      const lh=42*1.45,y0=SUB_Y-(lines.length-1)*lh/2;
+      lines.forEach((ln,i)=>text(ln,W/2,y0+i*lh,{size:42,color:COL.ink,weight:500,alpha:.35+.65*a,rise:6}))}
+
+    // ---------- scenes ----------
+    const DRAW={};
+    var SCD=0;
+    function span(k){const i=beatIdx(k);if(i<0)return 1000;const nb=BEATS[i+1];return (nb?nb.at:SCD)-BEATS[i].at}
+    const QCH=[..."帮我排一个周末出游计划"], ACH=[..."好的周六上午去植物园"];
+
+    DRAW.hook=function(){
+      withA(ap("intro",450)*(1-ap("h1",400)),()=>frog(540,900,1.25,true));
+      const a1=ap("h1",450)*emph("h1",0);
+      if(a1>0)withA(a1,()=>{
+        text("模型 Infra = 后厨",540,590,{size:40,weight:800,color:SCH,rise:0});
+        kitchen(540,700,1.0,{p:pr("h1",900,300),flame:ap("h1",500,1200)});
+        const hl=ap("h1",450,3600);
+        if(hl>0)withA(hl,()=>{stroke(rrectPts(450,664,180,150,16),{color:SCH,width:5,prog:pr("h1",600,3600),glow:0,tip:false,amp:0});
+          pill("推理服务",540,920,{tone:SCH,size:46,padX:36});
+          text("后厨里最忙的一条线",540,990,{size:30,color:COL.mute,rise:0})})});
+      const a2=ap("h2",450);
+      if(a2>0)withA(a2*emph("h3",.5)*(1-ap("h4",400)),()=>{
+        [[70,"训练",MOD,"= 学完整门课","一次性的投入",0],[570,"推理",GPU,"= 回答你的问题","每天 · 每一秒",3600]].forEach(([x,t,c,s1,s2,d])=>{
+          withA(ap("h2",400,d),()=>{panel(x,540,440,230,pr("h2",700,d),c);
+            text(t,x+220,612,{size:54,weight:800,color:c,rise:0});text(s1,x+220,676,{size:30,rise:0});text(s2,x+220,726,{size:30,weight:700,color:c,rise:0})})})});
+      const a3=ap("h3",450)*(1-ap("h4",400));
+      if(a3>0)withA(a3,()=>{
+        const X0=140,X1=960,Y0=1340,H=420,bh=150;
+        stroke(poly([{x:X0,y:Y0-H-20},{x:X0,y:Y0},{x:X1+10,y:Y0}]),{color:COL.ink,width:3,alpha:.55,glow:0,tip:false,amp:0});
+        text("累计花费",X0,Y0-H-52,{size:26,color:COL.mute,align:"left",rise:0});text("时间 →",X1,Y0+36,{size:26,color:COL.mute,align:"right",rise:0});
+        const tb=pr("h3",700,300),hh=bh*tb;
+        if(hh>2)shape(rrectPts(X0+20,Y0-hh,90,hh,6),{color:MOD,width:3.5,fill:MOD,fillA:.3,glow:0,tip:false,amp:0});
+        text("训练：一次",X0+65,Y0+36,{size:26,weight:700,color:MOD,alpha:ap("h3",400,900),rise:0});
+        stroke(poly([{x:X0+110,y:Y0-bh},{x:X1,y:Y0-bh}]),{color:MOD,width:3,dash:[8,10],alpha:.6,prog:pr("h3",900,1000),glow:0,tip:false,amp:0});
+        const p=pr("h3",3800,1500),xs=X0+150,pts=[];
+        for(let i=0;i<=40;i++){const u=i/40;pts.push({x:lerp(xs,X1,u),y:Y0-u*400-Math.sin(u*Math.PI*8)*6})}
+        stroke(pts,{color:GPU,width:6,prog:p,glow:0,amp:0});
+        text("推理：一直在花",X1,Y0+36,{size:26,weight:700,color:GPU,align:"right",alpha:ap("h3",400,2600),rise:0});
+        const cx=lerp(xs,X1,bh/400);
+        if(p>bh/400)pill("推理超过了训练",cx-60,Y0-bh-60,{tone:GPU,size:28,alpha:ap("h3",400,1500+3800*bh/400),padX:22});
+        pill("长期的大头",760,Y0-H-70,{tone:GPU,size:34,alpha:ap("h3",400,5600),padX:28})});
+      const a4=ap("h4",450);
+      if(a4>0){const S=span("h4");
+        withA(a4,()=>{
+          phoneBody(180,740,140,240,pr("h4",600));text("发送",180,880,{size:26,weight:700,rise:0});
+          arrowLine(poly([{x:270,y:740},{x:420,y:740}]),pr("h4",400,700),COL.mute);
+          iconClock(540,740,1.6,NET,since("h4")*.004);
+          arrowLine(poly([{x:650,y:740},{x:790,y:740}]),pr("h4",400,1900),COL.mute);
+          pill("第一个字",900,740,{tone:GPU,size:30,alpha:ap("h4",400,2500),padX:20});
+          pill("只要 1–2 秒",540,880,{tone:NET,size:38,alpha:ap("h4",400,1500),padX:30})});
+        const sh=clamp01((since("h4")-S*.56)/(S*.40))*5;
+        roadmap(1150,{shown:sh,alpha:a4,active:Math.min(4,Math.max(0,Math.ceil(sh)-1))})}
+    };
+
+    DRAW.gate=function(){
+      const A=ap("g1",400);
+      withA(A*emph("g2",.55),()=>{
+        phoneBody(140,690,130,220,pr("g1",600));text("你",140,830,{size:28,weight:700,rise:0});
+        arrowLine(poly([{x:230,y:690},{x:335,y:690}]),pr("g1",400,700),COL.mute);
+        gate(430,690,1.4,{p:pr("g1",600,500)});text("入口",430,845,{size:30,weight:700,color:NET,rise:0});
+        [["你是谁",1],["还有额度",1],["人多不多？",0]].forEach(([s,ok],i)=>{const y=620+i*72,d=1500+i*1500;
+          withA(ap("g1",350,d),()=>{if(ok)check(610,y,11,GPU,pr("g1",350,d+150));else text("?",610,y,{size:36,weight:800,color:NET,rise:0});
+            text(s,645,y,{size:36,weight:600,align:"left",rise:0})})});
+        for(let i=0;i<6;i++)dot(350+i*22,792,7,NET,.55*ap("g1",300,5500+i*120));
+        pill("人多，就请你排队",810,845,{tone:NET,size:28,alpha:ap("g1",400,5400),padX:22})});
+      const B=ap("g2",400);
+      if(B>0)withA(B*emph("g3",.5),()=>{
+        const Y=1150;
+        hub(150,Y,1.2,{p:pr("g2",600),act:1});text("调度",150,Y+92,{size:30,weight:700,color:SCH,rise:0});
+        const xs=[400,570,740,910],st=[[.92,"很忙",ERR],[.85,"很忙",ERR],[.25,"空闲",GPU],[0,"没装模型",COL.mute]];
+        xs.forEach((x,i)=>{const d=900+i*350;withA(ap("g2",400,d),()=>{
+          rack(x,Y,110,150,{p:pr("g2",600,d),act:i<3?1:0,led:st[i][2],col:i===3?COL.mute:COL.ink});
+          fill(rrectPts(x-45,Y+92,90,12,6),COL.ink,.1,0);
+          if(st[i][0]>0)fill(rrectPts(x-45,Y+92,90*st[i][0],12,6),st[i][2],.8,0);
+          text(st[i][1],x,Y+132,{size:26,weight:700,color:st[i][2],rise:0})})});
+        const ch=ap("g2",400,4800);
+        if(ch>0)withA(ch,()=>{stroke(rrectPts(676,Y-88,128,246,14),{color:GPU,width:4.5,prog:pr("g2",500,4800),glow:0,tip:false,amp:0});
+          arrowLine(quadPts(215,Y-50,480,Y-190,725,Y-98),pr("g2",600,5200),SCH,3.5,14);
+          pill("装好模型 · 不太满",560,Y-215,{tone:GPU,size:28,alpha:ap("g2",400,5600),padX:22})})});
+      const C=ap("g3",400);
+      if(C>0)withA(C,()=>{
+        pill("限流",430,545,{tone:ERR,size:30,padX:26});
+        for(let i=0;i<14;i++)dot(330+(i%7)*24,776+Math.floor(i/7)*22,7,ERR,.8*ap("g3",250,500+i*140));
+        ctx.save();ctx.globalAlpha=GA*ap("g3",400,3200);ctx.fillStyle="#fff";ctx.shadowColor="rgba(0,0,0,.12)";ctx.shadowBlur=14;ctx.beginPath();ctx.roundRect(240,1330,600,72,16);ctx.fill();ctx.restore();
+        withA(ap("g3",400,3200),()=>{stroke(rrectPts(240,1330,600,72,16),{color:ERR,width:3,glow:0,tip:false,amp:0});dot(285,1366,15,ERR,.9);text("!",285,1367,{size:22,weight:800,color:"#fff",rise:0});
+          text("服务繁忙，请稍后再试",570,1366,{size:30,weight:700,color:ERR,rise:0})})});
+    };
+
+    DRAW.phase=function(){
+      const a1=ap("p1",400);
+      withA(a1*emph("p4",.6),()=>{
+        pill("① 读题",300,580,{tone:MOD,size:40,padX:32,alpha:ap("p1",400,300)});
+        arrowLine(poly([{x:430,y:580},{x:650,y:580}]),pr("p1",500,1300),COL.mute);
+        pill("② 写答案",790,580,{tone:GPU,size:40,padX:32,alpha:ap("p1",400,2200)})});
+      const a2=ap("p2",400);
+      if(a2>0)withA(a2*emph("p4",.55),()=>{
+        const Y=780,x0=150,sp=78,t=since("p2"),lit=clamp01((t-1900)/400);
+        QCH.forEach((c,i)=>chip(c,x0+i*sp,Y,MOD,{a:ap("p2",300,i*90),fillA:.1+.38*lit}));
+        const b=pr("p2",700,2500),L=x0-38,R=x0+10*sp+38;
+        stroke(join(poly([{x:L,y:Y+50},{x:L,y:Y+68}]),poly([{x:L,y:Y+68},{x:R,y:Y+68}]),poly([{x:R,y:Y+68},{x:R,y:Y+50}])),{color:MOD,width:4,prog:b,glow:0,tip:false,amp:0});
+        pill("读题 · 预填充：一次并排读完",540,Y-92,{tone:MOD,size:30,alpha:ap("p2",400,3000),padX:26})});
+      const a3=ap("p3",400);
+      if(a3>0)withA(a3*emph("p5",.6),()=>{
+        const Y=1090,x0=180,sp=80,t=since("p3");
+        pill("写答案 · 解码：一个字接一个字",540,Y-95,{tone:GPU,size:30,alpha:ap("p3",400,300),padX:26});
+        ACH.forEach((c,i)=>{const d=1200+i*560;chip(c,x0+i*sp,Y,GPU,{a:ap("p3",250,d),fillA:.3});
+          if(i>0)withA(ap("p3",250,d),()=>stroke(poly([{x:x0+(i-1)*sp+34,y:Y},{x:x0+i*sp-34,y:Y}]),{color:GPU,width:2.5,alpha:.5,glow:0,tip:false,amp:0,grain:false}))})});
+      const a4=ap("p4",400);
+      if(a4>0)withA(a4*emph("p4",.8),()=>{
+        pill("首字：看排队 + 读题",300,905,{tone:MOD,size:28,alpha:ap("p4",400,300),padX:22});
+        pill("字速：看写答案",790,905,{tone:GPU,size:28,alpha:ap("p4",400,2800),padX:22})});
+      const a5=ap("p5",450);
+      if(a5>0)withA(a5,()=>{
+        arrowLine(poly([{x:540,y:1155},{x:540,y:1205}]),pr("p5",400,200),GPU,3.5,14);
+        bubble("好的！周六上午去植物园……",540,1215,{tone:GPU,size:36,align:"center",maxW:820,shown:Math.floor((since("p5")-700)/270)});
+        pill("每秒几十个字 · 比你读得还快",540,1355,{tone:GPU,size:30,alpha:ap("p5",400,4200),padX:26})});
+    };
+
+    DRAW.kv=function(){
+      const a1=ap("c1",400)*emph("c1",.45)*(1-ap("c3",400));
+      if(a1>0)withA(a1,()=>{
+        text("前面 99 个字",130,590,{size:28,color:COL.mute,align:"left",rise:0});
+        for(let i=0;i<22;i++){const x=130+i*40;withA(ap("c1",250,i*55),()=>{fill(rrectPts(x-16,624,32,32,7),NET,.18,0);stroke(rrectPts(x-16,624,32,32,7),{color:NET,width:2.5,glow:0,tip:false,amp:0,alpha:.8})})}
+        pill("第 100 个字",540,810,{tone:GPU,size:34,alpha:ap("c1",400,2000),padX:30});
+        [150,290,420,540,660,790,930].forEach((x,k)=>arrowLine(poly([{x:lerp(540,x,.28),y:780},{x,y:670}]),pr("c1",400,3000+k*300),COL.mute,2.8,11));
+        withA(emph("c1",0),()=>pill("越写越慢",540,925,{tone:ERR,size:34,alpha:ap("c1",400,5600),padX:30}))});
+      const a2=ap("c2",400)*emph("c2",0);
+      if(a2>0)withA(a2,()=>{
+        const Y=1170;
+        notebook(540,Y,640,250,{p:pr("c2",700),n:clamp01((since("c2")-1800)/3000)*5});
+        pill("KV 缓存 = 小本本",540,Y-165,{tone:SAVE,size:32,alpha:ap("c2",400,1000),padX:28});
+        arrowLine(poly([{x:540,y:850},{x:540,y:Y-190}]),pr("c2",500,5200),GPU,3.5,14);
+        text("直接翻本本，不重读",750,990,{size:28,weight:700,color:GPU,align:"left",alpha:ap("c2",400,5400),rise:0})});
+      const a3=ap("c3",450)*emph("c3",0);
+      if(a3>0)withA(a3,()=>{
+        const t=since("c3"),by=820,bh=84,w=lerp(56,150,eInOut(clamp01((t-1800)/6500))),n=Math.floor(460/w);
+        pill("一段长对话的小本本 ≈ 2–3 GB",540,650,{tone:SAVE,size:30,alpha:ap("c3",400,300),padX:26});
+        text("显存",100,742,{size:26,weight:700,color:GPU,align:"left",rise:0});
+        stroke(rrectPts(100,by-bh/2,880,bh,14),{color:GPU,width:4,prog:pr("c3",700),glow:0,tip:false,amp:0});
+        fill(rrectPts(106,by-bh/2+6,414,bh-12,10),MOD,.25*ap("c3",400,800),0);text("模型参数",313,by,{size:30,weight:700,color:MOD,alpha:ap("c3",400,900),rise:0});
+        for(let i=0;i<n;i++)fill(rrectPts(526+i*w,by-bh/2+10,w-6,bh-20,8),SAVE,.55*ap("c3",300,1200+i*80),0);
+        text("每人一本",750,742,{size:26,weight:700,color:SAVE,rise:0,alpha:ap("c3",400,1200)});
+        text(`同时服务 ${n} 人`,540,935,{size:46,weight:800,color:n>=6?GPU:n>=4?SAVE:ERR,alpha:ap("c3",400,1500),rise:0});
+        for(let i=0;i<n;i++)person(540+(i-(n-1)/2)*96,1075,1.2,NET,ap("c3",300,1300));
+        pill("本本越厚，能服务的人越少",540,1230,{tone:ERR,size:30,alpha:ap("c3",400,6800),padX:26})});
+      const a4=ap("c4",450)*emph("c4",.5);
+      if(a4>0)withA(a4,()=>{
+        text("过去：每人预留一整本",540,590,{size:34,weight:700,color:COL.mute,alpha:ap("c4",400),rise:0});
+        [190,540,890].forEach((x,i)=>{const d=700+i*300;withA(ap("c4",400,d),()=>{
+          stroke(rrectPts(x-120,665,240,110,12),{color:SAVE,width:4,glow:0,tip:false,amp:0});
+          fill(rrectPts(x-120,665,72,110,12),SAVE,.5,0);
+          stroke(poly([{x:x-48,y:665},{x:x+120,y:775}]),{color:COL.faint,width:2,glow:0,tip:false,amp:0,grain:false});
+          stroke(poly([{x:x-48,y:775},{x:x+120,y:665}]),{color:COL.faint,width:2,glow:0,tip:false,amp:0,grain:false});
+          text("空着",x+36,720,{size:24,color:COL.mute,rise:0})})});
+        pill("六到八成的页数用不上",540,840,{tone:ERR,size:32,alpha:ap("c4",400,2200),padX:28})});
+      const b5=ap("c5",450);
+      if(b5>0)withA(b5,()=>{
+        text("现在：一页一页地发",540,950,{size:34,weight:700,color:COL.ink,rise:0});
+        const G=[4,6,3,7,5,4,6,5];let k=0;
+        stroke(rrectPts(100,1020,880,92,14),{color:GPU,width:4,prog:pr("c5",600,300),glow:0,tip:false,amp:0});
+        G.forEach((g,gi)=>{for(let j=0;j<g;j++){const d=900+k*60;withA(ap("c5",250,d),()=>fill(rrectPts(108+k*21.6,1030,19,72,4),PC[gi%4],.7,0));k++}});
+        pill("同样的卡，多服务 2–4 倍",540,1210,{tone:GPU,size:34,alpha:ap("c5",400,3800),padX:30})});
+    };
+
+    DRAW.batch=function(){
+      const SX=i=>210+i*190,BY=690,BH=200,SY=BY+88;
+      const rider=(i,col,pg,a=1,dy=0)=>{person(SX(i),SY-8+dy,1.3,col,a);
+        withA(a,()=>{fill(rrectPts(SX(i)-50,SY+54+dy,100,12,6),COL.ink,.1,0);if(pg>0)fill(rrectPts(SX(i)-50,SY+54+dy,100*clamp01(pg),12,6),col,.85,0)})};
+      const a=ap("b1",450),dim=emph("b4",.5);
+      withA(a*dim,()=>{
+        bus(80,BY,920,BH,{p:pr("b1",900)});
+        for(let i=0;i<4;i++)stroke(rrectPts(SX(i)-64,SY-52,128,124,14),{color:COL.faint,width:3,glow:0,tip:false,amp:0,dash:[8,8]})});
+      const a1=ap("b1",400,1200)*emph("b1",0);
+      if(a1>0)withA(a1,()=>{rider(0,NET,((since("b1")-1500)/2400)%1.4,1);
+        pill("只拉 1 位乘客 · 太浪费",540,980,{tone:ERR,size:32,alpha:ap("b1",400,3800),padX:28})});
+      const a2=ap("b2",400)*emph("b2",0);
+      if(a2>0)withA(a2,()=>{const t=(since("b2")-1800)/6000,lens=[.45,.25,1,.6];
+        pill("包车：要等最慢的，才能一起走",540,610,{tone:ERR,size:32,alpha:ap("b2",400,300),padX:28});
+        for(let i=0;i<4;i++){const pg=clamp01(t/lens[i]);rider(i,PC[i],pg,ap("b2",300,i*200));
+          if(t>=lens[i])text("写完了，干等",SX(i),SY+84,{size:22,color:COL.mute,rise:0})}});
+      const a3=ap("b3",400)*emph("b3",.6);
+      if(a3>0)withA(a3,()=>{const t=since("b3")-300,DUR=[[1.8,2.6,2.2,2.4],[1.0,2.2,2.4,2.6],[3.0,2.2,2.4,2.0],[2.0,1.6,2.4,2.4]];
+        pill("公交车：谁写完谁下车，座位马上补上",540,610,{tone:GPU,size:30,alpha:ap("b3",400,300),padX:28});
+        for(let s=0;s<4;s++){let st=0,j=0;while(true){const d=DUR[s][j%DUR[s].length]*1000;if(t<st+d||t<0)break;st+=d;j++}
+          if(t<0){rider(s,PC[s],0,1);continue}
+          const u=clamp01((t-st)/300);
+          if(j>0)rider(s,PC[(s+j-1)%4],1,1-u,40*u);
+          rider(s,PC[(s+j)%4],(t-st)/(DUR[s][j%DUR[s].length]*1000),ap("b3",250)*(j>0?u:1),j>0?-24*(1-u):0)}
+        for(let i=0;i<4;i++)person(190+i*70,1030,1,COL.mute,.7*(1-ap("b4",300)));
+        text("排队等上车",330,1100,{size:26,color:COL.mute,rise:0,alpha:1-ap("b4",300)})});
+      const a4=ap("b4",450);
+      if(a4>0)withA(a4,()=>{const t=since("b4"),k=eInOut(clamp01((t-1000)/4800));
+        pill(`车上人数  ${Math.round(lerp(1,16,k))}`,540,1010,{tone:NET,size:36,padX:32});
+        [["每人分摊成本 ↓",GPU,lerp(.95,.28,k),1130],["每人等待时间 ↑",ERR,lerp(.2,.78,k),1240]].forEach(([l,c,v,y])=>{
+          text(l,100,y,{size:30,weight:700,color:c,align:"left",rise:0});
+          stroke(rrectPts(420,y-16,560,32,16),{color:c,width:3,glow:0,tip:false,amp:0});fill(rrectPts(424,y-12,552*v,24,12),c,.7,0)})});
+    };
+
+    DRAW.trade=function(){
+      const a1=ap("t1",400)*emph("t1",0);
+      if(a1>0)withA(a1,()=>{
+        [[60,"车上人少",1,[["每个人都快",1],["成本高",0]],1500],[560,"车上人多",4,[["成本低",1],["每个人慢一点",0]],4800]].forEach(([x,t,np,rows,d])=>{
+          withA(ap("t1",400,d),()=>{panel(x,620,460,420,pr("t1",700,d),COL.ink);
+            text(t,x+230,675,{size:40,weight:800,rise:0});
+            for(let i=0;i<np;i++)person(x+230+(i-(np-1)/2)*70,795,1.1,NET,1);
+            rows.forEach(([s,ok],i)=>{const y=900+i*66,al=ap("t1",350,d+700+i*700);withA(al,()=>{
+              if(ok)check(x+70,y,12,GPU,1);else cross(x+70,y,11,ERR,1);
+              text(s,x+110,y,{size:34,weight:700,color:ok?GPU:ERR,align:"left",rise:0})})})})})});
+      const a2=ap("t2",400)*emph("t2b",.5);
+      if(a2>0)withA(a2,()=>{
+        withA(ap("t2",400,1800),()=>{panel(60,600,960,200,pr("t2",700,1800),NET);
+          pill("实时通道",250,700,{tone:NET,size:38,padX:32});
+          text("马上回答",430,670,{size:38,weight:800,color:NET,align:"left",rise:0});text("正常价格",430,730,{size:30,color:COL.mute,align:"left",rise:0});
+          bolt(900,700,1.2,NET,pr("t2",500,2300))});
+        });
+      const a2b=ap("t2b",400)*emph("t2b",.5);
+      if(a2b>0)withA(a2b,()=>{
+        withA(ap("t2b",400,300),()=>{panel(60,840,960,230,pr("t2b",700,300),SAVE);
+          pill("批量通道",250,940,{tone:SAVE,size:38,padX:32});
+          withA(ap("t2b",400,2800),()=>{text("一天内给结果",430,910,{size:38,weight:800,color:SAVE,align:"left",rise:0});iconClock(880,920,1.2,SAVE,since("t2b")*.003)});
+          priceTag(600,995,1,"常见：约 5 折",SAVE,ap("t2b",400,5200))})});
+      const a3=ap("t3",450);
+      if(a3>0)withA(a3,()=>{const Y=1165,t=since("t3");
+        paramBlock(190,Y,200,110,{p:pr("t3",600),label:"模型",sub:"几百 GB"});
+        arrowLine(poly([{x:310,y:Y},{x:410,y:Y}]),pr("t3",400,700),MOD);
+        rack(500,Y,110,150,{p:pr("t3",600,900),act:0,led:COL.mute});
+        fill(rrectPts(450,Y+92,100,12,6),COL.ink,.1,0);fill(rrectPts(450,Y+92,100*clamp01((t-1800)/4200),12,6),GPU,.8,0);
+        text("装进显存",500,Y+132,{size:26,weight:700,color:GPU,rise:0});
+        iconClock(760,Y,1.3,SAVE,t*.003);pill("要几分钟",760,Y+95,{tone:SAVE,size:28,padX:22});
+        pill("看着曲线，提前加机器",540,1375,{tone:SCH,size:32,alpha:ap("t3",400,4800),padX:28})});
+    };
+
+    DRAW.you=function(){
+      const rows=[620,850,1080,1310];
+      const head=(i,t,s,c,k)=>{text(t,730,rows[i]-30,{size:40,weight:800,color:c,alpha:ap(k,400),rise:0});text(s,730,rows[i]+26,{size:26,color:COL.mute,alpha:ap(k,400,600),rise:0})};
+      withA(ap("y0",400),()=>rows.forEach(y=>stroke(rrectPts(110,y-95,360,190,16),{color:COL.faint,width:3,glow:0,tip:false,amp:0,dash:[8,10]})));
+      const a1=ap("y1",400);
+      if(a1>0)withA(a1*emph("y1",.5),()=>{const y=rows[0];
+        text("啰嗦",150,y-52,{size:22,weight:700,color:ERR,align:"left",rise:0});
+        fill(rrectPts(150,y-36,300*pr("y1",700,400),24,8),ERR,.6,0);
+        text("精炼",150,y+8,{size:22,weight:700,color:GPU,align:"left",rise:0});
+        fill(rrectPts(150,y+24,110*pr("y1",700,1200),24,8),GPU,.7,0);
+        text("慢 · 贵",400,y+60,{size:22,color:ERR,alpha:ap("y1",400,2600),rise:0});
+        head(0,"说清楚，别啰嗦","字数越多，越慢越贵",ERR,"y1")});
+      const a2=ap("y2",400);
+      if(a2>0)withA(a2*emph("y2",.5),()=>{const y=rows[1];
+        pill("旅游攻略",230,y-36,{tone:COL.mute,size:24,padX:18});
+        arrowLine(poly([{x:310,y:y-30},{x:370,y:y+6}]),pr("y2",400,900),COL.mute,3,11);
+        pill("＋ 新对话：写周报",290,y+38,{tone:NET,size:24,alpha:ap("y2",400,1500),padX:18});
+        head(1,"换话题，开新对话","旧话题占着本本",NET,"y2")});
+      const a3=ap("y3",400);
+      if(a3>0)withA(a3*emph("y3",.5),()=>{const y=rows[2];
+        shape(rrectPts(140,y-72,310,56,10),{color:SAVE,width:3.5,prog:pr("y3",600),fill:SAVE,fillA:.2,glow:0,tip:false,amp:0});
+        text("固定的长说明",295,y-44,{size:26,weight:700,color:SAVE,alpha:ap("y3",400,500),rise:0});
+        shape(rrectPts(140,y+4,310,50,10),{color:NET,width:3.5,prog:pr("y3",600,600),fill:NET,fillA:.15,glow:0,tip:false,amp:0});
+        text("今天的问题",295,y+29,{size:26,weight:700,color:NET,alpha:ap("y3",400,1100),rise:0});
+        withA(ap("y3",400,2200),()=>{check(160,y+76,10,GPU,pr("y3",400,2300));text("命中缓存",185,y+76,{size:22,weight:700,color:GPU,align:"left",rise:0})});
+        head(2,"固定说明放最前","开头相同，命中缓存",SAVE,"y3")});
+      const a4=ap("y4",400);
+      if(a4>0)withA(a4,()=>{const y=rows[3];
+        for(let i=0;i<5;i++)withA(ap("y4",300,300+i*150),()=>shape(poly([{x:150+i*52-16,y:y-48},{x:150+i*52+6,y:y-48},{x:150+i*52+16,y:y-38},{x:150+i*52+16,y:y-4},{x:150+i*52-16,y:y-4}],true),{color:NET,width:3,fill:NET,fillA:.18,glow:0,tip:false,amp:0}));
+        text("…",430,y-28,{size:30,color:COL.mute,alpha:ap("y4",300,1100),rise:0});
+        priceTag(300,y+46,.9,"约半价",SAVE,ap("y4",400,1800));
+        head(3,"不急的活，选批量","几百份文件，约半价",SAVE,"y4")});
+    };
+
+    DRAW.end=function(){
+      const S=span("e1");
+      const sh=clamp01((since("e1")-1200)/(S-2200))*5;
+      roadmap(620,{shown:sh,alpha:ap("e1",400),active:Math.min(4,Math.max(0,Math.ceil(sh)-1))});
+      const MAP=[["小本本","KV 缓存：不重读",SAVE],["公交式拼车","连续批处理：省成本",GPU],["档位","实时 / 批量：快与省",SCH]];
+      const D=Math.max(900,(span("e2")-1000)/3);
+      MAP.forEach(([a,b,c],i)=>{const al=ap("e2",400,300+i*D);if(al<=0)return;const y=850+i*88;
+        withA(emph("e2",.6),()=>{text(a,480,y,{size:34,weight:600,align:"right",alpha:al,rise:0});text("→",545,y,{size:32,color:COL.mute,alpha:al,rise:0});text(b,610,y,{size:34,weight:800,color:c,align:"left",alpha:al,rise:0})})});
+      const a3=ap("e3",400);
+      if(a3>0){text("别忘了，这一秒里",W/2,1180,{size:40,weight:800,alpha:a3,rise:0});text("它已经走完了一整趟旅程",W/2,1244,{size:40,weight:800,color:SCH,alpha:ap("e3",400,700),rise:0})}
+      withA(ap("bye",500),()=>frog(540,1370,.55,true));
+    };
+
+    // ---------- cover ----------
+    function richLine(parts,cx,y,size,weight=800){
+      const total=parts.reduce((s,[str,,sz])=>s+measure(str,sz||size,weight),0);let x=cx-total/2;
+      for(const [str,color,sz,hl] of parts){const s=sz||size,w=measure(str,s,weight);
+        if(hl){ctx.save();ctx.globalAlpha=.16;ctx.fillStyle=hl;ctx.beginPath();ctx.roundRect(x-6,y+s*.05,w+12,s*.42,8);ctx.fill();ctx.restore()}
+        text(str,x,y,{size:s,color,weight,align:"left",rise:0});x+=w}}
+    function drawCover(){
+      BEATS=[];T=577;GA=1;SCD=0;
+      ctx.drawImage(bgCanvas,0,0);
+      pill("呱基讲 AI  ·  第 10 期",W/2,330,{tone:COL.green,size:30,padX:30});
+      richLine([["模型的",COL.ink],["推理服务",SCH,null,SCH]],W/2,470,96);
+      text("按下发送之后，发生了什么？",W/2,575,{size:46,weight:700,color:COL.mute,rise:0});
+      phoneBody(180,830,150,260,1);text("发送",180,990,{size:28,weight:700,rise:0});
+      arrowLine(poly([{x:280,y:830},{x:430,y:830}]),1,COL.mute);
+      iconClock(540,830,1.8,NET,1.7);
+      arrowLine(poly([{x:660,y:830},{x:800,y:830}]),1,COL.mute);
+      pill("第一个字",910,830,{tone:GPU,size:32,padX:22});
+      pill("只要 1–2 秒",540,975,{tone:NET,size:40,padX:32});
+      roadmap(1190,{shown:5});
+      text("一次提问，走五站",W/2,1550,{size:52,weight:800,rise:0});
+      stroke(quadPts(290,1602,540,1618,790,1600),{color:SAVE,width:6,glow:0,tip:false});
+      frog(540,1730,.7,true);
+    }
+
+    // ---------- render ----------
+    function drawScene(index,localT){
+      const sc=SCENES[index];BEATS=sc.beats;T=localT;GA=1;SCD=sc.duration;
+      ctx.drawImage(bgCanvas,0,0);
+      header(sc);
+      (DRAW[sc.id]||(()=>{}))();
+      subtitle(sc);
+      const fade=clamp01(localT/260);if(fade<1){ctx.fillStyle=`rgba(255,255,255,${1-fade})`;ctx.fillRect(0,0,W,H)}
+    }
+
+    // ---------- player ----------
+    let playing=false,muted=false,sceneIndex=0,sceneStart=0,raf=0;
+    function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
+    function speak(s){if(muted||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang="zh-CN";u.rate=1.06;u.pitch=1.15;const v=pickVoice();if(v)u.voice=v;speechSynthesis.speak(u)}
+    function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
+    function totalDuration(){return SCENES.reduce((s,sc)=>s+sc.duration,0)}
+    const offsets=[];{let a=0;SCENES.forEach(sc=>{offsets.push(a);a+=sc.duration})}
+    function setScene(i,rv=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.tag}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
+      if(rv&&playing)speak(sc.voice);updateProgress(0);
+    }
+    function updateProgress(localT){bar.style.width=Math.min(100,((offsets[sceneIndex]+localT)/totalDuration())*100)+"%"}
+    function tick(now){
+      if(!playing)return;const sc=SCENES[sceneIndex],localT=now-sceneStart;
+      drawScene(sceneIndex,localT);updateProgress(localT);
+      if(localT>=sc.duration){if(sceneIndex<SCENES.length-1)setScene(sceneIndex+1,true);else{playing=false;btnPlay.textContent="再看一遍";stopSpeak();drawScene(sceneIndex,sc.duration);updateProgress(sc.duration);return}}
+      raf=requestAnimationFrame(tick);
+    }
+    function play(){playing=true;btnPlay.textContent="暂停";setScene(sceneIndex,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    function pause(){playing=false;btnPlay.textContent="继续";stopSpeak();cancelAnimationFrame(raf)}
+    function restart(){stopSpeak();sceneIndex=0;playing=true;btnPlay.textContent="暂停";setScene(0,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    SCENES.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`${i+1}. ${sc.tag}`;
+      b.addEventListener("click",()=>{const was=playing;stopSpeak();setScene(i,was);drawScene(i,0);if(was){cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}});sceneList.appendChild(b)});
+    btnPlay.addEventListener("click",()=>{if(playing)pause();else{if(btnPlay.textContent==="再看一遍")restart();else play()}});
+    btnRestart.addEventListener("click",restart);
+    btnMute.addEventListener("click",()=>{muted=!muted;btnMute.textContent=muted?"配音：关":"配音：开";if(muted)stopSpeak();else if(playing)speak(SCENES[sceneIndex].voice)});
+    window.__GUAJI__={
+      SCENES,totalDuration,get playing(){return playing},setMuted(v){muted=v},
+      drawAt(ms){
+        let remain=ms,idx=0;
+        while(idx<SCENES.length-1&&remain>=SCENES[idx].duration){remain-=SCENES[idx].duration;idx++}
+        sceneIndex=idx;
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${SCENES[idx].tag}`;
+        [...sceneList.children].forEach((b,j)=>b.classList.toggle("active",j===idx));
+        drawScene(idx,remain);
+        bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
+      },
+      jump(i,localT){this.drawAt(offsets[i]+localT)},
+      drawCover
+    };
+    if(new URLSearchParams(location.search).has("cover"))drawCover();
+    else if(SCENES.length){setScene(0,false);drawScene(0,6000)}
+  </script>
+</body>
+</html>

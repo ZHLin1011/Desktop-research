@@ -16,6 +16,7 @@
 | 7 | CV 小模型和视觉大模型，差在哪 | ~172s | [cv-vs-vlm.html](llm-explainer/cv-vs-vlm.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/7e287253853bc35539ac55614ea6df89f5917840/exports/guaji-cv-vs-vlm-with-audio.mp4) |
 | 8 | AI 画画的两条路：写代码画 vs 生图模型（白底） | ~195s | [code-vs-imagegen.html](llm-explainer/code-vs-imagegen.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/08a881afe6f0cf987b6743ca26f35716ef5aa371/exports/guaji-code-vs-imagegen-with-audio.mp4) |
 | 9 | 什么是模型 Infra | ~206s | [model-infra.html](llm-explainer/model-infra.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/e6449f1ea10dbf25ca5de2f6b6baf4b8daa535cc/exports/guaji-model-infra-with-audio.mp4) |
+| 10 | 模型的推理服务 | ~246s | [model-serving.html](llm-explainer/model-serving.html) | [下载](exports/guaji-model-serving-with-audio.mp4) |
 
 ## 制作规范（定稿）
 
@@ -46,6 +47,7 @@ cd llm-explainer && python3 -m http.server 8765
 - 第 7 期：`http://127.0.0.1:8765/cv-vs-vlm.html`
 - 第 8 期：`http://127.0.0.1:8765/code-vs-imagegen.html`
 - 第 9 期：`http://127.0.0.1:8765/model-infra.html`
+- 第 10 期：`http://127.0.0.1:8765/model-serving.html`
 
 ## 文件
 
@@ -60,6 +62,7 @@ cd llm-explainer && python3 -m http.server 8765
 | `llm-explainer/cv-vs-vlm.html` | 第 7 期 |
 | `llm-explainer/code-vs-imagegen.html` | 第 8 期 |
 | `llm-explainer/model-infra.html` | 第 9 期 |
+| `llm-explainer/model-serving.html` | 第 10 期 |
 | `llm-explainer/SCRIPT*.md` | 各期脚本 |
 | `llm-explainer/PROMPT.md` | 可复用 Prompt |
 | `exports/*.mp4` | 有声成片 |

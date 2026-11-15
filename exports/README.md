@@ -109,3 +109,17 @@ https://github.com/ZHLin1011/Desktop-research/raw/e6449f1ea10dbf25ca5de2f6b6baf4
 封面 `guaji-model-infra-cover.png`：
 
 https://github.com/ZHLin1011/Desktop-research/raw/e6449f1ea10dbf25ca5de2f6b6baf4b8daa535cc/exports/guaji-model-infra-cover.png
+
+## 第 10 期 · 模型的推理服务
+
+`guaji-model-serving-with-audio.mp4`（约 246 秒，白色底）
+
+内容：按下发送之后的五站（入口 → 调度 → 读题 → 写答案 → 送回）· 推理 vs 训练的花费曲线 · 入口排队与限流、调度挑机器 · 读题并行、写答案串行、流式输出 · KV 缓存小本本与分页管理 · 公交车式连续批处理 · 实时 / 批量通道（约半价）与扩容冷启动 · 四个用得更快更省的小办法。
+
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-model-serving-with-audio.mp4
+
+封面 `guaji-model-serving-cover.png`：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-model-serving-cover.png
