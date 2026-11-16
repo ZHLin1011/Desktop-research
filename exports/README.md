@@ -132,8 +132,8 @@ https://github.com/ZHLin1011/Desktop-research/raw/4ccce2b07c47ff3ba8998e9a3dcaf5
 
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-dev-api-access-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/0e16834b1d7f8ad9661aa81be8ef57e4a1397fcc/exports/guaji-dev-api-access-with-audio.mp4
 
 封面 `guaji-dev-api-access-cover.png`：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-dev-api-access-cover.png
+https://github.com/ZHLin1011/Desktop-research/raw/0e16834b1d7f8ad9661aa81be8ef57e4a1397fcc/exports/guaji-dev-api-access-cover.png
