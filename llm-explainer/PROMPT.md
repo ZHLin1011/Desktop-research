@@ -23,6 +23,7 @@
 8) AI 画画的两条路：写代码画 vs 生图模型（Claude Fable 5.2 写代码画了 70 万笔开场；一笔一笔下指令 vs 从雪花里显影；改图与写字；要逼真；该用谁）。本期起白色底
 9) 什么是模型 Infra（冰山 + 大厨与后厨；卡、网络和电；训练拆模型拆数据、断点续训；推理服务与扩缩容；拼锅 / 备菜 / 压缩；快不快、稳不稳、贵不贵）
 10) 模型的推理服务（按下发送后的五站：入口调度、读题写答案、KV 缓存小本本、公交车式连续批处理、快与省的档位；四个用得更快更省的小办法）
+11) 开发者怎么接入模型（先讲自己接的三个好处；餐厅 vs 开店订货的比喻；API 点单窗口、Endpoint 哪一扇窗、API Key 会员卡与保管、请求与回单、SDK 工具包；完整调用链路；备齐地址 / 钥匙 / 模型名三样）
 
 动画约定：说到哪画到哪；最早版粉笔风；概念要演出来（对比、流程、类比），少堆装饰图标。
 
@@ -43,3 +44,4 @@
 | 8 | `code-vs-imagegen.html` | `SCRIPT-code-vs-imagegen.md` | `../exports/guaji-code-vs-imagegen-with-audio.mp4` |
 | 9 | `model-infra.html` | `SCRIPT-model-infra.md` | `../exports/guaji-model-infra-with-audio.mp4` |
 | 10 | `model-serving.html` | `SCRIPT-model-serving.md` | `../exports/guaji-model-serving-with-audio.mp4` |
+| 11 | `dev-api-access.html` | `SCRIPT-dev-api-access.md` | `../exports/guaji-dev-api-access-with-audio.mp4` |

@@ -123,3 +123,17 @@ https://github.com/ZHLin1011/Desktop-research/raw/4ccce2b07c47ff3ba8998e9a3dcaf5
 封面 `guaji-model-serving-cover.png`：
 
 https://github.com/ZHLin1011/Desktop-research/raw/4ccce2b07c47ff3ba8998e9a3dcaf52c6ae39325/exports/guaji-model-serving-cover.png
+
+## 第 11 期 · 开发者怎么接入模型
+
+`guaji-dev-api-access-with-audio.mp4`（约 273 秒，白色底）
+
+内容：先讲自己接模型的三个好处（做进自己的产品、自由挑选混搭模型、程序自动批量干活）· API 是程序用的点单窗口和规则 · Endpoint 是具体哪一扇窗的网址 · API Key 是会员卡（身份、计费、保管与泄露处理）· 请求单与回单（模型、消息、旋钮、用量、流式）· SDK 是现成的下单工具包 · 一次调用的完整链路 · 自己接一个模型要备齐地址、钥匙、模型名。
+
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-dev-api-access-with-audio.mp4
+
+封面 `guaji-dev-api-access-cover.png`：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-dev-api-access-cover.png
