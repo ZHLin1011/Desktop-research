@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>呱基讲 AI · 开发者怎么接入模型</title>
+  <style>
+    :root {
+      --bg:#f3f4f6; --ink:#1d232b; --mute:#5f6b7a; --accent:#1f6fd1;
+      --frog:#1f9d55; --panel:#ffffff; --line:rgba(29,35,43,0.14);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{min-height:100%;background:var(--bg);color:var(--ink);font-family:"Noto Sans CJK SC","Noto Sans SC","PingFang SC",sans-serif}
+    body{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 12px 28px}
+    .brand{width:min(420px,100%);text-align:center}
+    .brand .host{color:var(--frog);font-size:13px;letter-spacing:.08em;margin-bottom:6px}
+    .brand h1{font-family:"Songti SC","Noto Serif CJK SC","Noto Serif SC",Georgia,serif;font-size:clamp(22px,5.5vw,28px);line-height:1.25}
+    .brand p{margin-top:8px;color:var(--mute);font-size:13px;line-height:1.55}
+    .stage-wrap{width:min(420px,100%);position:relative;border:1px solid var(--line);background:#fff;overflow:hidden;aspect-ratio:9/16;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+    canvas{display:block;width:100%;height:100%;background:#fff}
+    .progress{width:min(420px,100%);height:3px;background:rgba(0,0,0,.08);overflow:hidden}
+    .progress>i{display:block;height:100%;width:0%;background:var(--accent)}
+    .controls{width:min(420px,100%);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    button{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:10px 14px;font-size:13px;cursor:pointer}
+    button:hover{border-color:rgba(31,111,209,.45);background:#eef4fc}
+    button.primary{background:#1f6fd1;color:#fff;border-color:#1f6fd1}
+    .meta{color:var(--mute);font-size:12px;margin-left:auto}
+    .scene-list{width:min(420px,100%);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .scene-list button{text-align:left;padding:8px 10px;font-size:11px;color:var(--mute);line-height:1.35}
+    .scene-list button.active{color:var(--ink);border-color:rgba(31,111,209,.5);background:#eef4fc}
+    .hint{width:min(420px,100%);color:var(--mute);font-size:11px;line-height:1.5}
+    .nav{width:min(420px,100%);font-size:12px}.nav a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <header class="brand">
+    <div class="host">呱基 · AI 概念课 · 第 11 期</div>
+    <h1>开发者怎么接入模型</h1>
+    <p>API · Endpoint · API Key · SDK · 完整调用链路</p>
+  </header>
+  <p class="nav">
+    <a href="./index.html">第1期</a> ·
+    <a href="./edge-vs-cloud.html">第2期</a> ·
+    <a href="./modalities.html">第3期</a> ·
+    <a href="./same-question.html">第4期</a> ·
+    <a href="./device-edge-cloud.html">第5期</a> ·
+    <a href="./on-device-pipeline.html">第6期</a> ·
+    <a href="./cv-vs-vlm.html">第7期</a> ·
+    <a href="./code-vs-imagegen.html">第8期</a> ·
+    <a href="./model-infra.html">第9期</a> ·
+    <a href="./model-serving.html">第10期</a> ·
+    <span>第11期</span> ·
+    <a href="./ai-on-device-serving.html">第12期</a>
+  </p>
+  <div class="stage-wrap"><canvas id="stage" width="1080" height="1920"></canvas></div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnRestart">重来</button>
+    <button id="btnMute">配音：开</button>
+    <div class="meta" id="meta">场景 1 / 7</div>
+  </div>
+  <div class="scene-list" id="sceneList"></div>
+  <p class="hint">竖屏 9:16 · 逐词对齐 · 一屏一个重点</p>
+
+  <script>
+    const canvas=document.getElementById("stage"), ctx=canvas.getContext("2d");
+    const bar=document.getElementById("bar"), meta=document.getElementById("meta");
+    const btnPlay=document.getElementById("btnPlay"), btnRestart=document.getElementById("btnRestart");
+    const btnMute=document.getElementById("btnMute"), sceneList=document.getElementById("sceneList");
+    const W=canvas.width, H=canvas.height;
+    const SAFE_BOTTOM=150, SUB_Y=1600;
+    const FONT='"Noto Sans CJK SC","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+    const COL={bg:"#ffffff",ink:"#1d232b",mute:"rgba(29,35,43,0.56)",faint:"rgba(29,35,43,0.16)",
+      blue:"#1f6fd1",warm:"#e8890c",green:"#1f9d55",red:"#e0393e"};
+    const LEAD=120;
+
+    /*@@SCENES*/
+    const SCENES=[
+ {
+  "id": "hook",
+  "num": "01",
+  "tag": "开发者的玩法",
+  "headline": "从“吃现成”到“开自己的店”",
+  "voice": "嗨，我是呱基。豆包这类 AI 产品，就像开好的餐厅：菜单现成，点就能吃，老人也会用。可有一群人不满足于只吃，他们想自己开店：把 AI 的本事，用进自己的产品里。但模型是厂商训练、养在机房里的。开店要用，就得向后厨订货。订货的整套规矩，就是今天要讲的：API。",
+  "duration": 25574,
+  "beats": [
+   {
+    "key": "intro",
+    "at": 0,
+    "text": "嗨，我是呱基。"
+   },
+   {
+    "key": "h1",
+    "at": 1852,
+    "text": "豆包这类 AI 产品，就像开好的餐厅：菜单现成，点就能吃，老人也会用。"
+   },
+   {
+    "key": "h2",
+    "at": 8414,
+    "text": "可有一群人不满足于只吃，他们想自己开店：把 AI 的本事，用进自己的产品里。"
+   },
+   {
+    "key": "h3",
+    "at": 15139,
+    "text": "但模型是厂商训练、养在机房里的。开店要用，就得向后厨订货。订货的整套规矩，就是今天要讲的：API。"
+   }
+  ]
+ },
+ {
+  "id": "value",
+  "num": "02",
+  "tag": "为什么这么做",
+  "headline": "自己接，有三个好处",
+  "voice": "为什么要自己接？先说好处，一共三个。第一，做进自己的东西。比如小店老板，把 AI 接进自己的微信客服，顾客问几点关门、有没有货，它自动答。第二，自由挑模型。简单的活用便宜的，难的活用最强的，哪家好用换哪家，不被一家绑住，账单也更省。第三，让程序自动干活。一晚上，替你给五千件商品写好文案，这不是你在聊天框里一条条敲得完的。而且多数是按用量收费：用多少，付多少。",
+  "duration": 36374,
+  "beats": [
+   {
+    "key": "v0",
+    "at": 0,
+    "text": "为什么要自己接？先说好处，一共三个。"
+   },
+   {
+    "key": "v1",
+    "at": 4039,
+    "text": "第一，做进自己的东西。比如小店老板，把 AI 接进自己的微信客服，顾客问几点关门、有没有货，它自动答。"
+   },
+   {
+    "key": "v2",
+    "at": 13391,
+    "text": "第二，自由挑模型。简单的活用便宜的，难的活用最强的，哪家好用换哪家，不被一家绑住，账单也更省。"
+   },
+   {
+    "key": "v3",
+    "at": 22558,
+    "text": "第三，让程序自动干活。一晚上，替你给五千件商品写好文案，这不是你在聊天框里一条条敲得完的。"
+   },
+   {
+    "key": "v4",
+    "at": 31644,
+    "text": "而且多数是按用量收费：用多少，付多少。"
+   }
+  ]
+ },
+ {
+  "id": "api",
+  "num": "03",
+  "tag": "第一个概念",
+  "headline": "API：程序用的点单窗口",
+  "voice": "先说 API。你在豆包里点按钮、打字，那是给人用的界面。程序没有手指，它走另一个入口：厂商开放的一扇点单窗口，旁边贴着规则。怎么点，点什么，怎么给你回话。这扇窗加规则，就叫 API。比如外卖小程序，就是通过外卖平台的 API，替你下的单。",
+  "duration": 24110,
+  "beats": [
+   {
+    "key": "a1",
+    "at": 0,
+    "text": "先说 API。你在豆包里点按钮、打字，那是给人用的界面。"
+   },
+   {
+    "key": "a2",
+    "at": 5799,
+    "text": "程序没有手指，它走另一个入口：厂商开放的一扇点单窗口，旁边贴着规则。"
+   },
+   {
+    "key": "a2b",
+    "at": 12234,
+    "text": "怎么点，点什么，怎么给你回话。这扇窗加规则，就叫 API。"
+   },
+   {
+    "key": "a3",
+    "at": 18183,
+    "text": "比如外卖小程序，就是通过外卖平台的 API，替你下的单。"
+   }
+  ]
+ },
+ {
+  "id": "endpoint",
+  "num": "04",
+  "tag": "第二个概念",
+  "headline": "Endpoint：具体哪一扇窗",
+  "voice": "一家厂商的窗口不止一扇：聊天一扇，画图一扇，语音一扇，还有一扇把文字变成数字。每扇窗都有自己的地址，也就是一串网址。这个地址，叫端点，英文 Endpoint。前半段，是整栋楼的门牌；后半段，是哪一扇窗。地址找对了，单子才不会递错窗口。",
+  "duration": 22862,
+  "beats": [
+   {
+    "key": "e1",
+    "at": 0,
+    "text": "一家厂商的窗口不止一扇：聊天一扇，画图一扇，语音一扇，还有一扇把文字变成数字。"
+   },
+   {
+    "key": "e2",
+    "at": 7442,
+    "text": "每扇窗都有自己的地址，也就是一串网址。这个地址，叫端点，英文 Endpoint。"
+   },
+   {
+    "key": "e3",
+    "at": 14606,
+    "text": "前半段，是整栋楼的门牌；后半段，是哪一扇窗。地址找对了，单子才不会递错窗口。"
+   }
+  ]
+ },
+ {
+  "id": "key",
+  "num": "05",
+  "tag": "第三个概念",
+  "headline": "API Key：你的会员卡",
+  "voice": "窗口不是谁都能点。你得先出示一张卡：API Key，是一长串字符。它有两个作用：证明你是谁；还有，这一单记在谁的账上。所以它要像银行卡一样保管：别写进公开的代码，别发到群里，也别随手截图。万一泄露，别人就能刷你的额度。马上作废，重新生成一张；平时再设一个额度上限。",
+  "duration": 26294,
+  "beats": [
+   {
+    "key": "k1",
+    "at": 0,
+    "text": "窗口不是谁都能点。你得先出示一张卡：API Key，是一长串字符。"
+   },
+   {
+    "key": "k2",
+    "at": 6227,
+    "text": "它有两个作用：证明你是谁；还有，这一单记在谁的账上。"
+   },
+   {
+    "key": "k3",
+    "at": 11597,
+    "text": "所以它要像银行卡一样保管：别写进公开的代码，别发到群里，也别随手截图。"
+   },
+   {
+    "key": "k4",
+    "at": 18125,
+    "text": "万一泄露，别人就能刷你的额度。马上作废，重新生成一张；平时再设一个额度上限。"
+   }
+  ]
+ },
+ {
+  "id": "req",
+  "num": "06",
+  "tag": "点单",
+  "headline": "一次点单，怎么说、怎么回",
+  "voice": "站在窗口前，单子要写清楚：用哪个模型；想说什么；还有几个小旋钮，比如答案要稳重还是发散，最长写多少。这张单子，格式是固定的，窗口那边才看得懂。回来的也是一张固定格式的回单：答案，加上这一单用了多少字数，就是你的账单。想要一个字一个字蹦出来，就在单子上勾一下：流式。",
+  "duration": 26006,
+  "beats": [
+   {
+    "key": "r1",
+    "at": 0,
+    "text": "站在窗口前，单子要写清楚：用哪个模型；想说什么；还有几个小旋钮，比如答案要稳重还是发散，最长写多少。"
+   },
+   {
+    "key": "r2",
+    "at": 9942,
+    "text": "这张单子，格式是固定的，窗口那边才看得懂。"
+   },
+   {
+    "key": "r3",
+    "at": 14213,
+    "text": "回来的也是一张固定格式的回单：答案，加上这一单用了多少字数，就是你的账单。"
+   },
+   {
+    "key": "r4",
+    "at": 21100,
+    "text": "想要一个字一个字蹦出来，就在单子上勾一下：流式。"
+   }
+  ]
+ },
+ {
+  "id": "sdk",
+  "num": "07",
+  "tag": "第四个概念",
+  "headline": "SDK：现成的下单工具包",
+  "voice": "手写这张单子，其实挺麻烦：要拼格式，带上卡，设超时，失败了重试，再把回单拆开。所以厂商会提供 SDK，就是软件开发工具包：把杂活打包好，你只要几行代码，写上想问什么。就像用下单小程序：点一下，剩下的它来办。不用 SDK 也行，手写单子照样能点，只是更费劲。",
+  "duration": 26294,
+  "beats": [
+   {
+    "key": "s1",
+    "at": 0,
+    "text": "手写这张单子，其实挺麻烦：要拼格式，带上卡，设超时，失败了重试，再把回单拆开。"
+   },
+   {
+    "key": "s2",
+    "at": 8241,
+    "text": "所以厂商会提供 SDK，就是软件开发工具包：把杂活打包好，你只要几行代码，写上想问什么。"
+   },
+   {
+    "key": "s3",
+    "at": 17106,
+    "text": "就像用下单小程序：点一下，剩下的它来办。"
+   },
+   {
+    "key": "s4",
+    "at": 20845,
+    "text": "不用 SDK 也行，手写单子照样能点，只是更费劲。"
+   }
+  ]
+ },
+ {
+  "id": "chain",
+  "num": "08",
+  "tag": "完整链路",
+  "headline": "一次调用，走了哪些路",
+  "voice": "把四个概念串起来，走一遍。你的程序，把问题交给 SDK。SDK 拼好单子，贴上你的 Key，沿着互联网，送到 Endpoint 那扇窗。厂商先验卡：是不是你，额度够不够，有没有点得太快。通过了，才进入上一期讲的推理服务：排队，调度，读题，写答案。答案按原路送回，SDK 拆开回单，你的程序拿到回答，用户看到的，就是一个字一个字蹦出来。",
+  "duration": 31526,
+  "beats": [
+   {
+    "key": "c1",
+    "at": 0,
+    "text": "把四个概念串起来，走一遍。你的程序，把问题交给 SDK。"
+   },
+   {
+    "key": "c2",
+    "at": 5822,
+    "text": "SDK 拼好单子，贴上你的 Key，沿着互联网，送到 Endpoint 那扇窗。"
+   },
+   {
+    "key": "c3",
+    "at": 11840,
+    "text": "厂商先验卡：是不是你，额度够不够，有没有点得太快。"
+   },
+   {
+    "key": "c4",
+    "at": 16620,
+    "text": "通过了，才进入上一期讲的推理服务：排队，调度，读题，写答案。"
+   },
+   {
+    "key": "c5",
+    "at": 22940,
+    "text": "答案按原路送回，SDK 拆开回单，你的程序拿到回答，用户看到的，就是一个字一个字蹦出来。"
+   }
+  ]
+ },
+ {
+  "id": "howto",
+  "num": "09",
+  "tag": "动手清单",
+  "headline": "自己接一个模型，备齐三样",
+  "voice": "真要自己接一个模型，其实只要备齐三样：地址，钥匙，模型名。地址是 Endpoint；钥匙是 API Key；模型名，是这扇窗里，你想点的那道菜。操作就四步：注册开通，创建钥匙，翻文档找到地址和模型名，先跑一个最简单的问题试试。好在很多家，用的是同一种写法。想换模型，往往只改这三样，其他代码都不用动。",
+  "duration": 28934,
+  "beats": [
+   {
+    "key": "w1",
+    "at": 0,
+    "text": "真要自己接一个模型，其实只要备齐三样：地址，钥匙，模型名。"
+   },
+   {
+    "key": "w2",
+    "at": 6065,
+    "text": "地址是 Endpoint；钥匙是 API Key；模型名，是这扇窗里，你想点的那道菜。"
+   },
+   {
+    "key": "w3",
+    "at": 13148,
+    "text": "操作就四步：注册开通，创建钥匙，翻文档找到地址和模型名，先跑一个最简单的问题试试。"
+   },
+   {
+    "key": "w4",
+    "at": 21137,
+    "text": "好在很多家，用的是同一种写法。想换模型，往往只改这三样，其他代码都不用动。"
+   }
+  ]
+ },
+ {
+  "id": "end",
+  "num": "10",
+  "tag": "记住",
+  "headline": "四件套，一条链",
+  "voice": "记住四件套：API 是点单窗口和规矩，Endpoint 是具体哪一扇窗，Key 是你的会员卡，SDK 是现成的下单工具。学会它，AI 就不只是手里的聊天框，而是能接进你的产品、你的流程、你的整夜批量任务的零件。只记得两件事：钥匙别外泄，用量看账单。我是呱基，我们下期见。",
+  "duration": 24734,
+  "beats": [
+   {
+    "key": "n1",
+    "at": 0,
+    "text": "记住四件套：API 是点单窗口和规矩，Endpoint 是具体哪一扇窗，Key 是你的会员卡，SDK 是现成的下单工具。"
+   },
+   {
+    "key": "n2",
+    "at": 10266,
+    "text": "学会它，AI 就不只是手里的聊天框，而是能接进你的产品、你的流程、你的整夜批量任务的零件。"
+   },
+   {
+    "key": "n3",
+    "at": 18032,
+    "text": "只记得两件事：钥匙别外泄，用量看账单。"
+   },
+   {
+    "key": "bye",
+    "at": 21829,
+    "text": "我是呱基，我们下期见。"
+   }
+  ]
+ }
+];
+    /*@@END*/
+
+    // ---------- timing ----------
+    let T=0, BEATS=[], GA=1;
+    const clamp01=v=>v<0?0:v>1?1:v;
+    const eOut=t=>1-Math.pow(1-clamp01(t),3);
+    const eInOut=t=>{t=clamp01(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2};
+    const lerp=(a,b,t)=>a+(b-a)*t;
+    function beatIdx(k){return BEATS.findIndex(b=>b.key===k)}
+    function at(k){const b=BEATS.find(b=>b.key===k);return b?Math.max(0,b.at-LEAD):1e9}
+    function since(k){return T-at(k)}
+    function pr(k,dur=800,delay=0){return eInOut((T-at(k)-delay)/dur)}
+    function ap(k,dur=450,delay=0){return eOut((T-at(k)-delay)/dur)}
+    function emph(k,floor=0.32){const i=beatIdx(k),nb=BEATS[i+1];if(!nb)return 1;const t=T-(nb.at-LEAD);return t<=0?1:lerp(1,floor,eOut(t/450))}
+    function withA(a,fn){const old=GA;GA=old*a;if(GA>0.002)fn();GA=old}
+
+    // ---------- geometry ----------
+    function poly(vs,closed=false,step=6){const out=[];const L=closed?[...vs,vs[0]]:vs;
+      for(let k=0;k<L.length-1;k++){const A=L[k],B=L[k+1],d=Math.hypot(B.x-A.x,B.y-A.y),n=Math.max(1,Math.ceil(d/step));
+        for(let i=(k===0?0:1);i<=n;i++)out.push({x:A.x+(B.x-A.x)*i/n,y:A.y+(B.y-A.y)*i/n})}return out}
+    function arcPts(cx,cy,r,a0,a1,step=6){const n=Math.max(2,Math.ceil(Math.abs(a1-a0)*r/step)),out=[];
+      for(let i=0;i<=n;i++){const t=a0+(a1-a0)*i/n;out.push({x:cx+Math.cos(t)*r,y:cy+Math.sin(t)*r})}return out}
+    function circlePts(cx,cy,r,start=-Math.PI/2){return arcPts(cx,cy,r,start,start+Math.PI*2)}
+    function ellipsePts(cx,cy,rx,ry){const out=[];for(let i=0;i<=72;i++){const t=-Math.PI/2+i/72*Math.PI*2;out.push({x:cx+Math.cos(t)*rx,y:cy+Math.sin(t)*ry})}return out}
+    function join(...parts){const out=[];for(const p of parts)for(const q of p){const l=out[out.length-1];if(l&&Math.hypot(l.x-q.x,l.y-q.y)<0.5)continue;out.push(q)}return out}
+    function rrectPts(x,y,w,h,r){r=Math.min(r,w/2,h/2);const P=Math.PI;
+      return join(poly([{x:x+r,y},{x:x+w-r,y}]),arcPts(x+w-r,y+r,r,-P/2,0),poly([{x:x+w,y:y+r},{x:x+w,y:y+h-r}]),
+        arcPts(x+w-r,y+h-r,r,0,P/2),poly([{x:x+w-r,y:y+h},{x:x+r,y:y+h}]),arcPts(x+r,y+h-r,r,P/2,P),
+        poly([{x,y:y+h-r},{x,y:y+r}]),arcPts(x+r,y+r,r,P,P*1.5))}
+    function quadPts(x0,y0,cx,cy,x1,y1,step=6){const len=Math.hypot(cx-x0,cy-y0)+Math.hypot(x1-cx,y1-cy),n=Math.max(4,Math.ceil(len/step)),out=[];
+      for(let i=0;i<=n;i++){const t=i/n,u=1-t;out.push({x:u*u*x0+2*u*t*cx+t*t*x1,y:u*u*y0+2*u*t*cy+t*t*y1})}return out}
+    function cloudPts(x,y,s){
+      const C=[[-70,15,42],[-15,-22,58],[55,-5,46],[92,20,30],[10,10,50]];
+      const base=50*s,out=[];
+      for(let i=0;i<=150;i++){const th=Math.PI+i/150*Math.PI*2,dx=Math.cos(th),dy=Math.sin(th);let best=0;
+        for(const [cx,cy,r] of C){const ox=cx*s,oy=cy*s,R=r*s,b=dx*ox+dy*oy,c=ox*ox+oy*oy-R*R,disc=b*b-c;if(disc>=0){const t=b+Math.sqrt(disc);if(t>best)best=t}}
+        let px=dx*best,py=dy*best;if(py>base){const t=base/dy;px=dx*t;py=base}
+        out.push({x:x+px,y:y+py})}
+      return out}
+    function along(pts,u){u=clamp01(u);const f=u*(pts.length-1),i=Math.floor(f),fr=f-i;const A=pts[i],B=pts[Math.min(pts.length-1,i+1)];
+      return {x:A.x+(B.x-A.x)*fr,y:A.y+(B.y-A.y)*fr,ang:Math.atan2(B.y-A.y,B.x-A.x)}}
+
+    // ---------- chalk rendering ----------
+    function rough(pts,amp){if(!amp)return pts;const s=pts[0].x*.37+pts[0].y*.91+pts.length*.13;
+      return pts.map((q,i)=>({x:q.x+(Math.sin(i*.31+s)*.6+Math.sin(i*.09+s*1.7)*.4)*amp,y:q.y+(Math.cos(i*.27+s*1.3)*.6+Math.sin(i*.06+s*.7)*.4)*amp}))}
+    function stroke(pts,o={}){
+      const {color=COL.ink,width=4,prog=1,alpha=1,glow=.12,dash=null,tip=true,amp=1.1,grain=true}=o;
+      const A=alpha*GA;if(prog<=0||A<=0.002||pts.length<2)return null;
+      const rp=rough(pts,amp),total=rp.length-1,f=total*clamp01(prog),n=Math.floor(f),fr=f-n;
+      const path=new Path2D();path.moveTo(rp[0].x,rp[0].y);for(let i=1;i<=n;i++)path.lineTo(rp[i].x,rp[i].y);
+      let end=rp[n];if(n<total&&fr>0){const P=rp[n],Q=rp[n+1];end={x:P.x+(Q.x-P.x)*fr,y:P.y+(Q.y-P.y)*fr};path.lineTo(end.x,end.y)}
+      ctx.save();ctx.lineCap="round";ctx.lineJoin="round";ctx.strokeStyle=color;
+      if(dash)ctx.setLineDash(dash);
+      if(glow>0){ctx.globalAlpha=A*glow*.45;ctx.lineWidth=width*3.4;ctx.stroke(path)}
+      ctx.globalAlpha=A*.95;ctx.lineWidth=width;ctx.stroke(path);
+      if(grain&&!dash){ctx.setLineDash([1.4,5]);ctx.globalAlpha=A*.16;ctx.lineWidth=width*.5;ctx.strokeStyle="#ffffff";ctx.stroke(path)}
+      ctx.restore();
+      if(tip&&prog<1){ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(end.x,end.y,width*.95,0,Math.PI*2);ctx.fill();ctx.restore()}
+      return end}
+    function fill(pts,color,alpha,amp=1.1){const A=alpha*GA;if(A<=0.002)return;const rp=rough(pts,amp);
+      ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(rp[0].x,rp[0].y);for(const q of rp)ctx.lineTo(q.x,q.y);ctx.closePath();ctx.fill();ctx.restore()}
+    function shape(pts,o={}){if(o.fill)fill(pts,o.fill,(o.fillA??.1)*(o.alpha??1)*Math.pow(clamp01(o.prog??1),2),o.amp??1.1);return stroke(pts,o)}
+    function arrowHead(pts,prog,o={}){if(prog<0.92)return;const {color=COL.ink,width=4,alpha=1,size=20}=o;
+      const e=along(pts,1),b=along(pts,.96),ang=Math.atan2(e.y-b.y,e.x-b.x),a=alpha*eOut((prog-.92)/.08);
+      stroke(poly([{x:e.x-Math.cos(ang-.45)*size,y:e.y-Math.sin(ang-.45)*size},e,{x:e.x-Math.cos(ang+.45)*size,y:e.y-Math.sin(ang+.45)*size}]),{color,width,alpha:a,glow:.1,tip:false,amp:.4})}
+    function dot(x,y,r,color,alpha=1){const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=A;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore()}
+    function text(str,x,y,o={}){const {size=32,color=COL.ink,weight=500,align="center",alpha=1,rise=14,spacing=0}=o;
+      const A=alpha*GA;if(A<=0.002)return;ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${FONT}`;
+      ctx.textAlign=align;ctx.textBaseline="middle";if(spacing)ctx.letterSpacing=spacing+"px";ctx.fillText(str,x,y+(1-clamp01(alpha))*rise);ctx.restore()}
+    function measure(str,size,weight=500){ctx.save();ctx.font=`${weight} ${size}px ${FONT}`;const w=ctx.measureText(str).width;ctx.restore();return w}
+    function pill(str,x,y,o={}){const {size=26,color=COL.ink,tone=COL.blue,alpha=1,weight=600,padX=22}=o;
+      const A=alpha*GA;if(A<=0.002)return;const w=measure(str,size,weight)+padX*2,h=size*1.75,yy=y+(1-clamp01(alpha))*10;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(x-w/2,yy-h/2,w,h,h/2);ctx.fillStyle=tone;ctx.globalAlpha=A*.14;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2;ctx.stroke();ctx.restore();
+      text(str,x,yy,{size,color,weight,alpha:Math.min(1,alpha),rise:0})}
+
+    // ---------- background ----------
+    const bgCanvas=document.createElement("canvas");bgCanvas.width=W;bgCanvas.height=H;
+    (function paintBg(){const b=bgCanvas.getContext("2d");
+      const g=b.createRadialGradient(W/2,H*.4,200,W/2,H*.45,H*.8);g.addColorStop(0,"#ffffff");g.addColorStop(1,"#f6f6f3");
+      b.fillStyle=g;b.fillRect(0,0,W,H);let s=7;const r=()=>{s=(s*16807)%2147483647;return(s-1)/2147483646};
+      for(let i=0;i<1400;i++){b.fillStyle=`rgba(40,40,30,${0.008+r()*0.016})`;const x=r()*W,y=r()*H,z=r()*2+.4;b.fillRect(x,y,z,z)}})();
+
+    // ---------- icons ----------
+    const GPU=COL.green, NET=COL.blue, MOD="#8b3fd9", SCH="#0f9aa0", SAVE=COL.warm, ERR=COL.red;
+    const MONO='"JetBrains Mono","Noto Sans Mono","Noto Sans CJK SC",monospace';
+    function hash(n){const s=Math.sin(n*127.1+311.7)*43758.5453;return s-Math.floor(s)}
+    function mono(str,x,y,o={}){const {size=24,color=COL.ink,alpha=1,align="left",weight=500}=o;const A=alpha*GA;if(A<=.002)return;
+      ctx.save();ctx.globalAlpha=Math.min(1,A);ctx.fillStyle=color;ctx.font=`${weight} ${size}px ${MONO}`;ctx.textAlign=align;ctx.textBaseline="middle";ctx.fillText(str,x,y);ctx.restore()}
+    function panel(x,y,w,h,p,tone=COL.ink){
+      fill(rrectPts(x,y,w,h,18),"#f6f8fb",clamp01(p*2),0);
+      stroke(rrectPts(x,y,w,h,18),{color:tone,width:3,prog:p,alpha:.4,glow:0,tip:false,amp:.3})}
+    function cross(x,y,r,col=ERR,p=1){stroke(poly([{x:x-r,y:y-r},{x:x+r,y:y+r}]),{color:col,width:5,prog:clamp01(p*2),glow:0,tip:false,amp:0});stroke(poly([{x:x+r,y:y-r},{x:x-r,y:y+r}]),{color:col,width:5,prog:clamp01(p*2-1),glow:0,tip:false,amp:0})}
+    function check(x,y,r,col,p=1){stroke(poly([{x:x-r,y},{x:x-r*.3,y:y+r*.7},{x:x+r,y:y-r*.7}]),{color:col,width:5.5,prog:p,glow:0,tip:false,amp:0})}
+    function arrowLine(pts,p,col=COL.mute,w=3.5,size=16){stroke(pts,{color:col,width:w,prog:p,glow:0,tip:false,amp:0});arrowHead(pts,p,{color:col,width:w,size})}
+    function iconClock(x,y,s,col,spin=0){shape(circlePts(x,y,34*s),{color:col,width:3.5,fill:col,fillA:.1,tip:false,amp:.3,glow:0});
+      stroke(poly([{x:x-8*s,y:y-44*s},{x:x+8*s,y:y-44*s}]),{color:col,width:4,glow:0,tip:false,amp:0});
+      const a=-Math.PI/2+spin;stroke(poly([{x,y},{x:x+Math.cos(a)*24*s,y:y+Math.sin(a)*24*s}]),{color:col,width:3.5,glow:0,tip:false,amp:0})}
+    function phoneBody(x,y,w,h,p){
+      shape(rrectPts(x-w/2,y-h/2,w,h,Math.min(44,w*.15)),{color:COL.ink,width:4,prog:p,alpha:.85,fill:"#ffffff",fillA:1,glow:0});
+      stroke(poly([{x:x-w*.11,y:y-h/2+20},{x:x+w*.11,y:y-h/2+20}]),{color:COL.ink,width:4,prog:clamp01(p*2-1),alpha:.4,glow:0,tip:false,amp:0,grain:false})}
+    function bubble(str,x,y,o={}){
+      const {size=28,tone=NET,align="left",maxW=300,alpha=1,shown=null}=o;
+      const A=alpha*GA;if(A<=.002)return null;
+      let lines=wrapLines(str,size,maxW);
+      if(lines.length===2){let best=-1,bd=1e9;
+        for(let i=1;i<str.length-1;i++){if(!"，。？！；：、".includes(str[i]))continue;const a=measure(str.slice(0,i+1),size,500),b=measure(str.slice(i+1).trim(),size,500);
+          if(a<=maxW&&b<=maxW&&Math.abs(a-b)<bd){bd=Math.abs(a-b);best=i}}
+        if(best>=0)lines=[str.slice(0,best+1),str.slice(best+1).trim()]}
+      const tw=Math.max(...lines.map(l=>measure(l,size,500))),pad=20,lh=size*1.42,h=lines.length*lh+pad*1.2,w=tw+pad*2;
+      const bx=align==="right"?x-w:align==="center"?x-w/2:x;
+      ctx.save();ctx.globalAlpha=A;ctx.beginPath();ctx.roundRect(bx,y,w,h,20);ctx.fillStyle=tone;ctx.globalAlpha=A*.13;ctx.fill();
+      ctx.globalAlpha=A*.7;ctx.strokeStyle=tone;ctx.lineWidth=2.5;ctx.stroke();ctx.restore();
+      let left=shown==null?1e9:shown;
+      lines.forEach((ln,i)=>{const ch=[...ln],k=Math.max(0,Math.min(ch.length,left));left-=ch.length;
+        if(k>0)text(ch.slice(0,k).join(""),bx+pad,y+pad*.6+lh/2+i*lh,{size,align:"left",alpha,rise:0})});
+      return {w,h,bx}}
+    function gpuCard(x,y,s,o={}){const {col=GPU,p=1,bad=0,act=0,fix=0}=o;const w=150*s,h=86*s,c=bad>0&&fix<1?ERR:col;
+      shape(rrectPts(x-w/2,y-h/2,w,h,10*s),{color:c,width:Math.max(2.5,3.5*s),prog:p,fill:c,fillA:.08+.14*act,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);if(q<=0)return;
+      withA(q,()=>{shape(rrectPts(x-w*.4,y-h*.28,w*.28,h*.56,4*s),{color:c,width:2.2,fill:c,fillA:.3,glow:0,tip:false,amp:0});
+        [.1,.33].forEach(f=>{const fx=x+w*f,r=h*.27;stroke(circlePts(fx,y,r),{color:c,width:2.2,glow:0,tip:false,amp:0,grain:false});
+          if(s>.5){const a0=act?T*.012:0;for(let k=0;k<3;k++){const a=a0+k*2.094;stroke(poly([{x:fx,y},{x:fx+Math.cos(a)*r*.8,y:y+Math.sin(a)*r*.8}]),{color:c,width:2,glow:0,tip:false,amp:0,grain:false,alpha:.6})}}})});
+      if(bad>0&&fix<1)cross(x,y,h*.3,ERR,bad)}
+    function rack(x,y,w,h,o={}){const {p=1,col=COL.ink,led=GPU,act=0}=o;
+      shape(rrectPts(x-w/2,y-h/2,w,h,6),{color:col,width:3,prog:p,alpha:.75,fill:col,fillA:.04,glow:0,tip:false,amp:.2});
+      const q=clamp01(p*2-1);if(q<=0)return;const n=Math.max(3,Math.round(h/30));
+      for(let i=0;i<n;i++){const yy=y-h/2+h*(i+.5)/n;
+        if(i<n-1)stroke(poly([{x:x-w/2+6,y:yy+h/n/2},{x:x+w/2-6,y:yy+h/n/2}]),{color:col,width:1.5,alpha:.3*q,glow:0,tip:false,amp:0,grain:false});
+        const on=act?(Math.sin(T*.012+i*1.7+x*.031)>-.2?1:.25):.7;dot(x+w/2-Math.max(8,w*.12),yy,Math.max(2.5,w*.035),led,q*on);
+        stroke(poly([{x:x-w/2+8,y:yy},{x:x+w*.15,y:yy}]),{color:col,width:2,alpha:.35*q,glow:0,tip:false,amp:0,grain:false})}}
+    function chefHat(x,y,s,col=COL.ink,p=1){const P=Math.PI;
+      const pts=join(arcPts(x-38*s,y-40*s,30*s,P*.72,P*1.62),arcPts(x,y-64*s,36*s,P*1.18,P*1.82),arcPts(x+38*s,y-40*s,30*s,P*1.38,P*2.28),
+        poly([{x:x+44*s,y:y-16*s},{x:x+44*s,y:y+22*s},{x:x-44*s,y:y+22*s},{x:x-44*s,y:y-16*s},{x:x-60*s,y:y-21*s}]));
+      shape(pts,{color:col,width:4,prog:p,fill:"#ffffff",fillA:1,glow:0,amp:.4});
+      stroke(poly([{x:x-44*s,y:y-2*s},{x:x+44*s,y:y-2*s}]),{color:col,width:3,alpha:.45,prog:p,glow:0,tip:false,amp:0})}
+    function stove(x,y,s,o={}){const {p=1,flame=0,col=COL.ink}=o;const w=150*s,h=90*s;
+      shape(rrectPts(x-w/2,y,w,h,8*s),{color:col,width:3.5,prog:p,fill:col,fillA:.05,glow:0,tip:false,amp:.3});
+      dot(x-w*.25,y+h*.62,7*s,col,.35*p);dot(x,y+h*.62,7*s,col,.35*p);dot(x+w*.25,y+h*.62,7*s,col,.35*p);
+      shape(join(poly([{x:x-w*.36,y:y-6*s},{x:x+w*.36,y:y-6*s}]),arcPts(x,y-6*s,w*.36,0,Math.PI)),{color:COL.ink,width:3.5,prog:p,fill:"#b9c0c9",fillA:.35,glow:0,tip:false,amp:.3});
+      if(flame>0)for(let k=-2;k<=2;k++){const fx=x+k*w*.11,fh=(16+6*Math.sin(T*.02+k*1.3))*s*flame;
+        shape(poly([{x:fx-6*s,y:y+2*s},{x:fx,y:y+2*s-fh},{x:fx+6*s,y:y+2*s}],true),{color:SAVE,width:2,fill:SAVE,fillA:.6,glow:0,tip:false,amp:0})}}
+    function kitchen(x,y,s,o={}){[-1,0,1].forEach(k=>stove(x+k*165*s,y,s,{...o,p:clamp01((o.p??1)*1.6-(k+1)*.3)}))}
+    function wok(x,y,s,o={}){const {col=COL.ink,heat=0,p=1}=o;
+      if(heat>0)for(let k=-2;k<=2;k++){const fx=x+k*16*s,fh=(18+8*Math.sin(T*.025+k))*s*heat;shape(poly([{x:fx-7*s,y:y+46*s},{x:fx,y:y+46*s-fh},{x:fx+7*s,y:y+46*s}],true),{color:SAVE,width:2,fill:SAVE,fillA:.65,glow:0,tip:false,amp:0})}
+      shape(join(poly([{x:x-70*s,y},{x:x+70*s,y}]),arcPts(x,y,70*s,0,Math.PI)),{color:col,width:4,prog:p,fill:"#9aa3ad",fillA:.35,glow:0,tip:false,amp:.3});
+      stroke(poly([{x:x+70*s,y:y+4*s},{x:x+130*s,y:y-14*s}]),{color:col,width:7,prog:p,glow:0,tip:false,amp:0})}
+    function hub(x,y,s,o={}){const {p=1,act=0}=o;
+      shape(circlePts(x,y,46*s),{color:SCH,width:4,prog:p,fill:SCH,fillA:.1+.1*act,glow:0,tip:false,amp:.3});
+      const a0=T*.004*act;for(let k=0;k<3;k++){const a=a0+k*2.094;const pts=arcPts(x,y,28*s,a,a+1.4);arrowLine(pts,p,SCH,3.5,10)}}
+    function gate(x,y,s,o={}){const {p=1}=o;
+      stroke(join(poly([{x:x-40*s,y:y+50*s},{x:x-40*s,y:y-10*s}]),arcPts(x,y-10*s,40*s,Math.PI,Math.PI*2),poly([{x:x+40*s,y:y-10*s},{x:x+40*s,y:y+50*s}])),{color:NET,width:4.5,prog:p,glow:0,tip:false,amp:.3})}
+    function saveIcon(x,y,s,col=SAVE,a=1){withA(a,()=>{const w=40*s;
+      shape(poly([{x:x-w/2,y:y-w/2},{x:x+w*.3,y:y-w/2},{x:x+w/2,y:y-w*.3},{x:x+w/2,y:y+w/2},{x:x-w/2,y:y+w/2}],true),{color:col,width:3,fill:col,fillA:.18,glow:0,tip:false,amp:0});
+      shape(rrectPts(x-w*.28,y-w/2,w*.5,w*.32,2),{color:col,width:2.5,fill:col,fillA:.5,glow:0,tip:false,amp:0});
+      stroke(rrectPts(x-w*.3,y+w*.08,w*.6,w*.36,3),{color:col,width:2.5,glow:0,tip:false,amp:0})})}
+    function bolt(x,y,s,col=SAVE,p=1){shape(poly([{x:x+8*s,y:y-40*s},{x:x-20*s,y:y+6*s},{x:x,y:y+6*s},{x:x-8*s,y:y+40*s},{x:x+20*s,y:y-6*s},{x:x,y:y-6*s}],true),{color:col,width:3.5,prog:p,fill:col,fillA:.35,glow:0,tip:false,amp:0})}
+    function thermo(x,y,s,col=ERR,lv=.6){stroke(join(arcPts(x,y+26*s,16*s,-Math.PI*.3,Math.PI*1.3),poly([{x:x-9*s,y:y+12*s},{x:x-9*s,y:y-34*s}]),arcPts(x,y-34*s,9*s,Math.PI,Math.PI*2),poly([{x:x+9*s,y:y-34*s},{x:x+9*s,y:y+12*s}])),{color:COL.ink,width:3,glow:0,tip:false,amp:0});
+      dot(x,y+26*s,11*s,col,1);fill(rrectPts(x-4*s,y+20*s-lv*52*s,8*s,lv*52*s,3*s),col,1,0)}
+    function fan(x,y,s,col=NET,spin=0){stroke(circlePts(x,y,34*s),{color:col,width:3.5,glow:0,tip:false,amp:0});
+      for(let k=0;k<3;k++){const a=spin+k*2.094;shape(ellipsePts(x+Math.cos(a)*16*s,y+Math.sin(a)*16*s,13*s,7*s).map(q=>({x:x+(q.x-x)*Math.cos(0)-0,y:q.y})),{color:col,width:2.5,fill:col,fillA:.3,glow:0,tip:false,amp:0})}
+      dot(x,y,5*s,col,1)}
+    function person(x,y,s,col=COL.ink,a=1){withA(a,()=>{shape(circlePts(x,y-22*s,12*s),{color:col,width:3,fill:col,fillA:.15,glow:0,tip:false,amp:0});
+      stroke(join(arcPts(x,y+18*s,22*s,Math.PI,Math.PI*2)),{color:col,width:3,glow:0,tip:false,amp:0})})}
+    function paramBlock(x,y,w,h,o={}){const {p=1,label="",col=MOD,a=1,sub=""}=o;withA(a,()=>{
+      shape(rrectPts(x-w/2,y-h/2,w,h,12),{color:col,width:4,prog:p,fill:col,fillA:.12,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);const cols=Math.max(2,Math.floor(w/26)),rows=Math.max(2,Math.floor(h/26));
+      for(let i=0;i<cols;i++)for(let j=0;j<rows;j++)dot(x-w/2+(i+.5)*w/cols,y-h/2+(j+.5)*h/rows,2.6,col,q*.45);
+      if(label){const lw=measure(label,30,700)+30;ctx.save();ctx.globalAlpha=GA*q;ctx.fillStyle="#fff";ctx.beginPath();ctx.roundRect(x-lw/2,y-(sub?40:22),lw,sub?80:44,14);ctx.fill();ctx.restore();
+        text(label,x,y-(sub?14:0),{size:30,weight:800,color:col,alpha:q,rise:0});if(sub)text(sub,x,y+20,{size:22,color:COL.mute,alpha:q,rise:0})}})}
+    function priceTag(x,y,s,str,col=SAVE,a=1){withA(a,()=>{const w=measure(str,30*s,800)+70*s,h=64*s;
+      shape(poly([{x:x-w/2,y},{x:x-w/2+28*s,y:y-h/2},{x:x+w/2,y:y-h/2},{x:x+w/2,y:y+h/2},{x:x-w/2+28*s,y:y+h/2}],true),{color:col,width:3.5,fill:col,fillA:.14,glow:0,tip:false,amp:0});
+      stroke(circlePts(x-w/2+26*s,y,6*s),{color:col,width:3,glow:0,tip:false,amp:0});
+      text(str,x+12*s,y,{size:30*s,weight:800,color:col,rise:0})})}
+    function iceberg(cx,wy,o={}){const {p=1,alpha=1,tipLabel=1}=o;
+      withA(alpha,()=>{
+        fill(rrectPts(70,wy,940,560,26),"#e6f1fb",clamp01(p*2),0);
+        const wave=[];for(let i=0;i<=60;i++){const u=i/60;wave.push({x:70+u*940,y:wy+Math.sin(u*Math.PI*10+T*.002)*4})}
+        stroke(wave,{color:NET,width:3,prog:p,alpha:.6,glow:0,tip:false,amp:0});
+        const B=[[-120,0],[-290,110],[-370,290],[-320,450],[-120,520],[150,510],[340,420],[380,230],[260,90],[120,0]];
+        shape(poly(B.map(([dx,dy])=>({x:cx+dx,y:wy+dy})),true),{color:NET,width:4,prog:p,fill:"#c9def4",fillA:.85,glow:0,amp:.6,alpha:.9});
+        const tip=[[-120,0],[-60,-100],[-20,-80],[40,-138],[120,0]];
+        shape(poly(tip.map(([dx,dy])=>({x:cx+dx,y:wy+dy}))),{color:NET,width:4,prog:p,fill:"#ffffff",fillA:1,glow:0,amp:.5});
+        if(tipLabel)pill("模型",cx+210,wy-70,{tone:MOD,size:32,alpha:clamp01(p*2-1)*tipLabel,padX:26})})}
+    function frog(x,y,s,wave=false){
+      shape(ellipsePts(x,y,72*s,54*s),{color:COL.green,width:4.5,fill:COL.green,fillA:.14,tip:false});
+      [-1,1].forEach(k=>{const ex=x+k*34*s,ey=y-50*s;dot(ex,ey,23*s,"#ffffff",1);shape(circlePts(ex,ey,23*s),{color:COL.green,width:4,tip:false});dot(ex+k*3*s,ey+3*s,8.5*s,COL.ink,1)});
+      stroke(arcPts(x,y-8*s,30*s,.22*Math.PI,.78*Math.PI),{color:COL.ink,width:4,glow:0,tip:false});
+      dot(x-48*s,y+6*s,9*s,COL.red,.3);dot(x+48*s,y+6*s,9*s,COL.red,.3);
+      if(wave){const a=-1.15+Math.sin(T*.012)*.45,hx=x+66*s+Math.cos(a)*54*s,hy=y-4*s+Math.sin(a)*54*s;
+        stroke(poly([{x:x+62*s,y:y+2*s},{x:hx,y:hy}]),{color:COL.green,width:5.5,tip:false,amp:.3});dot(hx,hy,9*s,COL.green,1)}
+      text("呱基",x,y+86*s,{size:Math.round(26*Math.max(.8,s)),color:COL.green,weight:700,rise:0})}
+
+    const STN=[["入口",NET],["调度",SCH],["读题",MOD],["写答案",GPU],["送回",SAVE]];
+    const PC=[NET,SAVE,MOD,SCH];
+    function roadmap(y,o={}){const {shown=5,alpha=1,active=-1}=o;
+      STN.forEach(([l,c],i)=>{const x=120+i*210,a=clamp01(shown-i);if(a<=0)return;
+        withA(alpha*a,()=>{
+          shape(circlePts(x,y,50),{color:c,width:4.5,prog:a,fill:c,fillA:i===active?.34:.12,glow:0,tip:false,amp:.3});
+          text(String(i+1),x,y,{size:44,weight:800,color:c,rise:0});
+          text(l,x,y+88,{size:32,weight:700,color:c,rise:0})});
+        if(i<4){const b=clamp01(shown-i-.5);if(b>0)withA(alpha,()=>arrowLine(poly([{x:x+62,y},{x:x+148,y}]),b,COL.mute,3.5,14))}})}
+    function bus(x,y,w,h,o={}){const {p=1,col=COL.ink}=o;
+      shape(rrectPts(x,y,w,h,30),{color:col,width:4,prog:p,fill:"#eef3f9",fillA:1,glow:0,tip:false,amp:.3,alpha:.85});
+      const q=clamp01(p*2-1);if(q<=0)return;
+      [x+110,x+w-110].forEach(wx=>{shape(circlePts(wx,y+h+2,26),{color:col,width:4,fill:"#9aa3ad",fillA:.55,glow:0,tip:false,amp:0});dot(wx,y+h+2,8,col,.5*q)})}
+    function notebook(x,y,w,h,o={}){const {p=1,col=SAVE,n=0,a=1}=o;
+      withA(a,()=>{shape(rrectPts(x-w/2,y-h/2,w,h,10),{color:col,width:4,prog:p,fill:col,fillA:.1,glow:0,tip:false,amp:.3});
+        const q=clamp01(p*2-1);if(q<=0)return;
+        stroke(poly([{x:x-w/2+28,y:y-h/2+8},{x:x-w/2+28,y:y+h/2-8}]),{color:col,width:3,alpha:.6*q,glow:0,tip:false,amp:0});
+        const L=5;for(let i=0;i<L;i++){const f=clamp01(n-i);if(f<=0)break;const yy=y-h/2+h*(i+.75)/(L+.5);
+          stroke(poly([{x:x-w/2+50,y:yy},{x:x-w/2+50+(w-76)*f,y:yy}]),{color:col,width:3.5,alpha:.6*q,glow:0,tip:false,amp:0,grain:false})}})}
+    function chip(ch,x,y,col,o={}){const {s=60,a=1,fillA=.14,sz=30}=o;
+      withA(a,()=>{fill(rrectPts(x-s/2,y-s/2,s,s,s*.2),col,fillA,0);
+        stroke(rrectPts(x-s/2,y-s/2,s,s,s*.2),{color:col,width:3,glow:0,tip:false,amp:0,alpha:.85});
+        if(ch)text(ch,x,y,{size:sz,weight:700,rise:0})})}
+    const C_API=NET, C_EP=SCH, C_KEY=SAVE, C_SDK=GPU;
+    function monoW(str,size,weight=500){ctx.save();ctx.font=`${weight} ${size}px ${MONO}`;const w=ctx.measureText(str).width;ctx.restore();return w}
+    function shop(x,y,s,o={}){const {p=1,col=NET,sign="",a=1}=o;
+      withA(a,()=>{
+        shape(rrectPts(x-90*s,y,180*s,112*s,8*s),{color:COL.ink,width:3.5,prog:p,fill:"#ffffff",fillA:1,glow:0,tip:false,amp:.3,alpha:.85});
+        const q=clamp01(p*2-1);if(q<=0)return;
+        for(let i=0;i<5;i++){const t0=x-80*s+i*32*s,b0=x-100*s+i*40*s;
+          shape(poly([{x:t0,y:y-46*s},{x:t0+32*s,y:y-46*s},{x:b0+40*s,y},{x:b0,y}],true),{color:col,width:2.5,fill:col,fillA:i%2?.06:.4,glow:0,tip:false,amp:0,alpha:q})}
+        shape(rrectPts(x-20*s,y+42*s,40*s,70*s,4*s),{color:col,width:3,alpha:q,glow:0,tip:false,amp:0});
+        shape(rrectPts(x-76*s,y+26*s,42*s,40*s,4*s),{color:COL.ink,width:2.5,alpha:.5*q,glow:0,tip:false,amp:0});
+        shape(rrectPts(x+34*s,y+26*s,42*s,40*s,4*s),{color:COL.ink,width:2.5,alpha:.5*q,glow:0,tip:false,amp:0});
+        if(sign)text(sign,x,y-76*s,{size:Math.round(30*Math.max(.8,s)),weight:800,color:col,alpha:q,rise:0})})}
+    function windowIcon(x,y,s,col,p=1){
+      shape(rrectPts(x-62*s,y-48*s,124*s,96*s,8*s),{color:col,width:4,prog:p,fill:col,fillA:.1,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);if(q<=0)return;
+      shape(rrectPts(x-44*s,y-32*s,88*s,44*s,4*s),{color:col,width:2.5,fill:"#ffffff",fillA:.9,alpha:q,glow:0,tip:false,amp:0});
+      stroke(poly([{x:x-62*s,y:y+16*s},{x:x+62*s,y:y+16*s}]),{color:col,width:5,alpha:q,glow:0,tip:false,amp:0});
+      dot(x+30*s,y+34*s,5*s,col,q)}
+    function keyIcon(x,y,s,col=SAVE,a=1){withA(a,()=>{
+      shape(circlePts(x-30*s,y,22*s),{color:col,width:4,fill:col,fillA:.18,glow:0,tip:false,amp:0});dot(x-30*s,y,6*s,col,.6);
+      stroke(poly([{x:x-8*s,y},{x:x+52*s,y}]),{color:col,width:5,glow:0,tip:false,amp:0});
+      stroke(poly([{x:x+34*s,y},{x:x+34*s,y:y+16*s}]),{color:col,width:5,glow:0,tip:false,amp:0});
+      stroke(poly([{x:x+50*s,y},{x:x+50*s,y:y+12*s}]),{color:col,width:5,glow:0,tip:false,amp:0})})}
+    function keyCard(x,y,w,h,o={}){const {p=1,txt="sk-7f3a9c••••••••••••",shown=99}=o;
+      shape(rrectPts(x-w/2,y-h/2,w,h,24),{color:C_KEY,width:5,prog:p,fill:C_KEY,fillA:.14,glow:0,tip:false,amp:.3});
+      const q=clamp01(p*2-1);if(q<=0)return;
+      withA(q,()=>{keyIcon(x-w/2+90,y-h/2+70,1.3,C_KEY);text("API Key",x-w/2+190,y-h/2+60,{size:44,weight:800,color:C_KEY,align:"left",rise:0});
+        shape(rrectPts(x-w/2+36,y+h/2-110,w-72,64,14),{color:C_KEY,width:3,fill:"#ffffff",fillA:.9,glow:0,tip:false,amp:0});
+        mono(txt.slice(0,shown),x-w/2+60,y+h/2-78,{size:30,color:COL.ink,weight:600})})}
+    function receipt(x,y,s,col=SAVE,a=1){withA(a,()=>{
+      shape(poly([{x:x-30*s,y:y-40*s},{x:x+30*s,y:y-40*s},{x:x+30*s,y:y+40*s},{x:x+20*s,y:y+32*s},{x:x+10*s,y:y+40*s},{x:x,y:y+32*s},{x:x-10*s,y:y+40*s},{x:x-20*s,y:y+32*s},{x:x-30*s,y:y+40*s}],true),{color:col,width:3.5,fill:col,fillA:.15,glow:0,tip:false,amp:0});
+      [-20,-6,8].forEach(d=>stroke(poly([{x:x-18*s,y:y+d*s},{x:x+18*s,y:y+d*s}]),{color:col,width:3,alpha:.7,glow:0,tip:false,amp:0,grain:false}))})}
+    function toolbox(x,y,s,col=GPU,a=1){withA(a,()=>{
+      shape(rrectPts(x-56*s,y-18*s,112*s,64*s,8*s),{color:col,width:4,fill:col,fillA:.16,glow:0,tip:false,amp:0});
+      stroke(join(poly([{x:x-24*s,y:y-18*s},{x:x-24*s,y:y-34*s}]),poly([{x:x-24*s,y:y-34*s},{x:x+24*s,y:y-34*s}]),poly([{x:x+24*s,y:y-34*s},{x:x+24*s,y:y-18*s}])),{color:col,width:4,glow:0,tip:false,amp:0});
+      shape(rrectPts(x-9*s,y+4*s,18*s,16*s,3*s),{color:col,width:3,fill:col,fillA:.5,glow:0,tip:false,amp:0})})}
+    function globe(x,y,s,col=COL.mute,a=1){withA(a,()=>{
+      shape(circlePts(x,y,40*s),{color:col,width:3.5,fill:col,fillA:.08,glow:0,tip:false,amp:0});
+      stroke(ellipsePts(x,y,16*s,40*s),{color:col,width:2.5,glow:0,tip:false,amp:0,grain:false});
+      stroke(poly([{x:x-40*s,y},{x:x+40*s,y}]),{color:col,width:2.5,glow:0,tip:false,amp:0,grain:false});
+      stroke(poly([{x:x-34*s,y:y-20*s},{x:x+34*s,y:y-20*s}]),{color:col,width:2,alpha:.6,glow:0,tip:false,amp:0,grain:false});
+      stroke(poly([{x:x-34*s,y:y+20*s},{x:x+34*s,y:y+20*s}]),{color:col,width:2,alpha:.6,glow:0,tip:false,amp:0,grain:false})})}
+    function nodeBox(x,y,w,h,col,label,o={}){const {p=1,sub="",a=1,hl=0}=o;
+      withA(a,()=>{shape(rrectPts(x-w/2,y-h/2,w,h,20),{color:col,width:4.5,prog:p,fill:col,fillA:.1+.2*hl,glow:0,tip:false,amp:.3});
+        const q=clamp01(p*2-1);if(q<=0)return;
+        text(label,x,y-(sub?14:0),{size:34,weight:800,color:col,alpha:q,rise:0});if(sub)text(sub,x,y+26,{size:22,color:COL.mute,alpha:q,rise:0})})}
+    function codeBox(x,y,w,lines,o={}){const {p=1,col=GPU,shown=999,size=26}=o;
+      const lh=size*1.7,h=lines.length*lh+34;
+      shape(rrectPts(x,y,w,h,16),{color:col,width:3.5,prog:p,fill:"#f3f6fa",fillA:1,glow:0,tip:false,amp:.3});
+      let left=shown;lines.forEach((ln,i)=>{const k=Math.max(0,Math.min(ln.length,left));left-=ln.length;
+        if(k>0)mono(ln.slice(0,k),x+24,y+17+lh*(i+.5),{size,color:COL.ink,weight:600})});
+      return h}
+    // ---------- frame chrome ----------
+    function header(sc){const a=eOut(T/520);
+      text(`${sc.num}  ·  ${sc.tag}`,W/2,292,{size:26,color:"#6b7684",weight:600,alpha:a,spacing:4});
+      text(sc.headline,W/2,368,{size:54,color:COL.ink,weight:700,alpha:a,rise:18})}
+    function wrapLines(str,size,maxW){ctx.save();ctx.font=`500 ${size}px ${FONT}`;const lines=[];let cur="";
+      for(const ch of str.match(/[A-Za-z0-9.%+\/–-]+|[\s\S]/g)||[]){const t=cur+ch;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur.trimEnd());cur=ch.trim()?ch:""}else cur=t}
+      if(cur)lines.push(cur);ctx.restore();
+      const noStart="，。、；：？！）」』…—,.;:?!";
+      for(let i=1;i<lines.length;i++){while(lines[i]&&noStart.includes(lines[i][0])){lines[i-1]+=lines[i][0];lines[i]=lines[i].slice(1)}}
+      const out=lines.filter(Boolean);
+      if(out.length>=2&&[...out[out.length-1]].length<=2){out[out.length-2]+=out.pop()}
+      return out}
+    function subtitle(sc){
+      const g=ctx.createLinearGradient(0,1470,0,H-SAFE_BOTTOM);g.addColorStop(0,"rgba(255,255,255,0)");g.addColorStop(.35,"rgba(255,255,255,.9)");g.addColorStop(1,"rgba(255,255,255,.96)");
+      ctx.fillStyle=g;ctx.fillRect(0,1470,W,H-SAFE_BOTTOM-1470);
+      let cur=null;for(const b of sc.beats){if(T>=b.at-60)cur=b}if(!cur)cur=sc.beats[0];
+      const a=eOut((T-(cur.at-60))/180);
+      let lines=wrapLines(cur.text,42,920);
+      for(let w=900;lines.length>1&&w>=500;w-=20){const t=wrapLines(cur.text,42,w);if(t.length!==lines.length)break;lines=t}
+      if(lines.length===2||lines.length===3){const s=cur.text;let best=-1,bd=1e9;
+        for(let i=1;i<s.length-1;i++){if(!"，。？！；：、".includes(s[i]))continue;const a=measure(s.slice(0,i+1),42),b=measure(s.slice(i+1).trim(),42);
+          if(a<=960&&b<=960&&Math.abs(a-b)<bd){bd=Math.abs(a-b);best=i}}
+        if(best>=0)lines=[s.slice(0,best+1),s.slice(best+1).trim()];
+        else{const P=[];for(let i=1;i<s.length-1;i++)if("，。？！；：、".includes(s[i]))P.push(i);let bm=1e9,bl=null;
+          for(const i of P)for(const j of P){if(j<=i)continue;const seg=[s.slice(0,i+1),s.slice(i+1,j+1).trim(),s.slice(j+1).trim()],m=Math.max(...seg.map(x=>measure(x,42)));
+            if(m<=960&&m<bm){bm=m;bl=seg}}
+          if(bl)lines=bl}}
+      const lh=42*1.45,y0=SUB_Y-(lines.length-1)*lh/2;
+      lines.forEach((ln,i)=>text(ln,W/2,y0+i*lh,{size:42,color:COL.ink,weight:500,alpha:.35+.65*a,rise:6}))}
+
+    // ---------- scenes ----------
+    const DRAW={};
+    var SCD=0;
+    function span(k){const i=beatIdx(k);if(i<0)return 1000;const nb=BEATS[i+1];return (nb?nb.at:SCD)-BEATS[i].at}
+
+    DRAW.hook=function(){
+      withA(ap("intro",450)*(1-ap("h1",400)),()=>frog(540,900,1.25,true));
+      const a1=ap("h1",450),m=pr("h2",900);
+      if(a1>0){
+        const sx=lerp(540,270,m),sy=lerp(740,720,m),ss=lerp(1.6,1.0,m);
+        withA(a1*lerp(1,.55,m),()=>{
+          shop(sx,sy,ss,{p:pr("h1",900),col:NET,sign:"AI 餐厅"});
+          for(let i=0;i<3;i++)person(sx+(i-1)*90*ss,sy+112*ss+95,1.2*ss,COL.ink,ap("h1",300,1400+i*250));
+          if(m>.5)text("现成产品",sx,sy+112*ss+190,{size:32,weight:700,color:COL.mute,alpha:ap("h2",400,500),rise:0})});
+        withA(a1*(1-ap("h2",300)),()=>{
+          pill("菜单现成 · 点就能吃",540,1160,{tone:NET,size:34,alpha:ap("h1",400,2800),padX:30});
+          pill("老人也会用",540,1240,{tone:GPU,size:34,alpha:ap("h1",400,4600),padX:30})})}
+      const a2=ap("h2",450);
+      if(a2>0)withA(a2,()=>{
+        shop(810,720,1.0,{p:pr("h2",900,900),col:SCH,sign:"我的产品"});
+        for(let i=0;i<3;i++)person(810+(i-1)*90,935,1.2,COL.ink,ap("h2",300,2400+i*250));
+        withA(emph("h2",0),()=>pill("把 AI 用进来",810,1030,{tone:SCH,size:32,alpha:ap("h2",400,3800),padX:28}))});
+      const a3=ap("h3",450);
+      if(a3>0)withA(a3,()=>{
+        kitchen(540,1170,.7,{p:pr("h3",900),flame:ap("h3",500,1500)});
+        text("厂商的后厨 · 模型",540,1290,{size:32,weight:700,color:MOD,alpha:ap("h3",400,900),rise:0});
+        arrowLine(quadPts(790,1090,860,1170,690,1200),pr("h3",700,2200),C_API,4,16);
+        pill("订货",900,1160,{tone:C_API,size:30,alpha:ap("h3",400,2400),padX:24});
+        pill("订货的规矩 = API",540,1380,{tone:C_API,size:40,alpha:ap("h3",450,5600),padX:34})});
+    };
+
+    DRAW.value=function(){
+      const rows=[600,830,1060];
+      const head=(i,t,s,c,k)=>{text(t,740,rows[i]-30,{size:38,weight:800,color:c,alpha:ap(k,400),rise:0});text(s,740,rows[i]+26,{size:26,color:COL.mute,alpha:ap(k,400,600),rise:0})};
+      withA(ap("v0",400),()=>rows.forEach(y=>stroke(rrectPts(110,y-95,360,190,16),{color:COL.faint,width:3,glow:0,tip:false,amp:0,dash:[8,10]})));
+      const a1=ap("v1",400);
+      if(a1>0)withA(a1*emph("v1",.55),()=>{const y=rows[0];
+        bubble("几点关门？",130,y-80,{tone:NET,size:24,maxW:220,shown:Math.floor((since("v1")-600)/90)});
+        bubble("晚上 9 点",450,y-10,{tone:GPU,size:24,align:"right",maxW:220,shown:Math.floor((since("v1")-2600)/110)});
+        head(0,"做进自己的东西","微信客服自动答顾客",NET,"v1")});
+      const a2=ap("v2",400);
+      if(a2>0)withA(a2*emph("v2",.55),()=>{const y=rows[1];
+        shape(circlePts(190,y-6,28),{color:MOD,width:3.5,fill:MOD,fillA:.15,glow:0,tip:false,amp:0});text("小",190,y-6,{size:30,weight:800,color:MOD,rise:0});pill("便宜",190,y+56,{tone:SAVE,size:22,padX:14});
+        shape(circlePts(390,y-6,46),{color:MOD,width:4,fill:MOD,fillA:.25,glow:0,tip:false,amp:0});text("大",390,y-6,{size:46,weight:800,color:MOD,rise:0});pill("最强",390,y+70,{tone:GPU,size:22,padX:14});
+        const sw=ap("v2",400,2500);withA(sw,()=>{arrowLine(poly([{x:232,y:y-22},{x:334,y:y-22}]),1,COL.mute,3,11);arrowLine(poly([{x:334,y:y+10},{x:232,y:y+10}]),1,COL.mute,3,11)});
+        head(1,"自由挑，随时换","简单活用便宜的，难活用最强的",MOD,"v2")});
+      const a3=ap("v3",400);
+      if(a3>0)withA(a3*emph("v3",.55),()=>{const y=rows[2];
+        stroke(poly([{x:130,y:y+36},{x:450,y:y+36}]),{color:COL.ink,width:4,alpha:.5,glow:0,tip:false,amp:0});
+        for(let i=0;i<5;i++){const bx=130+(((since("v3")*.09+i*64)%330));if(bx>445)continue;shape(rrectPts(bx,y-4,36,32,6),{color:GPU,width:3,fill:GPU,fillA:.25,glow:0,tip:false,amp:0})}
+        text(`${Math.round(5000*eOut(clamp01((since("v3")-800)/3500))).toLocaleString("en-US")} 件`,290,y-52,{size:36,weight:800,color:GPU,rise:0});
+        head(2,"让程序自动干活","一晚上写完 5000 件文案",GPU,"v3")});
+      const a4=ap("v4",450);
+      if(a4>0)pill("多数按用量收费：用多少，付多少",540,1250,{tone:SAVE,size:34,alpha:a4,padX:30});
+    };
+
+    DRAW.api=function(){
+      const a1=ap("a1",400)*emph("a1",.5);
+      withA(a1,()=>{
+        person(170,650,2.0,COL.ink,ap("a1",400));
+        arrowLine(poly([{x:250,y:650},{x:320,y:650}]),pr("a1",400,500),COL.mute);
+        panel(340,550,430,200,pr("a1",700,300),COL.ink);
+        stroke(rrectPts(370,580,370,44,10),{color:COL.ink,width:2.5,alpha:.5,glow:0,tip:false,amp:0});
+        text("写点什么……",390,602,{size:24,color:COL.mute,align:"left",alpha:ap("a1",300,1200),rise:0});
+        [["按钮",370],["发送",570]].forEach(([s,x],i)=>{withA(ap("a1",300,1500+i*300),()=>{shape(rrectPts(x,660,170,56,12),{color:NET,width:3,fill:NET,fillA:.15,glow:0,tip:false,amp:0});text(s,x+85,688,{size:26,weight:700,color:NET,rise:0})})});
+        pill("界面：给人用的",555,800,{tone:COL.mute,size:28,alpha:ap("a1",400,2200),padX:22})});
+      const a2=ap("a2",450);
+      if(a2>0)withA(a2*emph("a2b",.85),()=>{const y=980;
+        nodeBox(185,y,210,120,C_API,"程序",{p:pr("a2",600),sub:"没有手指"});
+        arrowLine(poly([{x:300,y},{x:400,y}]),pr("a2",400,900),COL.mute);
+        windowIcon(500,y,1.5,C_API,pr("a2",700,1200));text("点单窗口",500,y+100,{size:28,weight:700,color:C_API,alpha:ap("a2",400,2000),rise:0});
+        withA(ap("a2",400,3600),()=>{panel(640,y-90,350,180,pr("a2",600,3600),C_API);text("规则",815,y-112,{size:26,weight:700,color:C_API,rise:0})});
+        ["怎么点","点什么","怎么回话"].forEach((s,i)=>withA(ap("a2b",300,i*900),()=>{dot(685,y-48+i*48,6,C_API,.9);text(s,712,y-48+i*48,{size:30,weight:600,align:"left",rise:0})}));
+        pill("窗口 + 规则 = API",540,1150,{tone:C_API,size:44,alpha:ap("a2b",450,4300),padX:36})});
+      const a3=ap("a3",450);
+      if(a3>0)withA(a3,()=>{const y=1295;
+        pill("外卖小程序",210,y,{tone:COL.ink,size:30,alpha:ap("a3",400),padX:22});
+        arrowLine(poly([{x:350,y},{x:460,y}]),pr("a3",400,700),COL.mute);
+        pill("API",540,y,{tone:C_API,size:34,alpha:ap("a3",400,900),padX:30});
+        arrowLine(poly([{x:620,y},{x:730,y}]),pr("a3",400,1500),COL.mute);
+        pill("外卖平台",870,y,{tone:SAVE,size:30,alpha:ap("a3",400,1700),padX:22})});
+    };
+
+    DRAW.endpoint=function(){
+      const W4=[["聊天",NET,360,650],["画图",MOD,720,650],["语音",SAVE,360,830],["文字变数字",GPU,720,830]];
+      const a1=ap("e1",450);
+      withA(a1,()=>{
+        shape(rrectPts(190,560,700,380,18),{color:COL.ink,width:4,prog:pr("e1",900),fill:"#f6f8fb",fillA:1,glow:0,tip:false,amp:.3,alpha:.85});
+        W4.forEach(([l,c,x,y],i)=>{const d=1300+i*1500;withA(ap("e1",350,d),()=>{
+          shape(rrectPts(x-135,y-60,270,120,12),{color:c,width:4,prog:pr("e1",500,d),fill:c,fillA:.14,glow:0,tip:false,amp:.3});
+          text(l,x,y,{size:l.length>3?30:38,weight:800,color:c,rise:0})})});
+        text("厂商大楼",540,530,{size:28,weight:700,color:COL.mute,alpha:ap("e1",400,500),rise:0})});
+      const a2=ap("e2",450);
+      if(a2>0)withA(a2,()=>{
+        const A="https://api.example.com",B="/v1/chat/completions",sz=32,wa=monoW(A,sz,600),wb=monoW(B,sz,600),x0=540-(wa+wb)/2,y=1130;
+        shape(rrectPts(70,y-44,940,88,18),{color:C_EP,width:4,prog:pr("e2",700),fill:C_EP,fillA:.07,glow:0,tip:false,amp:.3});
+        withA(ap("e2",400,500),()=>{mono(A,x0,y,{size:sz,color:C_EP,weight:600});mono(B,x0+wa,y,{size:sz,color:NET,weight:600})});
+        pill("Endpoint = 端点 = 窗口的网址",540,1330,{tone:C_EP,size:34,alpha:ap("e2",450,3600),padX:30});
+        const a3=ap("e3",400);
+        if(a3>0){
+          const hs=pr("e3",600);
+          stroke(join(poly([{x:x0,y:y+54},{x:x0,y:y+66}]),poly([{x:x0,y:y+66},{x:x0+wa,y:y+66}]),poly([{x:x0+wa,y:y+66},{x:x0+wa,y:y+54}])),{color:C_EP,width:4,prog:hs,glow:0,tip:false,amp:0});
+          text("整栋楼的门牌",x0+wa/2,y+105,{size:28,weight:700,color:C_EP,alpha:ap("e3",400,500),rise:0});
+          stroke(join(poly([{x:x0+wa,y:y+54},{x:x0+wa,y:y+66}]),poly([{x:x0+wa,y:y+66},{x:x0+wa+wb,y:y+66}]),poly([{x:x0+wa+wb,y:y+66},{x:x0+wa+wb,y:y+54}])),{color:NET,width:4,prog:pr("e3",600,1800),glow:0,tip:false,amp:0});
+          text("哪一扇窗",x0+wa+wb/2,y+105,{size:28,weight:700,color:NET,alpha:ap("e3",400,2300),rise:0});
+          stroke(rrectPts(225,590,270,120,12),{color:NET,width:6,alpha:ap("e3",400,2300),glow:0,tip:false,amp:0})}});
+    };
+
+    DRAW.key=function(){
+      const a1=ap("k1",450);
+      withA(a1,()=>keyCard(540,700,700,300,{p:pr("k1",800),shown:Math.floor((since("k1")-1500)/70)}));
+      const a2=ap("k2",400);
+      if(a2>0)withA(a2*emph("k3",.5),()=>{const y=985;
+        arrowLine(poly([{x:420,y:865},{x:340,y:945}]),pr("k2",400,300),COL.mute,3.5,14);
+        arrowLine(poly([{x:660,y:865},{x:740,y:945}]),pr("k2",400,3000),COL.mute,3.5,14);
+        person(130,y+8,1.2,NET,ap("k2",300,600));
+        pill("证明你是谁",300,y,{tone:NET,size:32,alpha:ap("k2",400,500),padX:26});
+        pill("这一单记谁的账",780,y,{tone:SAVE,size:32,alpha:ap("k2",400,3100),padX:26});
+        receipt(965,y+4,.9,SAVE,ap("k2",300,3300))});
+      const a3=ap("k3",450);
+      if(a3>0)withA(a3*emph("k3",.4),()=>{const y=1185;
+        [[190,"公开的代码"],[540,"群聊"],[890,"随手截图"]].forEach(([x,l],i)=>{const d=700+i*1800;withA(ap("k3",350,d),()=>{
+          shape(rrectPts(x-125,y-70,250,140,16),{color:COL.ink,width:3,dash:[8,8],glow:0,tip:false,amp:0,alpha:.5});
+          if(i===0)mono("</>",x,y-14,{size:44,color:COL.ink,align:"center",weight:700});
+          if(i===1){shape(rrectPts(x-44,y-44,60,34,8),{color:NET,width:3,fill:NET,fillA:.2,glow:0,tip:false,amp:0});shape(rrectPts(x-16,y-18,60,34,8),{color:GPU,width:3,fill:GPU,fillA:.2,glow:0,tip:false,amp:0})}
+          if(i===2)[[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>stroke(poly([{x:x+sx*34,y:y-14+sy*22-sy*12},{x:x+sx*34,y:y-14+sy*22},{x:x+sx*34-sx*12,y:y-14+sy*22}]),{color:COL.ink,width:4,glow:0,tip:false,amp:0}));
+          text(l,x,y+38,{size:28,weight:700,rise:0});
+          cross(x+100,y-48,13,ERR,pr("k3",300,d+500))})})});
+      const a4=ap("k4",450);
+      if(a4>0)withA(a4,()=>{const y=1345;
+        pill("泄露：作废 + 重新生成",300,y,{tone:ERR,size:30,alpha:ap("k4",400,300),padX:26});
+        withA(ap("k4",400,3000),()=>{text("额度上限",640,y,{size:28,weight:700,align:"left",rise:0});
+          stroke(rrectPts(780,y-14,210,28,14),{color:SAVE,width:3,glow:0,tip:false,amp:0});fill(rrectPts(784,y-10,130*pr("k4",800,3200),20,10),SAVE,.7,0);
+          stroke(poly([{x:918,y:y-22},{x:918,y:y+22}]),{color:ERR,width:4,glow:0,tip:false,amp:0})})});
+    };
+
+    DRAW.req=function(){
+      const a1=ap("r1",450);
+      withA(a1*emph("r3",.55),()=>{
+        panel(90,540,900,370,pr("r1",800),NET);
+        pill("你的点单（请求）",330,570,{tone:NET,size:28,alpha:ap("r1",400,400),padX:22});
+        const rows=[["模型",655],["说什么",735],["旋钮",840]];
+        rows.forEach(([l,y],i)=>{const d=[1200,3800,7000][i];withA(ap("r1",350,d),()=>{pill(l,190,y,{tone:NET,size:24,padX:16});
+          if(i===0)mono("model-name",300,y,{size:28,weight:600});
+          if(i===1){mono("系统：你是店铺客服",300,y-18,{size:24,weight:500,color:COL.mute});mono("用户：几点关门？",300,y+20,{size:26,weight:700})}
+          if(i===2){text("稳重",320,y,{size:24,align:"left",rise:0});stroke(poly([{x:390,y},{x:560,y}]),{color:COL.ink,width:3,alpha:.5,glow:0,tip:false,amp:0});dot(500,y,11,NET,1);text("发散",600,y,{size:24,align:"left",rise:0});text("最长 500 字",830,y,{size:24,weight:600,color:COL.mute,rise:0})}})})});
+      withA(ap("r2",400)*emph("r2",0),()=>pill("格式固定，窗口才看得懂",540,960,{tone:C_EP,size:32,padX:28}));
+      const a3=ap("r3",450);
+      if(a3>0)withA(a3,()=>{const y0=1010;
+        panel(90,y0,900,230,pr("r3",700),GPU);
+        pill("回单（响应）",300,y0+30,{tone:GPU,size:28,padX:22});
+        withA(ap("r3",350,900),()=>{pill("答案",190,y0+100,{tone:GPU,size:24,padX:16});text("晚上 9 点关门。",300,y0+100,{size:32,weight:700,align:"left",rise:0})});
+        withA(ap("r3",350,3200),()=>{pill("用量",190,y0+175,{tone:SAVE,size:24,padX:16});text("用了 38 个字数单位 → 记账",300,y0+175,{size:28,weight:600,color:SAVE,align:"left",rise:0})})});
+      const a4=ap("r4",450);
+      if(a4>0)withA(a4,()=>{const y=1340,on=pr("r4",400,900);
+        shape(rrectPts(110,y-24,92,48,24),{color:GPU,width:3.5,fill:GPU,fillA:.12+.5*on,glow:0,tip:false,amp:0});dot(lerp(134,178,on),y,17,on>.5?"#fff":COL.mute,1);
+        text("流式",235,y,{size:34,weight:800,color:GPU,align:"left",rise:0});
+        [..."晚上9点关门"].forEach((c,i)=>chip(c,430+i*86,y,GPU,{s:64,sz:32,fillA:.3,a:ap("r4",250,2200+i*350)}))});
+    };
+
+    DRAW.sdk=function(){
+      const a1=ap("s1",450);
+      withA(a1*emph("s1",.5),()=>{
+        text("手写请求：杂活一堆",540,590,{size:36,weight:800,color:ERR,alpha:ap("s1",400),rise:0});
+        ["拼格式","带上卡","设超时","失败重试","拆回单"].forEach((s,i)=>{const d=1000+i*1300;
+          withA(ap("s1",300,d),()=>{shape(rrectPts(540+(i-2)*185-80,650,160,84,14),{color:ERR,width:3.5,fill:ERR,fillA:.1,glow:0,tip:false,amp:0});text(s,540+(i-2)*185,692,{size:28,weight:700,color:ERR,rise:0})})})});
+      const a2=ap("s2",450);
+      if(a2>0)withA(a2,()=>{
+        arrowLine(poly([{x:540,y:760},{x:540,y:830}]),pr("s2",400),GPU,4,16);text("打包",610,795,{size:28,weight:700,color:GPU,alpha:ap("s2",300,300),rise:0});
+        pill("SDK = 现成工具包",540,885,{tone:GPU,size:36,alpha:ap("s2",400,500),padX:30});
+        toolbox(120,1030,.9,GPU,ap("s2",400,800));
+        const lines=["client = SDK(key=\"你的 Key\")","reply = client.chat(\"帮我写欢迎语\")","print(reply)"];
+        codeBox(190,945,790,lines,{p:pr("s2",600,900),shown:Math.floor((since("s2")-1800)/45),size:30})});
+      const a3=ap("s3",450)*emph("s3",0);
+      if(a3>0)pill("像用下单小程序：点一下，剩下它来办",540,1260,{tone:GPU,size:32,alpha:a3,padX:28});
+      const a4=ap("s4",450);
+      if(a4>0)pill("不用 SDK 也行：手写单子，只是更费劲",540,1260,{tone:COL.mute,size:30,alpha:a4,padX:28});
+    };
+
+    DRAW.chain=function(){
+      const P={A:[190,640],B:[540,640],C:[890,640],D:[890,1000],E:[540,1000],F:[190,1000]};
+      const hl=k=>({c1:"AB",c2:"BCD",c3:"E",c4:"F",c5:"ABCDEF"}[k]);
+      const cur=(()=>{for(const k of["c5","c4","c3","c2","c1"])if(since(k)>=0)return k;return"c1"})();
+      const on=n=>hl(cur).includes(n)?1:0;
+      const N=[["A","你的程序",NET,"","c1"],["B","SDK",GPU,"拼单 · 贴 Key","c1"],["C","互联网",COL.mute,"送过去","c2"],["D","Endpoint",C_EP,"那扇窗","c2"],["E","验卡",C_KEY,"身份 · 额度 · 限速","c3"],["F","推理服务",MOD,"排队 · 调度 · 写答案","c4"]];
+      N.forEach(([k,l,c,s,b])=>nodeBox(P[k][0],P[k][1],230,130,c,l,{p:pr(b,700,k==="B"||k==="D"?1200:0),sub:s,hl:on(k)*.7,a:ap(b,300,k==="B"||k==="D"?1000:0)}));
+      const R=(a,b,k,d)=>arrowLine(poly([{x:a[0],y:a[1]},{x:b[0],y:b[1]}]),pr(k,400,d),COL.mute,3.5,14);
+      R([308,640],[422,640],"c1",1500);R([658,640],[772,640],"c2",1500);R([890,708],[890,932],"c2",3300);
+      R([772,1000],[658,1000],"c3",0);R([422,1000],[308,1000],"c4",0);
+      withA(ap("c2",350,900),()=>{keyIcon(600,572,.65,C_KEY);text("贴 Key",610,534,{size:24,weight:700,color:C_KEY,rise:0})});
+      withA(ap("c3",400,600)*emph("c3",.5)*(1-ap("c5",300)),()=>["是不是你？","额度够不够？","点得太快没？"].forEach((s,i)=>{text(s,540,1105+i*44,{size:28,weight:600,alpha:ap("c3",300,900+i*900),rise:0})}));
+      const a5=ap("c5",400);
+      if(a5>0){const t=clamp01((since("c5")-600)/6500),route=poly([{x:190,y:1000},{x:890,y:1000},{x:890,y:640},{x:190,y:640}]);
+        for(let k=3;k>=0;k--){const q=along(route,Math.max(0,t-k*.018));dot(q.x,q.y,13-k*2.5,GPU,a5*(1-k*.22))}
+        text("答案按原路送回",540,1210,{size:30,weight:700,color:GPU,alpha:ap("c5",400,500),rise:0});
+        bubble("晚上 9 点关门。",540,1260,{tone:GPU,size:36,align:"center",maxW:700,shown:Math.floor((since("c5")-5200)/160)})}
+    };
+
+    DRAW.howto=function(){
+      const CARDS=[["地址","Endpoint",C_EP,"哪一扇窗",["api.vendor-a.com/v1","api.vendor-b.com/v1"],200],["钥匙","API Key",C_KEY,"你的会员卡",["sk-A3f9••••••","sk-B72c••••••"],540],["模型名","model",MOD,"点哪道菜",["model-a","model-b"],880]];
+      const sw=clamp01((since("w4")-2600)/400);
+      CARDS.forEach(([t,en,c,an,vals,x],i)=>{const d=i*500;
+        withA(ap("w1",400,d),()=>{
+          shape(rrectPts(x-140,560,280,300,18),{color:c,width:4.5,prog:pr("w1",700,d),fill:c,fillA:.1+(sw>0&&sw<1?.15:0),glow:0,tip:false,amp:.3});
+          if(i===0)windowIcon(x,640,.9,c,pr("w1",600,d+200));if(i===1)keyIcon(x,640,1.0,c);if(i===2)shape(circlePts(x,640,34),{color:c,width:4,fill:c,fillA:.2,glow:0,tip:false,amp:0});
+          if(i===2)text("AI",x,640,{size:30,weight:800,color:c,rise:0});
+          text(t,x,725,{size:44,weight:800,color:c,rise:0});
+          withA(ap("w2",350,d),()=>text(en,x,775,{size:26,weight:700,color:COL.mute,rise:0}));
+          mono(vals[0],x,820,{size:i===0?20:24,color:COL.ink,align:"center",alpha:1-sw,weight:600});mono(vals[1],x,820,{size:i===0?20:24,color:c,align:"center",alpha:sw,weight:700})});
+        withA(ap("w2",400,d+300),()=>pill(an,x,905,{tone:c,size:28,padX:22}))});
+      const a3=ap("w3",400)*emph("w3",0);
+      if(a3>0)withA(a3,()=>{["注册开通","创建钥匙","找地址和模型名","先跑一个最简单的问题"].forEach((s,i)=>{const d=1500+i*1700,y=1010+i*70;withA(ap("w3",350,d),()=>{
+          shape(circlePts(180,y,24),{color:GPU,width:3.5,fill:GPU,fillA:.15,glow:0,tip:false,amp:0});text(String(i+1),180,y,{size:28,weight:800,color:GPU,rise:0});
+          text(s,230,y,{size:34,weight:600,align:"left",rise:0});check(960,y,12,GPU,pr("w3",300,d+500))})})});
+      const a4=ap("w4",450);
+      if(a4>0)withA(a4,()=>{
+        codeBox(140,985,800,["client = SDK(key=钥匙)","client.chat(模型名, \"你好\")"],{p:pr("w4",600),shown:999,size:26});
+        pill("其余代码，一行都不用动",540,1180,{tone:GPU,size:34,alpha:ap("w4",400,1200),padX:30});
+        pill("换模型：只改这三样",540,1290,{tone:C_EP,size:42,alpha:ap("w4",450,3200),padX:34})});
+    };
+
+    DRAW.end=function(){
+      const MAP=[["API","点单窗口和规矩",C_API],["Endpoint","具体哪一扇窗",C_EP],["API Key","你的会员卡",C_KEY],["SDK","现成的下单工具",C_SDK]];
+      const D=Math.max(900,(span("n1")-2000)/4);
+      MAP.forEach(([a,b,c],i)=>{const al=ap("n1",400,500+i*D);if(al<=0)return;const y=640+i*95;
+        withA(emph("n1",.55),()=>{text(a,480,y,{size:42,weight:800,color:c,align:"right",alpha:al,rise:0});text("→",545,y,{size:32,color:COL.mute,alpha:al,rise:0});text(b,610,y,{size:36,weight:600,align:"left",alpha:al,rise:0})})});
+      const a2=ap("n2",400);
+      if(a2>0)withA(a2*emph("n2",.8),()=>{text("学会它，AI 就是能接进来的零件",540,1070,{size:32,weight:700,alpha:ap("n2",400),rise:0});
+        [["接进自己的产品",210,NET],["自由挑模型",540,MOD],["批量自动干活",870,GPU]].forEach(([s,x,c],i)=>pill(s,x,1150,{tone:c,size:28,alpha:ap("n2",400,1800+i*1800),padX:22}))});
+      const a3=ap("n3",450);
+      if(a3>0)pill("钥匙别外泄 · 用量看账单",540,1270,{tone:ERR,size:36,alpha:a3,padX:32});
+      withA(ap("bye",500),()=>frog(540,1385,.5,true));
+    };
+
+    // ---------- cover ----------
+    function richLine(parts,cx,y,size,weight=800){
+      const total=parts.reduce((s,[str,,sz])=>s+measure(str,sz||size,weight),0);let x=cx-total/2;
+      for(const [str,color,sz,hl] of parts){const s=sz||size,w=measure(str,s,weight);
+        if(hl){ctx.save();ctx.globalAlpha=.16;ctx.fillStyle=hl;ctx.beginPath();ctx.roundRect(x-6,y+s*.05,w+12,s*.42,8);ctx.fill();ctx.restore()}
+        text(str,x,y,{size:s,color,weight,align:"left",rise:0});x+=w}}
+    function drawCover(){
+      BEATS=[];T=577;GA=1;SCD=0;
+      ctx.drawImage(bgCanvas,0,0);
+      pill("呱基讲 AI  ·  第 11 期",W/2,330,{tone:COL.green,size:30,padX:30});
+      richLine([["开发者怎么",COL.ink],["接入模型",C_EP,null,C_EP]],W/2,470,92);
+      text("自己接 AI，要弄懂的四个词",W/2,575,{size:46,weight:700,color:COL.mute,rise:0});
+      const CARDS=[["API","点单窗口和规矩",C_API,290,700],["Endpoint","具体哪一扇窗",C_EP,790,700],["API Key","你的会员卡",C_KEY,290,1030],["SDK","现成的下单工具",C_SDK,790,1030]];
+      CARDS.forEach(([n,a,c,x,y],i)=>{
+        shape(rrectPts(x-215,y,430,300,22),{color:c,width:5,fill:c,fillA:.1,glow:0,tip:false,amp:.3});
+        if(i===0)windowIcon(x,y+78,1.3,c,1);
+        if(i===1){shape(rrectPts(x-130,y+46,260,56,14),{color:c,width:4,fill:"#ffffff",fillA:.9,glow:0,tip:false,amp:0});mono("api…/v1/chat",x,y+74,{size:26,color:c,align:"center",weight:700})}
+        if(i===2)keyIcon(x,y+78,1.5,c);
+        if(i===3)toolbox(x,y+82,1.4,c);
+        text(n,x,y+208,{size:46,weight:800,color:c,rise:0});text(a,x,y+258,{size:30,color:COL.mute,rise:0})});
+      text("一条链，四件套",W/2,1550,{size:52,weight:800,rise:0});
+      stroke(quadPts(290,1602,540,1618,790,1600),{color:SAVE,width:6,glow:0,tip:false});
+      frog(540,1730,.7,true);
+    }
+
+    // ---------- render ----------
+    function drawScene(index,localT){
+      const sc=SCENES[index];BEATS=sc.beats;T=localT;GA=1;SCD=sc.duration;
+      ctx.drawImage(bgCanvas,0,0);
+      header(sc);
+      (DRAW[sc.id]||(()=>{}))();
+      subtitle(sc);
+      const fade=clamp01(localT/260);if(fade<1){ctx.fillStyle=`rgba(255,255,255,${1-fade})`;ctx.fillRect(0,0,W,H)}
+    }
+
+    // ---------- player ----------
+    let playing=false,muted=false,sceneIndex=0,sceneStart=0,raf=0;
+    function pickVoice(){const v=speechSynthesis.getVoices();return v.find(x=>/zh[-_]CN/i.test(x.lang))||v.find(x=>/^zh/i.test(x.lang))||null}
+    function speak(s){if(muted||!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.lang="zh-CN";u.rate=1.06;u.pitch=1.15;const v=pickVoice();if(v)u.voice=v;speechSynthesis.speak(u)}
+    function stopSpeak(){if("speechSynthesis"in window)speechSynthesis.cancel()}
+    function totalDuration(){return SCENES.reduce((s,sc)=>s+sc.duration,0)}
+    const offsets=[];{let a=0;SCENES.forEach(sc=>{offsets.push(a);a+=sc.duration})}
+    function setScene(i,rv=true){
+      sceneIndex=Math.max(0,Math.min(SCENES.length-1,i));sceneStart=performance.now();
+      const sc=SCENES[sceneIndex];
+      meta.textContent=`场景 ${sceneIndex+1} / ${SCENES.length} · ${sc.tag}`;
+      [...sceneList.children].forEach((b,idx)=>b.classList.toggle("active",idx===sceneIndex));
+      if(rv&&playing)speak(sc.voice);updateProgress(0);
+    }
+    function updateProgress(localT){bar.style.width=Math.min(100,((offsets[sceneIndex]+localT)/totalDuration())*100)+"%"}
+    function tick(now){
+      if(!playing)return;const sc=SCENES[sceneIndex],localT=now-sceneStart;
+      drawScene(sceneIndex,localT);updateProgress(localT);
+      if(localT>=sc.duration){if(sceneIndex<SCENES.length-1)setScene(sceneIndex+1,true);else{playing=false;btnPlay.textContent="再看一遍";stopSpeak();drawScene(sceneIndex,sc.duration);updateProgress(sc.duration);return}}
+      raf=requestAnimationFrame(tick);
+    }
+    function play(){playing=true;btnPlay.textContent="暂停";setScene(sceneIndex,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    function pause(){playing=false;btnPlay.textContent="继续";stopSpeak();cancelAnimationFrame(raf)}
+    function restart(){stopSpeak();sceneIndex=0;playing=true;btnPlay.textContent="暂停";setScene(0,true);cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}
+    SCENES.forEach((sc,i)=>{const b=document.createElement("button");b.type="button";b.textContent=`${i+1}. ${sc.tag}`;
+      b.addEventListener("click",()=>{const was=playing;stopSpeak();setScene(i,was);drawScene(i,0);if(was){cancelAnimationFrame(raf);raf=requestAnimationFrame(tick)}});sceneList.appendChild(b)});
+    btnPlay.addEventListener("click",()=>{if(playing)pause();else{if(btnPlay.textContent==="再看一遍")restart();else play()}});
+    btnRestart.addEventListener("click",restart);
+    btnMute.addEventListener("click",()=>{muted=!muted;btnMute.textContent=muted?"配音：关":"配音：开";if(muted)stopSpeak();else if(playing)speak(SCENES[sceneIndex].voice)});
+    window.__GUAJI__={
+      SCENES,totalDuration,get playing(){return playing},setMuted(v){muted=v},
+      drawAt(ms){
+        let remain=ms,idx=0;
+        while(idx<SCENES.length-1&&remain>=SCENES[idx].duration){remain-=SCENES[idx].duration;idx++}
+        sceneIndex=idx;
+        meta.textContent=`场景 ${idx+1} / ${SCENES.length} · ${SCENES[idx].tag}`;
+        [...sceneList.children].forEach((b,j)=>b.classList.toggle("active",j===idx));
+        drawScene(idx,remain);
+        bar.style.width=Math.min(100,(ms/totalDuration())*100)+"%";
+      },
+      jump(i,localT){this.drawAt(offsets[i]+localT)},
+      drawCover
+    };
+    if(new URLSearchParams(location.search).has("cover"))drawCover();
+    else if(SCENES.length){setScene(0,false);drawScene(0,6000)}
+  </script>
+</body>
+</html>
