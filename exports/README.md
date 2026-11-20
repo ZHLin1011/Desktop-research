@@ -146,8 +146,8 @@ https://github.com/ZHLin1011/Desktop-research/raw/0e16834b1d7f8ad9661aa81be8ef57
 
 锁定本版提交：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-ai-on-device-serving-with-audio.mp4
+https://github.com/ZHLin1011/Desktop-research/raw/494bb36f5869f51edb4443e772d56a9f924f5b67/exports/guaji-ai-on-device-serving-with-audio.mp4
 
 封面 `guaji-ai-on-device-serving-cover.png`：
 
-https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-ai-on-device-serving-cover.png
+https://github.com/ZHLin1011/Desktop-research/raw/494bb36f5869f51edb4443e772d56a9f924f5b67/exports/guaji-ai-on-device-serving-cover.png
