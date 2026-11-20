@@ -18,6 +18,7 @@
 | 9 | 什么是模型 Infra | ~206s | [model-infra.html](llm-explainer/model-infra.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/e6449f1ea10dbf25ca5de2f6b6baf4b8daa535cc/exports/guaji-model-infra-with-audio.mp4) |
 | 10 | 模型的推理服务 | ~246s | [model-serving.html](llm-explainer/model-serving.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/4ccce2b07c47ff3ba8998e9a3dcaf52c6ae39325/exports/guaji-model-serving-with-audio.mp4) |
 | 11 | 开发者怎么接入模型 | ~273s | [dev-api-access.html](llm-explainer/dev-api-access.html) | [下载](https://github.com/ZHLin1011/Desktop-research/raw/0e16834b1d7f8ad9661aa81be8ef57e4a1397fcc/exports/guaji-dev-api-access-with-audio.mp4) |
+| 12 | 端侧的推理服务 | ~229s | [ai-on-device-serving.html](llm-explainer/ai-on-device-serving.html) | [下载](exports/guaji-ai-on-device-serving-with-audio.mp4) |
 
 ## 制作规范（定稿）
 
@@ -50,6 +51,7 @@ cd llm-explainer && python3 -m http.server 8765
 - 第 9 期：`http://127.0.0.1:8765/model-infra.html`
 - 第 10 期：`http://127.0.0.1:8765/model-serving.html`
 - 第 11 期：`http://127.0.0.1:8765/dev-api-access.html`
+- 第 12 期：`http://127.0.0.1:8765/ai-on-device-serving.html`
 
 ## 文件
 
@@ -66,6 +68,7 @@ cd llm-explainer && python3 -m http.server 8765
 | `llm-explainer/model-infra.html` | 第 9 期 |
 | `llm-explainer/model-serving.html` | 第 10 期 |
 | `llm-explainer/dev-api-access.html` | 第 11 期 |
+| `llm-explainer/ai-on-device-serving.html` | 第 12 期 |
 | `llm-explainer/SCRIPT*.md` | 各期脚本 |
 | `llm-explainer/PROMPT.md` | 可复用 Prompt |
 | `exports/*.mp4` | 有声成片 |

@@ -137,3 +137,17 @@ https://github.com/ZHLin1011/Desktop-research/raw/0e16834b1d7f8ad9661aa81be8ef57
 封面 `guaji-dev-api-access-cover.png`：
 
 https://github.com/ZHLin1011/Desktop-research/raw/0e16834b1d7f8ad9661aa81be8ef57e4a1397fcc/exports/guaji-dev-api-access-cover.png
+
+## 第 12 期 · 端侧的推理服务
+
+`guaji-ai-on-device-serving-with-audio.mp4`（约 229 秒，白色底）
+
+内容：云端是大饭店、手机是小厨房 · 系统级共用一份模型（应用只管提需求）· 对照云端五站，端侧多出「加载」一站 · 冷启动、常驻、被请出内存 · 前台优先、后台让路、不用拼车 · 电和热的天花板与降速 · 借系统的还是自带模型（推理引擎）· 端云混合兜底 · 看端侧 AI 的四个问题。
+
+锁定本版提交：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-ai-on-device-serving-with-audio.mp4
+
+封面 `guaji-ai-on-device-serving-cover.png`：
+
+https://github.com/ZHLin1011/Desktop-research/raw/cursor/llm-handdrawn-explainer-2cda/exports/guaji-ai-on-device-serving-cover.png
